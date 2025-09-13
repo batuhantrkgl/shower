@@ -28,17 +28,18 @@ QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 namespace {
 struct qt_meta_stringdata_TimelineWidget_t {
-    uint offsetsAndSizes[20];
+    uint offsetsAndSizes[22];
     char stringdata0[15];
     char stringdata1[18];
     char stringdata2[1];
-    char stringdata3[19];
-    char stringdata4[12];
-    char stringdata5[10];
-    char stringdata6[21];
-    char stringdata7[9];
-    char stringdata8[15];
-    char stringdata9[6];
+    char stringdata3[12];
+    char stringdata4[19];
+    char stringdata5[12];
+    char stringdata6[10];
+    char stringdata7[21];
+    char stringdata8[9];
+    char stringdata9[15];
+    char stringdata10[6];
 };
 #define QT_MOC_LITERAL(ofs, len) \
     uint(sizeof(qt_meta_stringdata_TimelineWidget_t::offsetsAndSizes) + ofs), len 
@@ -47,17 +48,19 @@ Q_CONSTINIT static const qt_meta_stringdata_TimelineWidget_t qt_meta_stringdata_
         QT_MOC_LITERAL(0, 14),  // "TimelineWidget"
         QT_MOC_LITERAL(15, 17),  // "updateCurrentTime"
         QT_MOC_LITERAL(33, 0),  // ""
-        QT_MOC_LITERAL(34, 18),  // "onScheduleReceived"
-        QT_MOC_LITERAL(53, 11),  // "schoolStart"
-        QT_MOC_LITERAL(65, 9),  // "schoolEnd"
-        QT_MOC_LITERAL(75, 20),  // "QList<ScheduleBlock>"
-        QT_MOC_LITERAL(96, 8),  // "schedule"
-        QT_MOC_LITERAL(105, 14),  // "onNetworkError"
-        QT_MOC_LITERAL(120, 5)   // "error"
+        QT_MOC_LITERAL(34, 11),  // "currentTime"
+        QT_MOC_LITERAL(46, 18),  // "onScheduleReceived"
+        QT_MOC_LITERAL(65, 11),  // "schoolStart"
+        QT_MOC_LITERAL(77, 9),  // "schoolEnd"
+        QT_MOC_LITERAL(87, 20),  // "QList<ScheduleBlock>"
+        QT_MOC_LITERAL(108, 8),  // "schedule"
+        QT_MOC_LITERAL(117, 14),  // "onNetworkError"
+        QT_MOC_LITERAL(132, 5)   // "error"
     },
     "TimelineWidget",
     "updateCurrentTime",
     "",
+    "currentTime",
     "onScheduleReceived",
     "schoolStart",
     "schoolEnd",
@@ -83,14 +86,14 @@ Q_CONSTINIT static const uint qt_meta_data_TimelineWidget[] = {
        0,       // signalCount
 
  // slots: name, argc, parameters, tag, flags, initial metatype offsets
-       1,    0,   32,    2, 0x0a,    1 /* Public */,
-       3,    3,   33,    2, 0x0a,    2 /* Public */,
-       8,    1,   40,    2, 0x0a,    6 /* Public */,
+       1,    1,   32,    2, 0x0a,    1 /* Public */,
+       4,    3,   35,    2, 0x0a,    3 /* Public */,
+       9,    1,   42,    2, 0x0a,    7 /* Public */,
 
  // slots: parameters
-    QMetaType::Void,
-    QMetaType::Void, QMetaType::QTime, QMetaType::QTime, 0x80000000 | 6,    4,    5,    7,
-    QMetaType::Void, QMetaType::QString,    9,
+    QMetaType::Void, QMetaType::QTime,    3,
+    QMetaType::Void, QMetaType::QTime, QMetaType::QTime, 0x80000000 | 7,    5,    6,    8,
+    QMetaType::Void, QMetaType::QString,   10,
 
        0        // eod
 };
@@ -106,6 +109,7 @@ Q_CONSTINIT const QMetaObject TimelineWidget::staticMetaObject = { {
         QtPrivate::TypeAndForceComplete<TimelineWidget, std::true_type>,
         // method 'updateCurrentTime'
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        QtPrivate::TypeAndForceComplete<const QTime &, std::false_type>,
         // method 'onScheduleReceived'
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
         QtPrivate::TypeAndForceComplete<const QTime &, std::false_type>,
@@ -124,7 +128,7 @@ void TimelineWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _
         auto *_t = static_cast<TimelineWidget *>(_o);
         (void)_t;
         switch (_id) {
-        case 0: _t->updateCurrentTime(); break;
+        case 0: _t->updateCurrentTime((*reinterpret_cast< std::add_pointer_t<QTime>>(_a[1]))); break;
         case 1: _t->onScheduleReceived((*reinterpret_cast< std::add_pointer_t<QTime>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QTime>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<QList<ScheduleBlock>>>(_a[3]))); break;
         case 2: _t->onNetworkError((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
         default: ;

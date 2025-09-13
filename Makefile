@@ -356,6 +356,7 @@ compiler_moc_header_clean:
 	-$(DEL_FILE) out/moc/moc_mainwindow.cpp out/moc/moc_videowidget.cpp out/moc/moc_timelinewidget.cpp out/moc/moc_networkclient.cpp
 out/moc/moc_mainwindow.cpp: mainwindow.h \
 		md3colors.h \
+		networkclient.h \
 		out/moc/moc_predefs.h \
 		/usr/lib/qt6/libexec/moc
 	/usr/lib/qt6/libexec/moc $(DEFINES) --include /home/batuhantrkgl/shower/out/moc/moc_predefs.h -I/usr/lib/arm-linux-gnueabihf/qt6/mkspecs/linux-g++ -I/home/batuhantrkgl/shower -I/usr/include/arm-linux-gnueabihf/qt6 -I/usr/include/arm-linux-gnueabihf/qt6/QtMultimediaWidgets -I/usr/include/arm-linux-gnueabihf/qt6/QtWidgets -I/usr/include/arm-linux-gnueabihf/qt6/QtMultimedia -I/usr/include/arm-linux-gnueabihf/qt6/QtGui -I/usr/include/arm-linux-gnueabihf/qt6/QtNetwork -I/usr/include/arm-linux-gnueabihf/qt6/QtCore -I/usr/include/c++/15 -I/usr/include/c++/15/x86_64-redhat-linux -I/usr/include/c++/15/backward -I/usr/lib/gcc/x86_64-redhat-linux/15/include -I/usr/local/include -I/usr/include mainwindow.h -o out/moc/moc_mainwindow.cpp
@@ -396,13 +397,14 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 ####### Compile
 
 out/obj/main.o: main.cpp mainwindow.h \
-		md3colors.h
+		md3colors.h \
+		networkclient.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o out/obj/main.o main.cpp
 
 out/obj/mainwindow.o: mainwindow.cpp mainwindow.h \
 		md3colors.h \
-		videowidget.h \
 		networkclient.h \
+		videowidget.h \
 		timelinewidget.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o out/obj/mainwindow.o mainwindow.cpp
 

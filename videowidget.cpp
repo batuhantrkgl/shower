@@ -1,213 +1,70 @@
 #include "videowidget.h"
-#include "md3colors.h"
-#include <QPaintEvent>
-#include <QFont>
-#include <QFontDatabase>
-#include <QPainterPath>
-#include <QResizeEvent>
-#include <QHBoxLayout>
-#include <QSpacerItem>
+#include <QtMultimedia>
+#include <QtMultimediaWidgets>
+#include <QLabel>
+#include <QStackedLayout>
+#include <QPixmap>
+#include <QDebug>
 
-VideoWidget::VideoWidget(QWidget *parent) : QWidget(parent), m_hasVideo(false)
+VideoWidget::VideoWidget(QWidget *parent)
+    : QWidget(parent)
 {
-    // Set minimum height following MD3 guidelines
-    setMinimumHeight(480);
-    
-    // Apply MD3 surface container styling with elevation
-    QString videoStyle = QString(
-        "VideoWidget {"
-            "background-color: %1;"
-            "border-radius: %2px;"
-            "border: 1px solid %3;"
-        "}"
-    ).arg(MD3Colors::DarkTheme::surfaceContainerHigh().name())
-     .arg(MD3Shapes::cornerLarge())
-     .arg(MD3Colors::DarkTheme::outline().name());
-    
-    setStyleSheet(videoStyle);
-    
-    // Initialize multimedia components
-    m_mediaPlayer = new QMediaPlayer(this);
-    m_videoWidget = new QVideoWidget(this);
-    
-    // Connect the media player to the video widget
-    m_mediaPlayer->setVideoOutput(m_videoWidget);
-    
-    // Setup UI
-    setupUI();
-    
-    // Connect signals
-    connect(m_mediaPlayer, &QMediaPlayer::mediaStatusChanged,
-            this, &VideoWidget::onMediaStatusChanged);
-    connect(m_mediaPlayer, &QMediaPlayer::playbackStateChanged,
-            this, &VideoWidget::onPlaybackStateChanged);
-    
-    // Do not load any video by default
-    m_hasVideo = false;
-}
+    // Use a black background, no borders or rounded corners
+    setAutoFillBackground(true);
+    QPalette pal = palette();
+    pal.setColor(QPalette::Window, Qt::black);
+    setPalette(pal);
+    setStyleSheet("border: none;");
 
-void VideoWidget::setupUI()
-{
-    m_layout = new QVBoxLayout(this);
-    m_layout->setSpacing(MD3Spacing::spacing4());
-    m_layout->setContentsMargins(
-        MD3Spacing::spacing4(),
-        MD3Spacing::spacing4(),
-        MD3Spacing::spacing4(),
-        MD3Spacing::spacing4()
-    );
+    // --- Media Player for Videos ---
+    m_player = new QMediaPlayer(this);
+    m_videoOutput = new QVideoWidget(this);
+    m_player->setVideoOutput(m_videoOutput);
     
-    // Add video widget
-    m_layout->addWidget(m_videoWidget, 1);
-    
-    // Create control layout
-    QHBoxLayout *controlLayout = new QHBoxLayout();
-    controlLayout->setSpacing(MD3Spacing::spacing4());
-    
-    // Status label
-    m_statusLabel = new QLabel("Loading video...", this);
-    m_statusLabel->setStyleSheet(QString(
-        "QLabel {"
-            "color: %1;"
-            "font-size: %2px;"
-            "background: transparent;"
-        "}"
-    ).arg(MD3Colors::DarkTheme::onSurface().name())
-     .arg(MD3Typography::BodyMedium::size()));
-    
-    // Play button
-    m_playButton = new QPushButton("▶ Play", this);
-    m_playButton->setStyleSheet(QString(
-        "QPushButton {"
-            "background-color: %1;"
-            "color: %2;"
-            "border-radius: %3px;"
-            "padding: %4px %5px;"
-            "font-size: %6px;"
-            "font-weight: %7;"
-            "border: none;"
-        "}"
-        "QPushButton:hover {"
-            "background-color: %8;"
-        "}"
-        "QPushButton:pressed {"
-            "background-color: %9;"
-        "}"
-    ).arg(MD3Colors::DarkTheme::primary().name())
-     .arg(MD3Colors::DarkTheme::onPrimary().name())
-     .arg(MD3Shapes::cornerMedium())
-     .arg(MD3Spacing::spacing3())
-     .arg(MD3Spacing::spacing6())
-     .arg(MD3Typography::LabelLarge::size())
-     .arg(MD3Typography::LabelLarge::weight())
-     .arg(MD3Colors::DarkTheme::primary().lighter(110).name())
-     .arg(MD3Colors::DarkTheme::primary().darker(110).name()));
-    
-    connect(m_playButton, &QPushButton::clicked, this, &VideoWidget::playPause);
-    
-    // Add controls to layout
-    controlLayout->addWidget(m_statusLabel, 1);
-    controlLayout->addWidget(m_playButton, 0);
-    
-    m_layout->addLayout(controlLayout, 0);
-    
-    setLayout(m_layout);
-}
+    // Log any media player errors
+    connect(m_player, &QMediaPlayer::errorOccurred, this, [=](QMediaPlayer::Error error, const QString &errorString){
+        qDebug() << "MediaPlayer Error:" << error << errorString;
+    });
 
-void VideoWidget::setVideoUrl(const QString &url)
-{
-    m_videoUrl = url;
-    m_statusLabel->setText("Loading: " + url);
-    
-    QUrl videoUrl(url);
-    m_mediaPlayer->setSource(videoUrl);
+    // --- Fallback Image Label ---
+    m_fallbackLabel = new QLabel(this);
+    m_fallbackLabel->setAlignment(Qt::AlignCenter);
+    m_fallbackLabel->setScaledContents(true); // Scale image to fill the widget
+    QPixmap fallbackPixmap("media/default.jpeg");
+    if(fallbackPixmap.isNull()) {
+        qDebug() << "ERROR: Could not load fallback image from media/default.jpeg";
+        m_fallbackLabel->setText("Fallback image not found!");
+    } else {
+        m_fallbackLabel->setPixmap(fallbackPixmap);
+    }
+
+    // --- Layout to Switch Between Video and Image ---
+    m_mainLayout = new QStackedLayout(this);
+    m_mainLayout->setContentsMargins(0, 0, 0, 0);
+    m_mainLayout->addWidget(m_videoOutput);   // Index 0
+    m_mainLayout->addWidget(m_fallbackLabel); // Index 1
+    setLayout(m_mainLayout);
+
+    // IMPORTANT: Start by showing the fallback image
+    m_mainLayout->setCurrentWidget(m_fallbackLabel);
 }
 
 void VideoWidget::onMediaReceived(const MediaInfo &media)
 {
-    if (media.type == "video") {
-        setVideoUrl(media.url);
-        m_mediaPlayer->play();
-        m_hasVideo = true;
+    qDebug() << "Media received:" << media.type << media.url;
+    if (media.type == "video" && !media.url.isEmpty()) {
+        m_player->setSource(QUrl(media.url));
+        m_mainLayout->setCurrentWidget(m_videoOutput); // Show the video player
+        m_player->play(); // Autoplay!
     } else {
-        // Handle other media types like 'image' in the future
-        m_statusLabel->setText("Received non-video media: " + media.type);
-    }
-}
-void VideoWidget::playPause()
-{
-    if (m_mediaPlayer->playbackState() == QMediaPlayer::PlayingState) {
-        m_mediaPlayer->pause();
-    } else {
-        m_mediaPlayer->play();
+        // If media type is not video or URL is empty, show fallback
+        onNetworkError("Invalid or non-video media received");
     }
 }
 
-void VideoWidget::onMediaStatusChanged(QMediaPlayer::MediaStatus status)
+void VideoWidget::onNetworkError(const QString &error)
 {
-    switch (status) {
-    case QMediaPlayer::LoadedMedia:
-        m_statusLabel->setText("Ready to play");
-        break;
-    case QMediaPlayer::LoadingMedia:
-        m_statusLabel->setText("Loading media...");
-        break;
-    case QMediaPlayer::BufferingMedia:
-        m_statusLabel->setText("Buffering...");
-        break;
-    case QMediaPlayer::EndOfMedia:
-        m_statusLabel->setText("Finished");
-        break;
-    case QMediaPlayer::InvalidMedia:
-        m_statusLabel->setText("Error: Cannot load media");
-        break;
-    default:
-        break;
-    }
-    updatePlayButton();
-}
-
-void VideoWidget::onPlaybackStateChanged(QMediaPlayer::PlaybackState state)
-{
-    updatePlayButton();
-    
-    switch (state) {
-    case QMediaPlayer::PlayingState:
-        m_statusLabel->setText("Playing");
-        break;
-    case QMediaPlayer::PausedState:
-        m_statusLabel->setText("Paused");
-        break;
-    case QMediaPlayer::StoppedState:
-        m_statusLabel->setText("Stopped");
-        break;
-    }
-}
-
-void VideoWidget::updatePlayButton()
-{
-    if (m_mediaPlayer->playbackState() == QMediaPlayer::PlayingState) {
-        m_playButton->setText("⏸ Pause");
-    } else {
-        m_playButton->setText("▶ Play");
-    }
-}
-
-void VideoWidget::resizeEvent(QResizeEvent *event)
-{
-    QWidget::resizeEvent(event);
-    update();
-}
-
-void VideoWidget::paintEvent(QPaintEvent *event)
-{
-    // Let the base widget handle painting for the layout
-    QWidget::paintEvent(event);
-}
-
-void VideoWidget::drawPlayIcon(QPainter &painter, const QRect &rect)
-{
-    // This method is kept for compatibility but not used with real video playback
-    Q_UNUSED(painter)
-    Q_UNUSED(rect)
+    qDebug() << "VideoWidget received network error:" << error;
+    m_player->stop();
+    m_mainLayout->setCurrentWidget(m_fallbackLabel); // Show the fallback image on any error
 }

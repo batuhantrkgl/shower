@@ -2,46 +2,32 @@
 #define VIDEOWIDGET_H
 
 #include <QWidget>
-#include <QPainter>
-#include <QMediaPlayer>
-#include <QVideoWidget>
-#include <QVBoxLayout>
-#include <QLabel>
-#include <QPushButton>
-#include <QUrl>
-#include "md3colors.h"
-#include "networkclient.h"
+#include "networkclient.h" // For the MediaInfo struct
+
+// Forward declarations
+class QMediaPlayer;
+class QVideoWidget;
+class QLabel;
+class QStackedLayout;
 
 class VideoWidget : public QWidget
 {
     Q_OBJECT
+
 public:
     explicit VideoWidget(QWidget *parent = nullptr);
-    void setVideoUrl(const QString &url);
 
 public slots:
-    void playPause();
-    void onMediaStatusChanged(QMediaPlayer::MediaStatus status);
+    // Slot to handle successfully fetched media info from the server
     void onMediaReceived(const MediaInfo &media);
-    void onPlaybackStateChanged(QMediaPlayer::PlaybackState state);
-
-protected:
-    void paintEvent(QPaintEvent *event) override;
-    void drawPlayIcon(QPainter &painter, const QRect &rect);
-    void resizeEvent(QResizeEvent *event) override;
+    // Slot to handle any network failure
+    void onNetworkError(const QString &error);
 
 private:
-    void setupUI();
-    void updatePlayButton();
-    
-    QMediaPlayer *m_mediaPlayer;
-    QVideoWidget *m_videoWidget;
-    QVBoxLayout *m_layout;
-    QLabel *m_statusLabel;
-    QPushButton *m_playButton;
-    QString m_videoUrl;
-    bool m_hasVideo;
-
+    QMediaPlayer *m_player;
+    QVideoWidget *m_videoOutput;
+    QLabel *m_fallbackLabel;
+    QStackedLayout *m_mainLayout;
 };
 
 #endif // VIDEOWIDGET_H
