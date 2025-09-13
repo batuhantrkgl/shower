@@ -1,0 +1,22 @@
+[Unit]
+Description=VideoTimeline Display Client
+After=graphical-session.target network-online.target
+Wants=graphical-session.target network-online.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+Environment=DISPLAY=:0
+Environment=HOME=/home/pi
+WorkingDirectory=/home/pi/VideoTimeline
+ExecStartPre=/bin/sleep 10
+ExecStart=/home/pi/VideoTimeline/VideoTimeline
+Restart=always
+RestartSec=5
+
+# Ensure X11 display is available
+Environment="XAUTHORITY=/home/pi/.Xauthority"
+
+[Install]
+WantedBy=default.target
