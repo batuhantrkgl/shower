@@ -25,7 +25,7 @@ protected:
                            const QTime &referenceTime, int totalMinutes,
                            int yPos, int height,
                            const QColor &fillColor, const QColor &textColor,
-                           const QString &label);
+                           const QString &label, bool isFirst, bool isLast); // <-- MODIFIED
     void drawCurrentTimeIndicator(QPainter &painter, const QRect &timelineRect,
                                   const QTime &referenceTime, int totalMinutes,
                                   int yStart, int height);

@@ -14,7 +14,7 @@ EQ            = =
 
 CC            = gcc
 CXX           = g++
-DEFINES       = -DQT_NO_DEBUG -DQT_MULTIMEDIAWIDGETS_LIB -DQT_WIDGETS_LIB -DQT_MULTIMEDIA_LIB -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_CORE_LIB
+DEFINES       = -DAPP_VERSION=\"1.1.0\" -DAPP_RELEASE_DATE=\"2025-09-14T08:42:47+00:00\" -DAPP_BUILD_ID=\"1757839367\" -DQT_NO_DEBUG -DQT_MULTIMEDIAWIDGETS_LIB -DQT_WIDGETS_LIB -DQT_MULTIMEDIA_LIB -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_CORE_LIB
 CFLAGS        = -pipe -O2 -Wall -Wextra -D_REENTRANT $(DEFINES)
 CXXFLAGS      = -pipe -O2 -Wall -Wextra -D_REENTRANT $(DEFINES)
 INCPATH       = -I. -I/usr/include/arm-linux-gnueabihf/qt6 -I/usr/include/arm-linux-gnueabihf/qt6/QtMultimediaWidgets -I/usr/include/arm-linux-gnueabihf/qt6/QtWidgets -I/usr/include/arm-linux-gnueabihf/qt6/QtMultimedia -I/usr/include/arm-linux-gnueabihf/qt6/QtGui -I/usr/include/arm-linux-gnueabihf/qt6/QtNetwork -I/usr/include/arm-linux-gnueabihf/qt6/QtCore -Iout/moc -I/usr/lib/arm-linux-gnueabihf/qt6/mkspecs/linux-g++
@@ -36,8 +36,8 @@ DEL_DIR       = rmdir
 MOVE          = mv -f
 TAR           = tar -cf
 COMPRESS      = gzip -9f
-DISTNAME      = VideoTimeline1.0.0
-DISTDIR = /home/batuhantrkgl/shower/out/obj/VideoTimeline1.0.0
+DISTNAME      = VideoTimeline1.1.0
+DISTDIR = /home/batuhantrkgl/shower/out/obj/VideoTimeline1.1.0
 LINK          = g++
 LFLAGS        = -Wl,-O1 -Wl,-rpath-link,/usr/lib/arm-linux-gnueabihf
 LIBS          = $(SUBLIBS) /usr/lib/arm-linux-gnueabihf/libQt6MultimediaWidgets.so /usr/lib/arm-linux-gnueabihf/libQt6Widgets.so /usr/lib/arm-linux-gnueabihf/libQt6Multimedia.so /usr/lib/arm-linux-gnueabihf/libQt6Gui.so /usr/lib/arm-linux-gnueabihf/libGLX.so /usr/lib/arm-linux-gnueabihf/libOpenGL.so /usr/lib/arm-linux-gnueabihf/libQt6Network.so /usr/lib/arm-linux-gnueabihf/libQt6Core.so -lpthread -lGLX -lOpenGL   
@@ -104,6 +104,8 @@ DIST          = /usr/lib/arm-linux-gnueabihf/qt6/mkspecs/features/spec_pre.prf \
 		/usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_spatialaudio.pri \
 		/usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_sql.pri \
 		/usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_sql_private.pri \
+		/usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_svg.pri \
+		/usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_svgwidgets.pri \
 		/usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_testlib.pri \
 		/usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_testlib_private.pri \
 		/usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_widgets.pri \
@@ -191,6 +193,8 @@ Makefile: VideoTimeline.pro /usr/lib/arm-linux-gnueabihf/qt6/mkspecs/linux-g++/q
 		/usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_spatialaudio.pri \
 		/usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_sql.pri \
 		/usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_sql_private.pri \
+		/usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_svg.pri \
+		/usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_svgwidgets.pri \
 		/usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_testlib.pri \
 		/usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_testlib_private.pri \
 		/usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_widgets.pri \
@@ -265,6 +269,8 @@ Makefile: VideoTimeline.pro /usr/lib/arm-linux-gnueabihf/qt6/mkspecs/linux-g++/q
 /usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_spatialaudio.pri:
 /usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_sql.pri:
 /usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_sql_private.pri:
+/usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_svg.pri:
+/usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_svgwidgets.pri:
 /usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_testlib.pri:
 /usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_testlib_private.pri:
 /usr/lib/arm-linux-gnueabihf/qt6/mkspecs/modules/qt_lib_widgets.pri:
@@ -362,7 +368,6 @@ out/moc/moc_mainwindow.cpp: mainwindow.h \
 	/usr/lib/qt6/libexec/moc $(DEFINES) --include /home/batuhantrkgl/shower/out/moc/moc_predefs.h -I/usr/lib/arm-linux-gnueabihf/qt6/mkspecs/linux-g++ -I/home/batuhantrkgl/shower -I/usr/include/arm-linux-gnueabihf/qt6 -I/usr/include/arm-linux-gnueabihf/qt6/QtMultimediaWidgets -I/usr/include/arm-linux-gnueabihf/qt6/QtWidgets -I/usr/include/arm-linux-gnueabihf/qt6/QtMultimedia -I/usr/include/arm-linux-gnueabihf/qt6/QtGui -I/usr/include/arm-linux-gnueabihf/qt6/QtNetwork -I/usr/include/arm-linux-gnueabihf/qt6/QtCore -I/usr/include/c++/15 -I/usr/include/c++/15/x86_64-redhat-linux -I/usr/include/c++/15/backward -I/usr/lib/gcc/x86_64-redhat-linux/15/include -I/usr/local/include -I/usr/include mainwindow.h -o out/moc/moc_mainwindow.cpp
 
 out/moc/moc_videowidget.cpp: videowidget.h \
-		md3colors.h \
 		networkclient.h \
 		out/moc/moc_predefs.h \
 		/usr/lib/qt6/libexec/moc
@@ -409,7 +414,6 @@ out/obj/mainwindow.o: mainwindow.cpp mainwindow.h \
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o out/obj/mainwindow.o mainwindow.cpp
 
 out/obj/videowidget.o: videowidget.cpp videowidget.h \
-		md3colors.h \
 		networkclient.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o out/obj/videowidget.o videowidget.cpp
 
