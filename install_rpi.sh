@@ -41,7 +41,7 @@ mkdir -p "$APP_DIR"
 # Copy application files (assuming they're in current directory)
 if [ -f "VideoTimeline" ]; then
     echo "Copying VideoTimeline executable..."
-    cp VideoTimeline "$APP_DIR/"
+    cp out/VideoTimeline "$APP_DIR/"
     chmod +x "$APP_DIR/VideoTimeline"
 else
     echo "Warning: VideoTimeline executable not found in current directory"
