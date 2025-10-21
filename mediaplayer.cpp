@@ -1,11 +1,11 @@
 #include "mediaplayer.h"
+#include "qt6compat.h"
 #include <QNetworkAccessManager>
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QPixmap>
 #include <QDebug>
 #include <QUrl>
-#include <QAudioOutput>
 
 MediaPlayer::MediaPlayer(QVideoWidget *videoOutput, QLabel *imageLabel, QStackedLayout *layout, QObject *parent)
     : QObject(parent)
@@ -19,8 +19,7 @@ MediaPlayer::MediaPlayer(QVideoWidget *videoOutput, QLabel *imageLabel, QStacked
     m_player->setVideoOutput(m_videoOutput);
     
     // Initialize audio output for Qt6 compatibility
-    QAudioOutput *audioOutput = new QAudioOutput(this);
-    m_player->setAudioOutput(audioOutput);
+    SETUP_AUDIO_OUTPUT(m_player);
     
     // Connect video player signals
     connect(m_player, &QMediaPlayer::playbackStateChanged, 
@@ -33,9 +32,9 @@ MediaPlayer::MediaPlayer(QVideoWidget *videoOutput, QLabel *imageLabel, QStacked
             });
     
     // Log any media player errors
-    connect(m_player, &QMediaPlayer::errorOccurred, 
-            this, [=](QMediaPlayer::Error error, const QString &errorString){
-                qDebug() << "MediaPlayer Error:" << error << errorString;
+    connect(m_player, MEDIAPLAYER_ERROR_SIGNAL,
+            this, [this](QMediaPlayer::Error error, const QString &errorString){
+                HANDLE_MEDIA_ERROR(error, errorString);
                 // Move to next item on error
                 next();
             });
@@ -104,14 +103,11 @@ void MediaPlayer::playCurrentItem()
     
     if (currentItem.type == "video") {
         showVideo();
-        m_player->setSource(QUrl(currentItem.url));
+        SET_MEDIA_SOURCE(m_player, createUrl(currentItem.url));
         
         // Set mute state
-        QAudioOutput *audioOutput = m_player->audioOutput();
-        if (audioOutput) {
-            audioOutput->setMuted(currentItem.muted);
-            qDebug() << "Video muted:" << currentItem.muted;
-        }
+        SET_AUDIO_MUTED(m_player, currentItem.muted);
+        COMPAT_DEBUG("Video muted:" << currentItem.muted);
         
         m_player->play();
     } else if (currentItem.type == "image") {
@@ -126,12 +122,12 @@ void MediaPlayer::playCurrentItem()
 
 void MediaPlayer::showVideo()
 {
-    m_layout->setCurrentIndex(VIDEO_INDEX);
+    m_layout->setCurrentIndex(VIDEO_WIDGET_INDEX);
 }
 
 void MediaPlayer::showImage()
 {
-    m_layout->setCurrentIndex(IMAGE_INDEX);
+    m_layout->setCurrentIndex(IMAGE_WIDGET_INDEX);
 }
 
 void MediaPlayer::loadImage(const QString &url)
@@ -139,7 +135,7 @@ void MediaPlayer::loadImage(const QString &url)
     // If it's a network URL, download the image
     if (url.startsWith("http://") || url.startsWith("https://")) {
         QNetworkAccessManager *manager = new QNetworkAccessManager(this);
-        QNetworkRequest request(QUrl(url));
+        QNetworkRequest request = createNetworkRequest(url);
         QNetworkReply *reply = manager->get(request);
         
         connect(reply, &QNetworkReply::finished, this, [this, reply]() {
@@ -149,22 +145,25 @@ void MediaPlayer::loadImage(const QString &url)
                 if (pixmap.loadFromData(imageData)) {
                     m_imageLabel->setPixmap(pixmap);
                 } else {
-                    qDebug() << "Failed to load image from network data";
+                    COMPAT_DEBUG("Failed to load image from network data");
                     // Keep the current image or fallback
                 }
             } else {
-                qDebug() << "Failed to download image:" << reply->errorString();
+                HANDLE_NETWORK_ERROR(reply->error(), reply->errorString());
                 // Keep the current image or fallback
             }
             reply->deleteLater();
         });
     } else {
-        // Local file path
-        QPixmap pixmap(url);
+        // Local file path - handle both absolute and relative paths
+        QString imagePath = convertMediaPath(url);
+        
+        QPixmap pixmap(imagePath);
         if (!pixmap.isNull()) {
             m_imageLabel->setPixmap(pixmap);
+            COMPAT_DEBUG("Loaded local image:" << imagePath);
         } else {
-            qDebug() << "Failed to load local image:" << url;
+            COMPAT_DEBUG("Failed to load local image:" << imagePath);
             // Keep the current image or fallback
         }
     }
@@ -173,29 +172,29 @@ void MediaPlayer::loadImage(const QString &url)
 void MediaPlayer::startImageTimer(int durationMs)
 {
     if (durationMs <= 0) {
-        qDebug() << "Invalid image duration:" << durationMs;
+        COMPAT_DEBUG("Invalid image duration:" << durationMs);
         durationMs = 5000; // Default to 5 seconds
     }
     
-    qDebug() << "Starting image timer for" << durationMs << "ms";
-    m_imageTimer->start(durationMs);
+    COMPAT_DEBUG("Starting image timer for" << durationMs << "ms");
+    startSingleShotTimer(m_imageTimer, durationMs);
 }
 
 void MediaPlayer::onImageTimerFinished()
 {
-    qDebug() << "Image timer finished, moving to next";
+    COMPAT_DEBUG("Image timer finished, moving to next");
     next();
 }
 
 void MediaPlayer::onVideoFinished()
 {
-    qDebug() << "Video finished, moving to next";
+    COMPAT_DEBUG("Video finished, moving to next");
     next();
 }
 
 void MediaPlayer::onVideoStateChanged(QMediaPlayer::PlaybackState state)
 {
-    qDebug() << "Video state changed:" << state;
+    COMPAT_DEBUG("Video state changed:" << state);
     
     if (state == QMediaPlayer::StoppedState) {
         // Video was stopped (could be due to error or end of media)

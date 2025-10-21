@@ -7,8 +7,8 @@
 #include <QVideoWidget>
 #include <QLabel>
 #include <QStackedLayout>
-#include <QAudioOutput>
 #include <QString>
+#include "qt6compat.h"
 #include "networkclient.h"
 
 class MediaPlayer : public QObject
@@ -49,9 +49,9 @@ private:
     
     bool m_isPlaying;
     
-    // Widget indices for stacked layout
-    static const int VIDEO_INDEX = 0;
-    static const int IMAGE_INDEX = 1;
+    // Widget indices for stacked layout (using compatibility constants)
+    static const int VIDEO_INDEX = VIDEO_WIDGET_INDEX;
+    static const int IMAGE_INDEX = IMAGE_WIDGET_INDEX;
 };
 
 #endif // MEDIAPLAYER_H

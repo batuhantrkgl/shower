@@ -49,4 +49,5 @@ HEADERS += \
     timelinewidget.h \
     networkclient.h \
     md3colors.h \
-    mediaplayer.h
+    mediaplayer.h \
+    qt6compat.h
