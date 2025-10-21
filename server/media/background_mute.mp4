@@ -1,0 +1,18 @@
+This is a placeholder file for a background video that should be muted.
+In a real implementation, this would be an MP4 video file.
+For testing purposes, you can replace this with an actual video file.
+
+The filename 'background_mute.mp4' will be detected by the playlist generator as:
+- Type: video
+- Duration: -1 (full video duration)
+- Muted: true (due to 'background' and 'mute' in the filename)
+
+To test the playlist functionality:
+1. Replace this file with a real MP4 video
+2. The server will automatically detect it and include it in the playlist
+3. It will play without audio (muted)
+
+This type of video is useful for:
+- Background ambiance videos
+- Silent promotional content
+- Visual content that doesn't require audio

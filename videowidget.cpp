@@ -1,4 +1,5 @@
 #include "videowidget.h"
+#include "mediaplayer.h"
 #include <QtMultimedia>
 #include <QtMultimediaWidgets>
 #include <QLabel>
@@ -16,15 +17,8 @@ VideoWidget::VideoWidget(QWidget *parent)
     setPalette(pal);
     setStyleSheet("border: none;");
 
-    // --- Media Player for Videos ---
-    m_player = new QMediaPlayer(this);
+    // --- Video Widget for Videos ---
     m_videoOutput = new QVideoWidget(this);
-    m_player->setVideoOutput(m_videoOutput);
-    
-    // Log any media player errors
-    connect(m_player, &QMediaPlayer::errorOccurred, this, [=](QMediaPlayer::Error error, const QString &errorString){
-        qDebug() << "MediaPlayer Error:" << error << errorString;
-    });
 
     // --- Fallback Image Label ---
     m_fallbackLabel = new QLabel(this);
@@ -47,24 +41,28 @@ VideoWidget::VideoWidget(QWidget *parent)
 
     // IMPORTANT: Start by showing the fallback image
     m_mainLayout->setCurrentWidget(m_fallbackLabel);
+
+    // --- Initialize Media Player ---
+    m_mediaPlayer = new MediaPlayer(m_videoOutput, m_fallbackLabel, m_mainLayout, this);
+    connect(m_mediaPlayer, &MediaPlayer::mediaChanged, this, &VideoWidget::onMediaChanged);
 }
 
-void VideoWidget::onMediaReceived(const MediaInfo &media)
+void VideoWidget::onPlaylistReceived(const MediaPlaylist &playlist)
 {
-    qDebug() << "Media received:" << media.type << media.url;
-    if (media.type == "video" && !media.url.isEmpty()) {
-        m_player->setSource(QUrl(media.url));
-        m_mainLayout->setCurrentWidget(m_videoOutput); // Show the video player
-        m_player->play(); // Autoplay!
-    } else {
-        // If media type is not video or URL is empty, show fallback
-        onNetworkError("Invalid or non-video media received");
-    }
+    qDebug() << "Playlist received with" << playlist.items.size() << "items";
+    m_mediaPlayer->setPlaylist(playlist);
+    m_mediaPlayer->play();
+}
+
+void VideoWidget::onMediaChanged(const MediaItem &item)
+{
+    qDebug() << "Current media changed to:" << item.type << item.url;
+    // The MediaPlayer handles switching between video and image views
 }
 
 void VideoWidget::onNetworkError(const QString &error)
 {
     qDebug() << "VideoWidget received network error:" << error;
-    m_player->stop();
+    m_mediaPlayer->stop();
     m_mainLayout->setCurrentWidget(m_fallbackLabel); // Show the fallback image on any error
 }

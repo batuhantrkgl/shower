@@ -36,8 +36,8 @@ MainWindow::MainWindow(QWidget *parent)
     mainLayout->addWidget(m_timelineWidget, 0);
 
     // --- Connect Signals and Slots ---
-    connect(m_networkClient, &NetworkClient::mediaReceived,
-            m_videoWidget, &VideoWidget::onMediaReceived);
+    connect(m_networkClient, &NetworkClient::playlistReceived,
+            m_videoWidget, &VideoWidget::onPlaylistReceived);
     connect(m_networkClient, &NetworkClient::scheduleReceived,
             this, &MainWindow::onScheduleReceived);
 

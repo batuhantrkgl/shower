@@ -1,0 +1,8 @@
+This is a placeholder file for a quick welcome image.
+In a real implementation, this would be a JPEG image file.
+For testing purposes, you can replace this with an actual image file.
+
+The filename 'welcome_quick.jpg' will be detected by the playlist generator as:
+- Type: image
+- Duration: 2000ms (2 seconds) due to 'quick' in the filename
+- Muted: false (not applicable for images)

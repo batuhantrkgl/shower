@@ -34,8 +34,8 @@ void NetworkClient::fetchSchedule()
 
 void NetworkClient::fetchCurrentMedia()
 {
-    QNetworkRequest request(QUrl(m_serverUrl + "/api/media/current"));
-    qDebug() << "Fetching current media from: " << request.url();
+    QNetworkRequest request(QUrl(m_serverUrl + "/api/media/playlist"));
+    qDebug() << "Fetching media playlist from: " << request.url();
     request.setRawHeader("User-Agent", "VideoTimeline Client");
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     
@@ -97,14 +97,14 @@ void NetworkClient::onMediaReplyFinished()
         QJsonDocument doc = QJsonDocument::fromJson(data, &error);
         
         if (error.error == QJsonParseError::NoError && doc.isObject()) {
-            parseMediaJson(doc.object());
+            parsePlaylistJson(doc.object());
         } else {
             qDebug() << "JSON parse error:" << error.errorString();
-            emit networkError("Failed to parse media JSON");
+            emit networkError("Failed to parse playlist JSON");
         }
     } else {
         qDebug() << "Network error:" << reply->errorString();
-        emit networkError("Failed to fetch media info: " + reply->errorString());
+        emit networkError("Failed to fetch playlist: " + reply->errorString());
     }
     
     reply->deleteLater();
@@ -177,18 +177,32 @@ void NetworkClient::parseScheduleJson(const QJsonObject &json)
     emit scheduleReceived(schoolStart, schoolEnd, schedule);
 }
 
-void NetworkClient::parseMediaJson(const QJsonObject &json)
+void NetworkClient::parsePlaylistJson(const QJsonObject &json)
 {
-    MediaInfo media;
-    media.type = json["type"].toString();
-    media.url = json["url"].toString();
-    media.duration = json["duration"].toInt();
+    MediaPlaylist playlist;
+    QJsonArray itemsArray = json["items"].toArray();
     
-    if (!media.type.isEmpty() && !media.url.isEmpty()) {
-        // Convert relative URL to absolute
-        if (media.url.startsWith("/")) {
-            media.url = m_serverUrl + media.url;
+    for (const QJsonValue &itemValue : itemsArray) {
+        QJsonObject itemObj = itemValue.toObject();
+        
+        MediaItem item;
+        item.type = itemObj["type"].toString();
+        item.url = itemObj["url"].toString();
+        item.duration = itemObj["duration"].toInt();
+        item.muted = itemObj["muted"].toBool();
+        
+        if (!item.type.isEmpty() && !item.url.isEmpty()) {
+            // Convert relative URL to absolute
+            if (item.url.startsWith("/")) {
+                item.url = m_serverUrl + item.url;
+            }
+            playlist.items.append(item);
         }
-        emit mediaReceived(media);
+    }
+    
+    if (playlist.hasItems()) {
+        emit playlistReceived(playlist);
+    } else {
+        emit networkError("Received empty or invalid playlist");
     }
 }

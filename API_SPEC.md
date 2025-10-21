@@ -30,17 +30,46 @@ Returns the current school schedule.
 }
 ```
 
-### GET /api/media/current
-Returns the current media to display.
+### GET /api/media/playlist
+Returns the media playlist to display in sequence.
 
 **Response:**
 ```json
 {
-  "type": "video|image",
-  "url": "/media/current.mp4",
-  "duration": 30000
+  "items": [
+    {
+      "type": "image",
+      "url": "/media/image1.jpg",
+      "duration": 2000,
+      "muted": false
+    },
+    {
+      "type": "video",
+      "url": "/media/video1.mp4",
+      "duration": -1,
+      "muted": false
+    },
+    {
+      "type": "video",
+      "url": "/media/video2.mp4",
+      "duration": -1,
+      "muted": true
+    },
+    {
+      "type": "image",
+      "url": "/media/image2.jpg",
+      "duration": 10000,
+      "muted": false
+    }
+  ]
 }
 ```
+
+**Field Descriptions:**
+- `type`: "video" or "image"
+- `url`: Relative or absolute URL to the media file
+- `duration`: For images, duration in milliseconds. For videos, use -1 for full duration
+- `muted`: For videos, whether to play muted. Ignored for images
 
 ### GET /media/{filename}
 Serves media files (videos, images).

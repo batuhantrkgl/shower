@@ -40,11 +40,13 @@ SOURCES += \
     mainwindow.cpp \
     videowidget.cpp \
     timelinewidget.cpp \
-    networkclient.cpp
+    networkclient.cpp \
+    mediaplayer.cpp
 
 HEADERS += \
     mainwindow.h \
     videowidget.h \
     timelinewidget.h \
     networkclient.h \
-    md3colors.h
+    md3colors.h \
+    mediaplayer.h

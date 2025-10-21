@@ -2,13 +2,13 @@
 #define VIDEOWIDGET_H
 
 #include <QWidget>
-#include "networkclient.h" // For the MediaInfo struct
+#include "networkclient.h" // For the MediaItem struct
 
 // Forward declarations
-class QMediaPlayer;
 class QVideoWidget;
 class QLabel;
 class QStackedLayout;
+class MediaPlayer;
 
 class VideoWidget : public QWidget
 {
@@ -18,16 +18,18 @@ public:
     explicit VideoWidget(QWidget *parent = nullptr);
 
 public slots:
-    // Slot to handle successfully fetched media info from the server
-    void onMediaReceived(const MediaInfo &media);
+    // Slot to handle successfully fetched playlist from the server
+    void onPlaylistReceived(const MediaPlaylist &playlist);
     // Slot to handle any network failure
     void onNetworkError(const QString &error);
+    // Slot to handle media changes in the playlist
+    void onMediaChanged(const MediaItem &item);
 
 private:
-    QMediaPlayer *m_player;
     QVideoWidget *m_videoOutput;
     QLabel *m_fallbackLabel;
     QStackedLayout *m_mainLayout;
+    MediaPlayer *m_mediaPlayer;
 };
 
 #endif // VIDEOWIDGET_H

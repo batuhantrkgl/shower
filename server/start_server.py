@@ -1,21 +1,17 @@
 #!/usr/bin/env python3
 """
-VideoTimeline Server
-Simple HTTP server to serve schedule data and media files
+Simple VideoTimeline Server Launcher
+This version removes problematic dependencies and focuses on core functionality
 """
 
 import json
 import os
 import http.server
 import socketserver
-from datetime import datetime, time
+from datetime import datetime
 import urllib.parse
 import shutil
 import logging
-import subprocess
-import sys
-import netifaces  # You need to install this: sudo pip install netifaces
-from PIL import Image, ImageDraw, ImageFont  # For generating a default image
 
 # --- Configuration ---
 PORT = 8080
@@ -26,10 +22,6 @@ CURRENT_MEDIA_FILE = os.path.join(DATA_DIR, "current_media.json")
 PLAYLIST_FILE = os.path.join(DATA_DIR, "playlist.json")
 DEFAULT_MEDIA_FILENAME = "default.jpg"
 DEFAULT_MEDIA_PATH = os.path.join(MEDIA_DIR, DEFAULT_MEDIA_FILENAME)
-
-# --- Network Configuration ---
-RESERVE_IP = "192.168.32.52"  # The IP address you want to reserve
-RESERVE_IP_SUBNET = "24"  # The subnet in CIDR notation (24 is 255.255.255.0)
 
 # --- Logging Setup ---
 logging.basicConfig(
@@ -144,10 +136,6 @@ def generate_playlist_from_media_dir():
 
     # If no media files found, create a default entry
     if not playlist_items:
-        # Ensure default image exists
-        if not os.path.exists(DEFAULT_MEDIA_PATH):
-            generate_default_image(DEFAULT_MEDIA_PATH)
-
         playlist_items.append(
             {
                 "type": "image",
@@ -166,112 +154,10 @@ def generate_playlist_from_media_dir():
     return playlist_data
 
 
-def generate_default_image(output_path):
-    """Generates a simple default placeholder image."""
-    try:
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        img = Image.new("RGB", (640, 480), color=(73, 109, 137))
-        d = ImageDraw.Draw(img)
-        try:
-            # Try to use a common font or fall back
-            font = ImageFont.truetype("arial.ttf", 40)
-        except IOError:
-            font = ImageFont.load_default()
-            logger.warning(
-                "Could not find arial.ttf, using default font for placeholder image."
-            )
-        d.text((50, 200), "No Media Available", fill=(255, 255, 255), font=font)
-        img.save(output_path)
-        logger.info(f"Generated default placeholder image at {output_path}")
-    except Exception as e:
-        logger.error(f"Failed to generate default image at {output_path}: {e}")
-
-
-# --- Network Management Functions ---
-def check_and_reserve_ip(ip_to_reserve, subnet):
-    """Checks if an IP is in use and assigns it as a secondary address if not."""
-    logger.info(f"Attempting to reserve IP address: {ip_to_reserve}")
-
-    # Step 1: Check if this machine already has the IP address
-    for interface in netifaces.interfaces():
-        try:
-            addrs = netifaces.ifaddresses(interface)
-            if netifaces.AF_INET in addrs:
-                for addr_info in addrs[netifaces.AF_INET]:
-                    if addr_info.get("addr") == ip_to_reserve:
-                        logger.info(
-                            f"This device already has the IP {ip_to_reserve} on interface {interface}. No action needed."
-                        )
-                        return True
-        except Exception as e:
-            logger.warning(f"Could not inspect interface {interface}: {e}")
-
-    # Step 2: Check if another device on the network is using the IP
-    logger.info(f"Pinging {ip_to_reserve} to see if it's in use by another device...")
-    try:
-        # -c 1: send 1 packet, -W 1: wait 1 second for a reply
-        result = subprocess.run(
-            ["ping", "-c", "1", "-W", "1", ip_to_reserve],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        if result.returncode == 0:
-            logger.error(
-                f"IP address {ip_to_reserve} is already in use by another device on the network. Cannot reserve."
-            )
-            return False
-    except FileNotFoundError:
-        logger.error("The 'ping' command was not found. Cannot check if IP is in use.")
-        return False
-
-    logger.info(f"IP {ip_to_reserve} appears to be free.")
-
-    # Step 3: Add the IP address to the primary network interface
-    if os.geteuid() != 0:
-        logger.warning(
-            f"This script is not running as root (sudo). Cannot add IP address {ip_to_reserve}."
-        )
-        logger.warning(
-            "Please run with 'sudo python3 server.py' to enable IP reservation."
-        )
-        return False
-
-    try:
-        # Find the default gateway interface (e.g., 'eth0' or 'wlan0')
-        gws = netifaces.gateways()
-        if "default" not in gws or netifaces.AF_INET not in gws["default"]:
-            logger.error(
-                "Could not determine the default network interface. Cannot add IP."
-            )
-            return False
-        interface = gws["default"][netifaces.AF_INET][1]
-
-        logger.info(f"Adding IP {ip_to_reserve} to interface {interface}...")
-        ip_with_subnet = f"{ip_to_reserve}/{subnet}"
-        # Using the 'ip' command to add the address
-        subprocess.run(
-            ["ip", "addr", "add", ip_with_subnet, "dev", interface], check=True
-        )
-        logger.info(f"Successfully added IP address {ip_to_reserve} to {interface}.")
-        return True
-    except FileNotFoundError:
-        logger.error("The 'ip' command was not found. Cannot add IP address.")
-        return False
-    except subprocess.CalledProcessError:
-        logger.error(
-            f"Failed to add IP address {ip_to_reserve}. This may require 'sudo' permissions."
-        )
-        return False
-    except Exception as e:
-        logger.error(f"An unexpected error occurred while adding IP: {e}")
-        return False
-
-
 # --- API Endpoints Handlers ---
 class APIHandlers:
     """A collection of methods to handle specific API endpoints."""
 
-    # ... (This class remains unchanged) ...
     def __init__(self, server_instance):
         self.server = server_instance
         self._default_schedule_data = {
@@ -404,80 +290,12 @@ class APIHandlers:
         )
         self._send_json_response(schedule_data)
 
-    def post_schedule(self):
-        """Update schedule"""
-        try:
-            content_length = int(self.server.headers.get("Content-Length", 0))
-            if content_length == 0:
-                return self._send_error_response(400, "Request body is empty.")
-
-            post_data_raw = self.server.rfile.read(content_length)
-            schedule_data = json.loads(post_data_raw.decode("utf-8"))
-
-            if save_json_file(DEFAULT_SCHEDULE_FILE, schedule_data):
-                self._send_json_response(
-                    {"status": "success", "message": "Schedule updated."}
-                )
-            else:
-                self._send_error_response(500, "Failed to save schedule data.")
-
-        except json.JSONDecodeError:
-            self._send_error_response(400, "Invalid JSON format.")
-        except Exception as e:
-            logger.exception("Error in post_schedule:")
-            self._send_error_response(500, f"Internal Server Error: {e}")
-
     def get_current_media(self):
         """Return current media information"""
         media_data = load_json_file(
             CURRENT_MEDIA_FILE, self._default_current_media_data
         )
-        # Ensure default media exists if it's referenced
-        if media_data.get(
-            "url"
-        ) == f"/media/{DEFAULT_MEDIA_FILENAME}" and not os.path.exists(
-            DEFAULT_MEDIA_PATH
-        ):
-            generate_default_image(DEFAULT_MEDIA_PATH)
         self._send_json_response(media_data)
-
-    def post_current_media(self):
-        """Update current media (e.g., which file to play next)"""
-        try:
-            content_length = int(self.server.headers.get("Content-Length", 0))
-            if content_length == 0:
-                return self._send_error_response(400, "Request body is empty.")
-
-            post_data_raw = self.server.rfile.read(content_length)
-            media_config = json.loads(post_data_raw.decode("utf-8"))
-
-            # Basic validation: ensure 'url' is provided and points to an existing file
-            media_url = media_config.get("url")
-            if not media_url or not media_url.startswith("/media/"):
-                return self._send_error_response(
-                    400, "Invalid media URL format. Must start with '/media/'."
-                )
-
-            # Check if the media file actually exists on the server
-            filename = media_url[len("/media/") :]
-            full_media_path = os.path.join(MEDIA_DIR, filename)
-            if not os.path.exists(full_media_path):
-                return self._send_error_response(
-                    404, f"Referenced media file '{filename}' not found on server."
-                )
-
-            if save_json_file(CURRENT_MEDIA_FILE, media_config):
-                self._send_json_response(
-                    {"status": "success", "message": "Current media updated."}
-                )
-            else:
-                self._send_error_response(500, "Failed to save current media data.")
-
-        except json.JSONDecodeError:
-            self._send_error_response(400, "Invalid JSON format.")
-        except Exception as e:
-            logger.exception("Error in post_current_media:")
-            self._send_error_response(500, f"Internal Server Error: {e}")
 
     def get_media_playlist(self):
         """Return current media playlist, auto-generating if needed"""
@@ -528,70 +346,6 @@ class APIHandlers:
             # Fallback to default playlist
             self._send_json_response(self._default_playlist_data)
 
-    def post_media_playlist(self):
-        """Update the media playlist"""
-        try:
-            content_length = int(self.server.headers.get("Content-Length", 0))
-            if content_length == 0:
-                return self._send_error_response(400, "Request body is empty.")
-
-            post_data_raw = self.server.rfile.read(content_length)
-            playlist_data = json.loads(post_data_raw.decode("utf-8"))
-
-            # Basic validation
-            if not isinstance(playlist_data, dict) or "items" not in playlist_data:
-                return self._send_error_response(
-                    400, "Invalid playlist format. Must have 'items' array."
-                )
-
-            items = playlist_data["items"]
-            if not isinstance(items, list):
-                return self._send_error_response(
-                    400, "Playlist 'items' must be an array."
-                )
-
-            # Validate each item
-            for i, item in enumerate(items):
-                if not isinstance(item, dict):
-                    return self._send_error_response(
-                        400, f"Item {i} must be an object."
-                    )
-
-                item_type = item.get("type")
-                if item_type not in ["image", "video"]:
-                    return self._send_error_response(
-                        400,
-                        f"Item {i} has invalid type '{item_type}'. Must be 'image' or 'video'.",
-                    )
-
-                url = item.get("url")
-                if not url or not isinstance(url, str):
-                    return self._send_error_response(
-                        400, f"Item {i} must have a valid 'url' string."
-                    )
-
-                # Check if media file exists (for local URLs)
-                if url.startswith("/media/"):
-                    filename = url[len("/media/") :]
-                    full_path = os.path.join(MEDIA_DIR, filename)
-                    if not os.path.exists(full_path):
-                        return self._send_error_response(
-                            404, f"Item {i}: Media file '{filename}' not found."
-                        )
-
-            if save_json_file(PLAYLIST_FILE, playlist_data):
-                self._send_json_response(
-                    {"status": "success", "message": "Playlist updated."}
-                )
-            else:
-                self._send_error_response(500, "Failed to save playlist data.")
-
-        except json.JSONDecodeError:
-            self._send_error_response(400, "Invalid JSON format.")
-        except Exception as e:
-            logger.exception("Error in post_media_playlist:")
-            self._send_error_response(500, f"Internal Server Error: {e}")
-
     def regenerate_playlist(self):
         """Force regeneration of playlist from media directory"""
         try:
@@ -607,26 +361,16 @@ class APIHandlers:
             logger.exception("Error in regenerate_playlist:")
             self._send_error_response(500, f"Internal Server Error: {e}")
 
-    def post_media_upload(self):
-        """Handle media upload (Multipart form data would be needed for a real solution)"""
-        # A more complete implementation would use `cgi.FieldStorage` or a similar library
-        # to parse multipart/form-data. For now, we'll keep it simple for demonstration.
-        self._send_error_response(
-            501,
-            "Media upload not fully implemented (requires multipart form data parsing).",
-        )
-        logger.warning("Attempted media upload, but it's not fully implemented.")
-
 
 # --- HTTP Request Handler ---
 class VideoTimelineHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
-        # ***** THE FIX IS HERE *****
-        # Initialize our custom attributes FIRST.
-        self.api_handlers = APIHandlers(self)
-        # NOW, call the parent constructor which will start handling the request.
+        self.api_handlers = None
         super().__init__(*args, **kwargs)
-        # ***** END OF FIX *****
+
+    def setup(self):
+        super().setup()
+        self.api_handlers = APIHandlers(self)
 
     def do_GET(self):
         parsed_path = urllib.parse.urlparse(self.path)
@@ -642,7 +386,6 @@ class VideoTimelineHandler(http.server.SimpleHTTPRequestHandler):
             self.api_handlers.regenerate_playlist()
         elif path.startswith("/media/"):
             self._handle_get_media_file(path)
-        # Added a root redirect for convenience
         elif path == "/" or path == "/index.html":
             self._send_error_response(
                 404, "No static frontend served from root. This is an API server."
@@ -650,26 +393,9 @@ class VideoTimelineHandler(http.server.SimpleHTTPRequestHandler):
         else:
             self._send_error_response(404, "Not Found")
 
-    def do_POST(self):
-        parsed_path = urllib.parse.urlparse(self.path)
-        path = parsed_path.path
-
-        if path == "/api/schedule":
-            self.api_handlers.post_schedule()
-        elif path == "/api/media/current":
-            self.api_handlers.post_current_media()
-        elif path == "/api/media/playlist":
-            self.api_handlers.post_media_playlist()
-        elif path == "/api/media/upload":
-            self.api_handlers.post_media_upload()
-        else:
-            self._send_error_response(404, "Not Found")
-
     def _send_error_response(self, status, message):
         """Helper to send JSON error responses."""
-        self.api_handlers._send_error_response(
-            status, message
-        )  # Access through api_handlers
+        self.api_handlers._send_error_response(status, message)
 
     def _handle_get_media_file(self, path):
         """Serve media files from the MEDIA_DIR."""
@@ -681,12 +407,11 @@ class VideoTimelineHandler(http.server.SimpleHTTPRequestHandler):
             return self._send_error_response(403, "Forbidden")
 
         media_filepath = os.path.join(MEDIA_DIR, filename)
+        if not os.path.exists(media_filepath):
+            logger.info(f"Media file not found: {media_filepath}")
+            return self._send_error_response(404, f"Media file '{filename}' not found")
 
-        if not os.path.exists(media_filepath) or not os.path.isfile(media_filepath):
-            logger.warning(f"Media file not found: {media_filepath}")
-            return self._send_error_response(404, "Media file not found")
-
-        # Determine content type more robustly
+        # Determine content type
         mime_types = {
             ".jpg": "image/jpeg",
             ".jpeg": "image/jpeg",
@@ -717,42 +442,47 @@ class VideoTimelineHandler(http.server.SimpleHTTPRequestHandler):
             self._send_error_response(500, f"Error reading media file: {e}")
 
 
-def run_server(port=PORT):
-    """Run the VideoTimeline server"""
-    # --- Execute Startup Tasks ---
+def ensure_directories():
+    """Ensure required directories exist"""
     os.makedirs(DATA_DIR, exist_ok=True)
     os.makedirs(MEDIA_DIR, exist_ok=True)
+    logger.info(f"Created directories: {DATA_DIR}, {MEDIA_DIR}")
 
-    if not os.path.exists(DEFAULT_MEDIA_PATH):
-        generate_default_image(DEFAULT_MEDIA_PATH)
 
-    load_json_file(DEFAULT_SCHEDULE_FILE, APIHandlers(None)._default_schedule_data)
-    load_json_file(CURRENT_MEDIA_FILE, APIHandlers(None)._default_current_media_data)
+def run_server(port=PORT):
+    """Run the VideoTimeline server"""
+    ensure_directories()
 
-    # --- NEW: IP Reservation Logic ---
-    if RESERVE_IP:
-        check_and_reserve_ip(RESERVE_IP, RESERVE_IP_SUBNET)
-    # --- End of New Logic ---
+    logger.info(f"Starting VideoTimeline Server on port {port}")
 
-    Handler = VideoTimelineHandler
-    with socketserver.TCPServer(("0.0.0.0", port), Handler) as httpd:
-        logger.info(f"VideoTimeline Server running on port {port}")
-        logger.info(f"API available at: http://<your_ip>:{port}/api/schedule")
-        if RESERVE_IP:
-            logger.info(
-                f"Server should also be accessible at: http://{RESERVE_IP}:{port}"
+    try:
+        with socketserver.TCPServer(("", port), VideoTimelineHandler) as httpd:
+            logger.info(f"VideoTimeline Server running on port {port}")
+            logger.info(f"API endpoints available:")
+            logger.info(f"  • GET http://localhost:{port}/api/schedule")
+            logger.info(f"  • GET http://localhost:{port}/api/media/current")
+            logger.info(f"  • GET http://localhost:{port}/api/media/playlist")
+            logger.info(f"  • GET http://localhost:{port}/api/media/regenerate")
+            logger.info(f"  • GET http://localhost:{port}/media/<filename>")
+            logger.info("Press Ctrl+C to stop the server")
+
+            try:
+                httpd.serve_forever()
+            except KeyboardInterrupt:
+                logger.info("\nShutting down server...")
+                httpd.shutdown()
+                logger.info("Server stopped.")
+    except OSError as e:
+        if e.errno == 98:  # Address already in use
+            logger.error(
+                f"Port {port} is already in use. Try a different port or stop the existing server."
             )
-        logger.info("Press Ctrl+C to stop the server")
+        else:
+            logger.error(f"Failed to start server: {e}")
+        return False
 
-        try:
-            httpd.serve_forever()
-        except KeyboardInterrupt:
-            logger.info("\nShutting down server...")
-            httpd.shutdown()
-            logger.info("Server stopped.")
+    return True
 
 
 if __name__ == "__main__":
-    # Ensure dependencies are installed:
-    # pip install Pillow netifaces
     run_server()
