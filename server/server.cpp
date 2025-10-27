@@ -28,6 +28,10 @@ HttpServer::HttpServer(QObject *parent) : QObject(parent), port(8080) {
         generatePlaylist();
     }
 
+HttpServer::~HttpServer() {
+    // QTcpServer is a child object and will be deleted automatically
+}
+
 bool HttpServer::listen(quint16 p) {
         port = p;
         if (server->listen(QHostAddress::Any, port)) {
