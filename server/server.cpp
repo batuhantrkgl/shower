@@ -202,9 +202,10 @@ private:
         socket->write(response.toUtf8() + body);
         socket->flush();
     }
-
-    void sendResponse(QTcpSocket *socket, const QString &status, const QString &contentType, const QString &body) {
-        sendResponse(socket, status, contentType, body.toUtf8());
+    
+    // Helper to avoid ambiguity with string literals
+    void sendResponse(QTcpSocket *socket, const QString &status, const QString &contentType, const char *body) {
+        sendResponse(socket, status, contentType, QByteArray(body));
     }
 
     QString readFile(const QString &filePath) {
