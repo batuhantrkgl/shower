@@ -16,6 +16,7 @@ NC='\033[0m' # No Color
 PROJECT_NAME="VideoTimeline"
 BUILD_DIR="build"
 OUTPUT_DIR="out"
+SRC_DIR="src"
 
 # Function to print colored output
 print_status() {
@@ -92,15 +93,17 @@ build_with_qmake() {
     print_status "Building with qmake..."
 
     # Clean previous build
-    if [ -f "Makefile" ]; then
+    if [ -f "$SRC_DIR/Makefile" ]; then
         print_status "Cleaning previous build..."
+        cd $SRC_DIR
         $MAKE_CMD clean 2>/dev/null || true
         rm -f Makefile 2>/dev/null || true
+        cd ..
     fi
 
     # Generate Makefile
     print_status "Generating Makefile..."
-    $QMAKE_CMD $PROJECT_NAME.pro
+    $QMAKE_CMD $SRC_DIR/$PROJECT_NAME.pro
 
     if [ ! -f "Makefile" ]; then
         print_error "Failed to generate Makefile"
@@ -109,11 +112,16 @@ build_with_qmake() {
 
     # Build project
     print_status "Compiling project..."
+    cd $SRC_DIR
     $MAKE_CMD -j$(nproc 2>/dev/null || echo 4)
+    cd ..
 
     # Check if executable was created
-    if [ -f "$OUTPUT_DIR/$PROJECT_NAME" ] || [ -f "$OUTPUT_DIR/$PROJECT_NAME.exe" ]; then
+    if [ -f "$SRC_DIR/$OUTPUT_DIR/$PROJECT_NAME" ] || [ -f "$SRC_DIR/$OUTPUT_DIR/$PROJECT_NAME.exe" ]; then
         print_success "Build completed successfully with qmake"
+        # Copy executable to root output directory
+        mkdir -p "../$OUTPUT_DIR"
+        cp "$SRC_DIR/$OUTPUT_DIR/$PROJECT_NAME"* "../$OUTPUT_DIR/" 2>/dev/null || true
         return 0
     else
         print_error "Build failed - executable not found"

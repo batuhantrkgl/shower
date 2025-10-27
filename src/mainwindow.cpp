@@ -7,7 +7,7 @@
 #include <QApplication>
 #include <QScreen>
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(bool autoDiscover, QWidget *parent)
     : QMainWindow(parent)
 {
     setWindowTitle("Video Timeline");
@@ -24,36 +24,41 @@ MainWindow::MainWindow(QWidget *parent)
     centralWidget->setStyleSheet(mainStyle);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
-    // --- Fix fullscreen layout ---
     mainLayout->setSpacing(0);
     mainLayout->setContentsMargins(0, 0, 0, 0);
 
+    // Initialize network client and discover server if requested
     m_networkClient = new NetworkClient(this);
+    if (autoDiscover) {
+        m_networkClient->discoverAndSetServer();
+    }
+    
+    // Create UI widgets
     m_videoWidget = new VideoWidget(this);
     m_timelineWidget = new TimelineWidget(m_networkClient, this);
 
+    // Add widgets to layout
     mainLayout->addWidget(m_videoWidget, 1);
     mainLayout->addWidget(m_timelineWidget, 0);
 
-    // --- Connect Signals and Slots ---
+    // Connect signals and slots
     connect(m_networkClient, &NetworkClient::playlistReceived,
             m_videoWidget, &VideoWidget::onPlaylistReceived);
     connect(m_networkClient, &NetworkClient::scheduleReceived,
             this, &MainWindow::onScheduleReceived);
-
-    // ** NEW, IMPORTANT CONNECTION **
-    // Tell the video widget when a network error happens
     connect(m_networkClient, &NetworkClient::networkError,
             m_videoWidget, &VideoWidget::onNetworkError);
 
-
+    // Setup update timer
     m_updateTimer = new QTimer(this);
     connect(m_updateTimer, &QTimer::timeout, this, &MainWindow::updateUIState);
     m_updateTimer->start(1000);
 
+    // Start network polling
     m_networkClient->startPeriodicFetch();
+    
+    // Configure window
     setCentralWidget(centralWidget);
-
     QScreen *primaryScreen = QApplication::primaryScreen();
     if (primaryScreen) {
         setGeometry(primaryScreen->geometry());

@@ -4,12 +4,19 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QDebug>
+#include <QNetworkInterface>
+#include <QHostAddress>
+#include <QAbstractSocket>
+#include <QEventLoop>
+#include <QTimer>
+#include <QTime>
 
 NetworkClient::NetworkClient(QObject *parent)
     : QObject(parent)
     , m_networkManager(new QNetworkAccessManager(this))
-    , m_serverUrl("http://192.168.32.52:8080")
+    , m_serverUrl("http://localhost:8080")  // Default fallback
     , m_fetchTimer(new QTimer(this))
+    , m_discovered(false)
 {
     // Set up periodic fetch timer (every 5 minutes)
     m_fetchTimer->setInterval(5 * 60 * 1000);
@@ -205,4 +212,145 @@ void NetworkClient::parsePlaylistJson(const QJsonObject &json)
     } else {
         emit networkError("Received empty or invalid playlist");
     }
+}
+
+void NetworkClient::discoverAndSetServer()
+{
+    if (m_discovered) {
+        return;
+    }
+    
+    qDebug() << "Starting server discovery...";
+    
+    // Strategy: Try common IPs first, then scan local network
+    QString networkPrefix = getLocalNetworkPrefix();
+    
+    // Priority 1: Try common/predictable IPs first (much faster)
+    QStringList commonIPs = {
+        QString("%1.1:8080").arg(networkPrefix.isEmpty() ? "192.168.1" : networkPrefix),
+        QString("%1.100:8080").arg(networkPrefix.isEmpty() ? "192.168.1" : networkPrefix),
+        QString("%1.254:8080").arg(networkPrefix.isEmpty() ? "192.168.1" : networkPrefix),
+        "192.168.1.1:8080",
+        "192.168.1.100:8080",
+        "192.168.0.1:8080",
+        "localhost:8080"
+    };
+    
+    for (const QString &url : commonIPs) {
+        if (tryServerUrl("http://" + url)) {
+            m_serverUrl = "http://" + url;
+            m_discovered = true;
+            qDebug() << "Found server at:" << m_serverUrl;
+            emit serverDiscovered(m_serverUrl);
+            return;
+        }
+    }
+    
+    // Priority 2: Scan local network (only if we detected the network prefix)
+    if (!networkPrefix.isEmpty()) {
+        qDebug() << "Scanning local network:" << networkPrefix << ".*";
+        for (int i = 1; i <= 254; i++) {
+            QString testUrl = QString("http://%1.%2:8080").arg(networkPrefix).arg(i);
+            if (tryServerUrl(testUrl)) {
+                m_serverUrl = testUrl;
+                m_discovered = true;
+                qDebug() << "Found server at:" << m_serverUrl;
+                emit serverDiscovered(m_serverUrl);
+                return;
+            }
+        }
+    }
+    
+    // Priority 3: Try other common private networks if local scan failed
+    qDebug() << "Local network scan failed, trying other common subnets...";
+    QStringList commonSubnets = {"192.168.0", "192.168.32", "10.0.0"};
+    for (const QString &subnet : commonSubnets) {
+        if (subnet == networkPrefix) {
+            continue;  // Skip if already scanned
+        }
+        qDebug() << "Scanning subnet:" << subnet << ".*";
+        for (int i = 1; i <= 254; i++) {
+            QString testUrl = QString("http://%1.%2:8080").arg(subnet).arg(i);
+            if (tryServerUrl(testUrl)) {
+                m_serverUrl = testUrl;
+                m_discovered = true;
+                qDebug() << "Found server at:" << m_serverUrl;
+                emit serverDiscovered(m_serverUrl);
+                return;
+            }
+        }
+    }
+    
+    qDebug() << "Server discovery failed, using default:" << m_serverUrl;
+}
+
+QString NetworkClient::getLocalNetworkPrefix()
+{
+    // Find the first active IPv4 interface to determine local network
+    QList<QNetworkInterface> interfaces = QNetworkInterface::allInterfaces();
+    
+    for (const QNetworkInterface &interface : interfaces) {
+        // Skip loopback and inactive interfaces
+        if (interface.flags().testFlag(QNetworkInterface::IsLoopBack) || 
+            !interface.flags().testFlag(QNetworkInterface::IsRunning)) {
+            continue;
+        }
+        
+        // Check all addresses on this interface
+        for (const QNetworkAddressEntry &entry : interface.addressEntries()) {
+            QHostAddress addr = entry.ip();
+            
+            // Only process IPv4 addresses
+            if (addr.protocol() != QAbstractSocket::IPv4Protocol) {
+                continue;
+            }
+            
+            QString ipString = addr.toString();
+            // Extract network prefix (e.g., "192.168.1" from "192.168.1.42")
+            int lastDot = ipString.lastIndexOf('.');
+            if (lastDot != -1) {
+                return ipString.left(lastDot);
+            }
+        }
+    }
+    
+    return QString();  // No IPv4 interface found
+}
+
+bool NetworkClient::tryServerUrl(const QString &url)
+{
+    QNetworkRequest request(QUrl(url + "/api/schedule"));
+    request.setRawHeader("User-Agent", "VideoTimeline Client");
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    
+    QNetworkReply *reply = m_networkManager->get(request);
+    
+    // Wait for response with a timeout (short timeout for fast scanning)
+    QEventLoop loop;
+    QTimer timeout;
+    timeout.setSingleShot(true);
+    timeout.setInterval(300);  // 300ms timeout per IP for faster scanning
+    connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    connect(&timeout, &QTimer::timeout, &loop, &QEventLoop::quit);
+    
+    timeout.start();
+    loop.exec();
+    
+    bool found = false;
+    if (reply->error() == QNetworkReply::NoError) {
+        QByteArray data = reply->readAll();
+        QJsonParseError error;
+        QJsonDocument doc = QJsonDocument::fromJson(data, &error);
+        
+        if (error.error == QJsonParseError::NoError && doc.isObject()) {
+            QJsonObject obj = doc.object();
+            // Check if it looks like our server (has schedule structure)
+            if (obj.contains("school_start") || obj.contains("blocks")) {
+                found = true;
+            }
+        }
+    }
+    
+    reply->deleteLater();
+    return found;
 }

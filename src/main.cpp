@@ -46,6 +46,9 @@ int main(int argc, char *argv[])
     
     QCommandLineOption versionOption(QStringList() << "v" << "version", "Displays application version and build information.");
     parser.addOption(versionOption);
+    
+    QCommandLineOption autoOption(QStringList() << "auto", "Automatically discover and connect to the server.");
+    parser.addOption(autoOption);
 
     parser.process(a);
 
@@ -84,7 +87,7 @@ int main(int argc, char *argv[])
 
     a.setFont(appFont);
 
-    MainWindow w;
+    MainWindow w(parser.isSet(autoOption));
     w.showFullScreen();
 
     return a.exec();
