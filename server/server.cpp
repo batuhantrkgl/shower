@@ -326,8 +326,6 @@ void HttpServer::generatePlaylist() {
     }
 
 
-#include "server.moc"
-
 int main(int argc, char *argv[]) {
     QCoreApplication app(argc, argv);
     

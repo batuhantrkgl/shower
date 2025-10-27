@@ -22,13 +22,19 @@ fi
 
 echo "Using: $QMAKE"
 
-# Create build directory
-mkdir -p build
-cd build
+# Clean up any previous in-place build artifacts
+if [ -f "Makefile" ]; then
+    echo "Cleaning up old build artifacts..."
+    make clean 2>/dev/null || true
+    rm -f Makefile .qmake.stash
+fi
+
+# Create necessary directories
+mkdir -p moc obj rcc
 
 # Generate Makefile
 echo "Generating Makefile..."
-$QMAKE ../server.pro
+$QMAKE server.pro
 
 # Build
 echo "Compiling..."
@@ -36,7 +42,7 @@ make -j$(nproc 2>/dev/null || echo 4)
 
 if [ -f "server" ] || [ -f "server.exe" ]; then
     echo "✓ Build successful!"
-    echo "Run with: ./build/server"
+    echo "Run with: ./server/server"
 else
     echo "✗ Build failed!"
     exit 1
