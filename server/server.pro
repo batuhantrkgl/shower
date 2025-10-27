@@ -3,7 +3,10 @@ QT = core network
 TARGET = server
 TEMPLATE = app
 
+CONFIG += moc
+
 SOURCES += server.cpp
+HEADERS += server.h
 
 # Output directory
 DESTDIR = .

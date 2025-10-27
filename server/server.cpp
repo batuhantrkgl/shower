@@ -9,19 +9,15 @@
 #include <QJsonArray>
 #include <QUrlQuery>
 #include <QUrl>
+#include "server.h"
 
-class HttpServer : public QObject {
-    Q_OBJECT
-
-public:
-    HttpServer(QObject *parent = nullptr) : QObject(parent), port(8080) {
+HttpServer::HttpServer(QObject *parent) : QObject(parent), port(8080) {
+        dataDir = "data";
+        mediaDir = "media";
         server = new QTcpServer(this);
         connect(server, &QTcpServer::newConnection, this, &HttpServer::handleNewConnection);
         
         // Setup directories
-        dataDir = "data";
-        mediaDir = "media";
-        
         QDir().mkpath(dataDir);
         QDir().mkpath(mediaDir);
         
@@ -32,7 +28,7 @@ public:
         generatePlaylist();
     }
 
-    bool listen(quint16 p = 8080) {
+bool HttpServer::listen(quint16 p) {
         port = p;
         if (server->listen(QHostAddress::Any, port)) {
             std::cout << "Server listening on port " << port << std::endl;
@@ -43,8 +39,7 @@ public:
         return false;
     }
 
-private slots:
-    void handleNewConnection() {
+void HttpServer::handleNewConnection() {
         QTcpSocket *socket = server->nextPendingConnection();
         connect(socket, &QTcpSocket::readyRead, [this, socket]() {
             handleRequest(socket);
@@ -52,7 +47,7 @@ private slots:
         connect(socket, &QTcpSocket::disconnected, socket, &QTcpSocket::deleteLater);
     }
 
-    void handleRequest(QTcpSocket *socket) {
+void HttpServer::handleRequest(QTcpSocket *socket) {
         QByteArray request = socket->readAll();
         
         // Parse request line
@@ -81,7 +76,7 @@ private slots:
         }
     }
 
-    void handleGetRequest(QTcpSocket *socket, const QString &path) {
+void HttpServer::handleGetRequest(QTcpSocket *socket, const QString &path) {
         if (path == "/api/schedule") {
             handleGetSchedule(socket);
         } else if (path == "/api/media/playlist") {
@@ -96,7 +91,7 @@ private slots:
         }
     }
 
-    void handlePostRequest(QTcpSocket *socket, const QString &path, const QByteArray &request) {
+void HttpServer::handlePostRequest(QTcpSocket *socket, const QString &path, const QByteArray &request) {
         // Extract JSON body (basic implementation)
         QByteArray body = request;
         int bodyStart = request.indexOf("\r\n\r\n");
@@ -113,7 +108,7 @@ private slots:
         }
     }
 
-    void handleGetSchedule(QTcpSocket *socket) {
+void HttpServer::handleGetSchedule(QTcpSocket *socket) {
         QString filePath = dataDir + "/schedule.json";
         QString json = readFile(filePath);
         
@@ -124,7 +119,7 @@ private slots:
         sendResponse(socket, "200 OK", "application/json", json);
     }
 
-    void handleGetPlaylist(QTcpSocket *socket) {
+void HttpServer::handleGetPlaylist(QTcpSocket *socket) {
         QString filePath = dataDir + "/playlist.json";
         QString json = readFile(filePath);
         
@@ -136,7 +131,7 @@ private slots:
         sendResponse(socket, "200 OK", "application/json", json);
     }
 
-    void handleGetMediaFile(QTcpSocket *socket, const QString &path) {
+void HttpServer::handleGetMediaFile(QTcpSocket *socket, const QString &path) {
         QString fileName = path.mid(7); // Remove "/media/"
         
         // Security: prevent directory traversal
@@ -162,7 +157,7 @@ private slots:
         }
     }
 
-    void handlePostSchedule(QTcpSocket *socket, const QByteArray &body) {
+void HttpServer::handlePostSchedule(QTcpSocket *socket, const QByteArray &body) {
         QJsonParseError error;
         QJsonDocument doc = QJsonDocument::fromJson(body, &error);
         
@@ -175,7 +170,7 @@ private slots:
         }
     }
 
-    void handlePostPlaylist(QTcpSocket *socket, const QByteArray &body) {
+void HttpServer::handlePostPlaylist(QTcpSocket *socket, const QByteArray &body) {
         QJsonParseError error;
         QJsonDocument doc = QJsonDocument::fromJson(body, &error);
         
@@ -188,8 +183,7 @@ private slots:
         }
     }
 
-private:
-    void sendResponse(QTcpSocket *socket, const QString &status, const QString &contentType, const QByteArray &body) {
+void HttpServer::sendResponse(QTcpSocket *socket, const QString &status, const QString &contentType, const QByteArray &body) {
         QString response = QString("HTTP/1.1 %1\r\n"
                                   "Content-Type: %2\r\n"
                                   "Content-Length: %3\r\n"
@@ -203,16 +197,16 @@ private:
         socket->flush();
     }
     
-    // Helper overloads to avoid ambiguity
-    void sendResponse(QTcpSocket *socket, const QString &status, const QString &contentType, const QString &body) {
-        sendResponse(socket, status, contentType, body.toUtf8());
-    }
-    
-    void sendResponse(QTcpSocket *socket, const QString &status, const QString &contentType, const char *body) {
-        sendResponse(socket, status, contentType, QByteArray(body));
-    }
+// Helper overloads to avoid ambiguity
+void HttpServer::sendResponse(QTcpSocket *socket, const QString &status, const QString &contentType, const QString &body) {
+    sendResponse(socket, status, contentType, body.toUtf8());
+}
 
-    QString readFile(const QString &filePath) {
+void HttpServer::sendResponse(QTcpSocket *socket, const QString &status, const QString &contentType, const char *body) {
+    sendResponse(socket, status, contentType, QByteArray(body));
+}
+
+QString HttpServer::readFile(const QString &filePath) {
         QFile file(filePath);
         if (file.open(QIODevice::ReadOnly)) {
             return file.readAll();
@@ -220,14 +214,14 @@ private:
         return QString();
     }
 
-    void writeFile(const QString &filePath, const QByteArray &data) {
+void HttpServer::writeFile(const QString &filePath, const QByteArray &data) {
         QFile file(filePath);
         if (file.open(QIODevice::WriteOnly)) {
             file.write(data);
         }
     }
 
-    QString getContentType(const QString &fileName) {
+QString HttpServer::getContentType(const QString &fileName) {
         QString ext = fileName.mid(fileName.lastIndexOf('.') + 1).toLower();
         
         if (ext == "jpg" || ext == "jpeg") return "image/jpeg";
@@ -241,7 +235,7 @@ private:
         return "application/octet-stream";
     }
 
-    QString getDefaultSchedule() {
+QString HttpServer::getDefaultSchedule() {
         return R"({
   "school_start": "08:50",
   "school_end": "15:55",
@@ -265,14 +259,14 @@ private:
 })";
     }
 
-    void ensureDefaultSchedule() {
+void HttpServer::ensureDefaultSchedule() {
         QString filePath = dataDir + "/schedule.json";
         if (!QFile::exists(filePath)) {
             writeFile(filePath, getDefaultSchedule().toUtf8());
         }
     }
 
-    void generatePlaylist() {
+void HttpServer::generatePlaylist() {
         QDir dir(mediaDir);
         QStringList filters = {"*.jpg", "*.jpeg", "*.png", "*.gif", "*.webp", "*.mp4", "*.avi", "*.mov", "*.webm"};
         QFileInfoList files = dir.entryInfoList(filters, QDir::Files, QDir::Name);
@@ -331,11 +325,8 @@ private:
         std::cout << "Generated playlist with " << items.size() << " items" << std::endl;
     }
 
-    QTcpServer *server;
-    quint16 port;
-    QString dataDir;
-    QString mediaDir;
-};
+
+#include "server.moc"
 
 int main(int argc, char *argv[]) {
     QCoreApplication app(argc, argv);
