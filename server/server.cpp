@@ -203,7 +203,11 @@ private:
         socket->flush();
     }
     
-    // Helper to avoid ambiguity with string literals
+    // Helper overloads to avoid ambiguity
+    void sendResponse(QTcpSocket *socket, const QString &status, const QString &contentType, const QString &body) {
+        sendResponse(socket, status, contentType, body.toUtf8());
+    }
+    
     void sendResponse(QTcpSocket *socket, const QString &status, const QString &contentType, const char *body) {
         sendResponse(socket, status, contentType, QByteArray(body));
     }
