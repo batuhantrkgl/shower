@@ -11,7 +11,7 @@
 #include <QUrl>
 #include "server.h"
 
-HttpServer::HttpServer(QObject *parent) : QObject(parent), port(8080) {
+HttpServer::HttpServer(QObject *parent) : QObject(parent), port(3232) {
         dataDir = "data";
         mediaDir = "media";
         server = new QTcpServer(this);
@@ -361,7 +361,7 @@ void HttpServer::generatePlaylist() {
 int main(int argc, char *argv[]) {
     QCoreApplication app(argc, argv);
     
-    quint16 port = 8080;
+    quint16 port = 3232;
     if (argc > 1) {
         port = QString(argv[1]).toUShort();
     }

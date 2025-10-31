@@ -12,7 +12,7 @@ class HttpServer : public QObject {
 public:
     HttpServer(QObject *parent = nullptr);
     ~HttpServer();
-    bool listen(quint16 port = 8080);
+    bool listen(quint16 port = 3232);
 
 private slots:
     void handleNewConnection();

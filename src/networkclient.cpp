@@ -14,7 +14,7 @@
 NetworkClient::NetworkClient(QObject *parent)
     : QObject(parent)
     , m_networkManager(new QNetworkAccessManager(this))
-    , m_serverUrl("http://localhost:8080")  // Default fallback
+    , m_serverUrl("http://localhost:3232")  // Default fallback
     , m_fetchTimer(new QTimer(this))
     , m_discovered(false)
 {
@@ -227,13 +227,13 @@ void NetworkClient::discoverAndSetServer()
     
     // Priority 1: Try common/predictable IPs first (much faster)
     QStringList commonIPs = {
-        QString("%1.1:8080").arg(networkPrefix.isEmpty() ? "192.168.1" : networkPrefix),
-        QString("%1.100:8080").arg(networkPrefix.isEmpty() ? "192.168.1" : networkPrefix),
-        QString("%1.254:8080").arg(networkPrefix.isEmpty() ? "192.168.1" : networkPrefix),
-        "192.168.1.1:8080",
-        "192.168.1.100:8080",
-        "192.168.0.1:8080",
-        "localhost:8080"
+        QString("%1.1:3232").arg(networkPrefix.isEmpty() ? "192.168.1" : networkPrefix),
+        QString("%1.100:3232").arg(networkPrefix.isEmpty() ? "192.168.1" : networkPrefix),
+        QString("%1.254:3232").arg(networkPrefix.isEmpty() ? "192.168.1" : networkPrefix),
+        "192.168.1.1:3232",
+        "192.168.1.100:3232",
+        "192.168.0.1:3232",
+        "localhost:3232"
     };
     
     for (const QString &url : commonIPs) {
@@ -250,7 +250,7 @@ void NetworkClient::discoverAndSetServer()
     if (!networkPrefix.isEmpty()) {
         qDebug() << "Scanning local network:" << networkPrefix << ".*";
         for (int i = 1; i <= 254; i++) {
-            QString testUrl = QString("http://%1.%2:8080").arg(networkPrefix).arg(i);
+            QString testUrl = QString("http://%1.%2:3232").arg(networkPrefix).arg(i);
             if (tryServerUrl(testUrl)) {
                 m_serverUrl = testUrl;
                 m_discovered = true;
@@ -270,7 +270,7 @@ void NetworkClient::discoverAndSetServer()
         }
         qDebug() << "Scanning subnet:" << subnet << ".*";
         for (int i = 1; i <= 254; i++) {
-            QString testUrl = QString("http://%1.%2:8080").arg(subnet).arg(i);
+            QString testUrl = QString("http://%1.%2:3232").arg(subnet).arg(i);
             if (tryServerUrl(testUrl)) {
                 m_serverUrl = testUrl;
                 m_discovered = true;
