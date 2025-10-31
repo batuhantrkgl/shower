@@ -49,6 +49,9 @@ int main(int argc, char *argv[])
     
     QCommandLineOption autoOption(QStringList() << "auto", "Automatically discover and connect to the server.");
     parser.addOption(autoOption);
+    
+    QCommandLineOption networkOption(QStringList() << "network", "Scan specific network range for server (e.g., 10.1.1 for 10.1.1.*:3232).", "range");
+    parser.addOption(networkOption);
 
     parser.process(a);
 
@@ -87,7 +90,8 @@ int main(int argc, char *argv[])
 
     a.setFont(appFont);
 
-    MainWindow w(parser.isSet(autoOption));
+    QString networkRange = parser.value(networkOption);
+    MainWindow w(parser.isSet(autoOption), networkRange);
     w.showFullScreen();
 
     return a.exec();

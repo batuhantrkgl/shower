@@ -7,7 +7,7 @@
 #include <QApplication>
 #include <QScreen>
 
-MainWindow::MainWindow(bool autoDiscover, QWidget *parent)
+MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, QWidget *parent)
     : QMainWindow(parent)
 {
     setWindowTitle("Video Timeline");
@@ -29,7 +29,11 @@ MainWindow::MainWindow(bool autoDiscover, QWidget *parent)
 
     // Initialize network client and discover server if requested
     m_networkClient = new NetworkClient(this);
-    if (autoDiscover) {
+    if (!networkRange.isEmpty()) {
+        // Scan specific network range
+        m_networkClient->discoverInRange(networkRange);
+    } else if (autoDiscover) {
+        // Auto-discover using default algorithm
         m_networkClient->discoverAndSetServer();
     }
     

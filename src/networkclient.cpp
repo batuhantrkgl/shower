@@ -233,6 +233,11 @@ void NetworkClient::discoverAndSetServer()
         "192.168.1.1:3232",
         "192.168.1.100:3232",
         "192.168.0.1:3232",
+        "10.135.176.176:3232"
+        "10.0.0.1:3232",
+        "10.0.1.1:3232",
+        "10.1.1.1:3232",
+        "10.10.10.1:3232",
         "localhost:3232"
     };
     
@@ -281,7 +286,46 @@ void NetworkClient::discoverAndSetServer()
         }
     }
     
+    // Priority 4: Scan common 10.*.*.* network ranges for server discovery
+    qDebug() << "Scanning common 10.*.*.* network ranges...";
+    QStringList common10Subnets = {
+        "10.0.0", "10.0.1", "10.1.0", "10.1.1", "10.10.10", 
+        "10.0.10", "10.1.10", "10.10.0", "10.10.1", "10.100.100"
+    };
+    
+    for (const QString &subnet : common10Subnets) {
+        qDebug() << "Scanning 10.x subnet:" << subnet << ".*";
+        for (int i = 1; i <= 254; i++) {
+            QString testUrl = QString("http://%1.%2:3232").arg(subnet).arg(i);
+            if (tryServerUrl(testUrl)) {
+                m_serverUrl = testUrl;
+                m_discovered = true;
+                qDebug() << "Found server at:" << m_serverUrl;
+                emit serverDiscovered(m_serverUrl);
+                return;
+            }
+        }
+    }
+    
     qDebug() << "Server discovery failed, using default:" << m_serverUrl;
+}
+
+void NetworkClient::discoverInRange(const QString &networkPrefix)
+{
+    qDebug() << "Scanning specific network range:" << networkPrefix << ".*";
+    
+    for (int i = 1; i <= 254; i++) {
+        QString testUrl = QString("http://%1.%2:3232").arg(networkPrefix).arg(i);
+        if (tryServerUrl(testUrl)) {
+            m_serverUrl = testUrl;
+            m_discovered = true;
+            qDebug() << "Found server at:" << m_serverUrl;
+            emit serverDiscovered(m_serverUrl);
+            return;
+        }
+    }
+    
+    qDebug() << "No server found in range:" << networkPrefix << ".*";
 }
 
 QString NetworkClient::getLocalNetworkPrefix()
