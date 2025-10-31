@@ -35,6 +35,8 @@ private:
     QString getDefaultSchedule();
     void ensureDefaultSchedule();
     void generatePlaylist();
+    bool shouldRegeneratePlaylist();
+    void toggleAutoRegenerate(QTcpSocket *socket);
 
     QTcpServer *server;
     quint16 port;

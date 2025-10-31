@@ -88,6 +88,8 @@ void HttpServer::handleGetRequest(QTcpSocket *socket, const QString &path) {
         } else if (path == "/api/media/regenerate") {
             generatePlaylist();
             sendResponse(socket, "200 OK", "application/json", "{\"status\":\"success\",\"message\":\"Playlist regenerated\"}");
+        } else if (path == "/api/media/toggle-auto-regenerate") {
+            toggleAutoRegenerate(socket);
         } else if (path.startsWith("/media/")) {
             handleGetMediaFile(socket, path);
         } else {
@@ -130,6 +132,21 @@ void HttpServer::handleGetPlaylist(QTcpSocket *socket) {
         if (json.isEmpty()) {
             generatePlaylist();
             json = readFile(filePath);
+        } else {
+            // Check if we should auto-regenerate based on media folder changes
+            QJsonParseError error;
+            QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
+            
+            if (error.error == QJsonParseError::NoError && doc.isObject()) {
+                QJsonObject playlist = doc.object();
+                bool autoRegenerate = playlist.value("auto_regenerate").toBool(true); // Default to true for backward compatibility
+                
+                if (autoRegenerate && shouldRegeneratePlaylist()) {
+                    std::cout << "Auto-regenerating playlist due to media folder changes" << std::endl;
+                    generatePlaylist();
+                    json = readFile(filePath);
+                }
+            }
         }
         
         sendResponse(socket, "200 OK", "application/json", json);
@@ -179,9 +196,21 @@ void HttpServer::handlePostPlaylist(QTcpSocket *socket, const QByteArray &body) 
         QJsonDocument doc = QJsonDocument::fromJson(body, &error);
         
         if (error.error == QJsonParseError::NoError && doc.isObject()) {
+            QJsonObject playlist = doc.object();
+            
+            // Ensure auto_regenerate field exists (default to true if not specified)
+            if (!playlist.contains("auto_regenerate")) {
+                playlist["auto_regenerate"] = true;
+            }
+            
+            // Write the updated playlist
+            QJsonDocument updatedDoc(playlist);
             QString filePath = dataDir + "/playlist.json";
-            writeFile(filePath, body);
-            sendResponse(socket, "200 OK", "application/json", "{\"status\":\"success\"}");
+            writeFile(filePath, updatedDoc.toJson(QJsonDocument::Indented));
+            
+            bool autoRegenerate = playlist["auto_regenerate"].toBool();
+            QString message = QString("{\"status\":\"success\",\"auto_regenerate\":%1}").arg(autoRegenerate ? "true" : "false");
+            sendResponse(socket, "200 OK", "application/json", message);
         } else {
             sendResponse(socket, "400 Bad Request", "text/plain", "Invalid JSON");
         }
@@ -349,12 +378,86 @@ void HttpServer::generatePlaylist() {
         }
         
         QJsonObject playlist;
+        playlist["auto_regenerate"] = true; // Default to auto-regenerate for new playlists
         playlist["items"] = items;
         
         QJsonDocument doc(playlist);
         writeFile(dataDir + "/playlist.json", doc.toJson(QJsonDocument::Indented));
         
         std::cout << "Generated playlist with " << items.size() << " items" << std::endl;
+    }
+
+bool HttpServer::shouldRegeneratePlaylist() {
+        QString filePath = dataDir + "/playlist.json";
+        QFileInfo playlistInfo(filePath);
+        
+        if (!playlistInfo.exists()) {
+            return true;
+        }
+        
+        // Check if any media files are newer than the playlist
+        QDir dir(mediaDir);
+        QStringList filters = {"*.jpg", "*.jpeg", "*.png", "*.gif", "*.webp", "*.mp4", "*.avi", "*.mov", "*.webm"};
+        QFileInfoList files = dir.entryInfoList(filters, QDir::Files, QDir::Name);
+        
+        QDateTime playlistTime = playlistInfo.lastModified();
+        
+        for (const QFileInfo &fileInfo : files) {
+            if (fileInfo.lastModified() > playlistTime) {
+                return true; // Media file is newer than playlist
+            }
+        }
+        
+        // Check if number of media files matches playlist items
+        QString json = readFile(filePath);
+        QJsonParseError error;
+        QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
+        
+        if (error.error == QJsonParseError::NoError && doc.isObject()) {
+            QJsonObject playlist = doc.object();
+            QJsonArray items = playlist["items"].toArray();
+            
+            if (items.size() != files.size()) {
+                return true; // Number of files changed
+            }
+        }
+        
+        return false;
+    }
+
+void HttpServer::toggleAutoRegenerate(QTcpSocket *socket) {
+        QString filePath = dataDir + "/playlist.json";
+        QString json = readFile(filePath);
+        
+        if (json.isEmpty()) {
+            sendResponse(socket, "404 Not Found", "text/plain", "Playlist not found");
+            return;
+        }
+        
+        QJsonParseError error;
+        QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
+        
+        if (error.error != QJsonParseError::NoError || !doc.isObject()) {
+            sendResponse(socket, "400 Bad Request", "text/plain", "Invalid playlist JSON");
+            return;
+        }
+        
+        QJsonObject playlist = doc.object();
+        bool currentValue = playlist.value("auto_regenerate").toBool(true);
+        bool newValue = !currentValue;
+        
+        playlist["auto_regenerate"] = newValue;
+        
+        QJsonDocument updatedDoc(playlist);
+        writeFile(filePath, updatedDoc.toJson(QJsonDocument::Indented));
+        
+        QString message = QString("{\"status\":\"success\",\"auto_regenerate\":%1,\"message\":\"Auto-regenerate %2\"}")
+                         .arg(newValue ? "true" : "false")
+                         .arg(newValue ? "enabled" : "disabled");
+        
+        sendResponse(socket, "200 OK", "application/json", message);
+        
+        std::cout << "Auto-regenerate " << (newValue ? "enabled" : "disabled") << std::endl;
     }
 
 

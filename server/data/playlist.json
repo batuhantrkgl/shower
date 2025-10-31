@@ -1,16 +1,11 @@
 {
+    "auto_regenerate": true,
     "items": [
         {
             "duration": 5000,
             "muted": false,
             "type": "image",
             "url": "/media/10th_Anniversary_Speech.jpg"
-        },
-        {
-            "duration": 5000,
-            "muted": false,
-            "type": "image",
-            "url": "/media/default.jpg"
         },
         {
             "duration": 5000,
