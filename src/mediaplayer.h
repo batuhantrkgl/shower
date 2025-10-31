@@ -22,6 +22,7 @@ public:
     void play();
     void stop();
     void next();
+    void rescaleCurrentImage();
 
 signals:
     void mediaChanged(const MediaItem &item);
@@ -38,6 +39,7 @@ private:
     void showImage();
     void loadImage(const QString &url);
     void startImageTimer(int durationMs);
+    void scaleAndSetImage(const QPixmap &originalPixmap);
 
     QMediaPlayer *m_player;
     QVideoWidget *m_videoOutput;
@@ -46,6 +48,7 @@ private:
     
     MediaPlaylist m_playlist;
     QTimer *m_imageTimer;
+    QPixmap m_currentImage; // Store original image for rescaling
     
     bool m_isPlaying;
     

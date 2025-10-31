@@ -23,7 +23,7 @@ VideoWidget::VideoWidget(QWidget *parent)
     // --- Fallback Image Label ---
     m_fallbackLabel = new QLabel(this);
     m_fallbackLabel->setAlignment(Qt::AlignCenter);
-    m_fallbackLabel->setScaledContents(true); // Scale image to fill the widget
+    m_fallbackLabel->setScaledContents(false); // Don't stretch - we'll handle scaling manually
     QPixmap fallbackPixmap("media/default.jpeg");
     if(fallbackPixmap.isNull()) {
         qDebug() << "ERROR: Could not load fallback image from media/default.jpeg";
@@ -45,6 +45,15 @@ VideoWidget::VideoWidget(QWidget *parent)
     // --- Initialize Media Player ---
     m_mediaPlayer = new MediaPlayer(m_videoOutput, m_fallbackLabel, m_mainLayout, this);
     connect(m_mediaPlayer, &MediaPlayer::mediaChanged, this, &VideoWidget::onMediaChanged);
+}
+
+void VideoWidget::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+    // Trigger image rescaling when the widget is resized
+    if (m_mediaPlayer) {
+        m_mediaPlayer->rescaleCurrentImage();
+    }
 }
 
 void VideoWidget::onPlaylistReceived(const MediaPlaylist &playlist)

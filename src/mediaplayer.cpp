@@ -143,7 +143,8 @@ void MediaPlayer::loadImage(const QString &url)
                 QByteArray imageData = reply->readAll();
                 QPixmap pixmap;
                 if (pixmap.loadFromData(imageData)) {
-                    m_imageLabel->setPixmap(pixmap);
+                    m_currentImage = pixmap;
+                    scaleAndSetImage(pixmap);
                 } else {
                     COMPAT_DEBUG("Failed to load image from network data");
                     // Keep the current image or fallback
@@ -160,7 +161,8 @@ void MediaPlayer::loadImage(const QString &url)
         
         QPixmap pixmap(imagePath);
         if (!pixmap.isNull()) {
-            m_imageLabel->setPixmap(pixmap);
+            m_currentImage = pixmap;
+            scaleAndSetImage(pixmap);
             COMPAT_DEBUG("Loaded local image:" << imagePath);
         } else {
             COMPAT_DEBUG("Failed to load local image:" << imagePath);
@@ -184,6 +186,40 @@ void MediaPlayer::onImageTimerFinished()
 {
     COMPAT_DEBUG("Image timer finished, moving to next");
     next();
+}
+
+void MediaPlayer::scaleAndSetImage(const QPixmap &originalPixmap)
+{
+    if (originalPixmap.isNull()) {
+        return;
+    }
+    
+    // Get the available size for the image
+    QSize labelSize = m_imageLabel->size();
+    
+    // If the label doesn't have a size yet (e.g., during initialization), 
+    // use a reasonable default or the parent widget size
+    if (labelSize.width() <= 0 || labelSize.height() <= 0) {
+        if (m_imageLabel->parentWidget()) {
+            labelSize = m_imageLabel->parentWidget()->size();
+        } else {
+            labelSize = QSize(800, 600); // Fallback size
+        }
+    }
+    
+    // Scale the image to fit within the available space while maintaining aspect ratio
+    QPixmap scaledPixmap = originalPixmap.scaled(labelSize, 
+                                               Qt::KeepAspectRatio, 
+                                               Qt::SmoothTransformation);
+    
+    m_imageLabel->setPixmap(scaledPixmap);
+}
+
+void MediaPlayer::rescaleCurrentImage()
+{
+    if (!m_currentImage.isNull()) {
+        scaleAndSetImage(m_currentImage);
+    }
 }
 
 void MediaPlayer::onVideoFinished()
