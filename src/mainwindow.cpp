@@ -30,8 +30,14 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, QWidget *
     // Initialize network client and discover server if requested
     m_networkClient = new NetworkClient(this);
     if (!networkRange.isEmpty()) {
-        // Scan specific network range
-        m_networkClient->discoverInRange(networkRange);
+        // Check if it's a specific server URL (contains port) or network range
+        if (networkRange.contains(':')) {
+            // Specific server URL
+            m_networkClient->setSpecificServer(networkRange);
+        } else {
+            // Network range to scan
+            m_networkClient->discoverInRange(networkRange);
+        }
     } else if (autoDiscover) {
         // Auto-discover using default algorithm
         m_networkClient->discoverAndSetServer();

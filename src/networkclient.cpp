@@ -233,7 +233,7 @@ void NetworkClient::discoverAndSetServer()
         "192.168.1.1:3232",
         "192.168.1.100:3232",
         "192.168.0.1:3232",
-        "10.135.176.176:3232"
+        "10.135.176.176:3232",
         "10.0.0.1:3232",
         "10.0.1.1:3232",
         "10.1.1.1:3232",
@@ -326,6 +326,29 @@ void NetworkClient::discoverInRange(const QString &networkPrefix)
     }
     
     qDebug() << "No server found in range:" << networkPrefix << ".*";
+}
+
+void NetworkClient::setSpecificServer(const QString &serverUrl)
+{
+    QString url = serverUrl;
+    
+    // Add http:// prefix if not present
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        url = "http://" + url;
+    }
+    
+    qDebug() << "Testing specific server:" << url;
+    
+    if (tryServerUrl(url)) {
+        m_serverUrl = url;
+        m_discovered = true;
+        qDebug() << "Successfully connected to server at:" << m_serverUrl;
+        emit serverDiscovered(m_serverUrl);
+    } else {
+        qDebug() << "Failed to connect to specified server:" << url;
+        qDebug() << "Falling back to auto-discovery...";
+        discoverAndSetServer();
+    }
 }
 
 QString NetworkClient::getLocalNetworkPrefix()

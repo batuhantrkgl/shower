@@ -57,7 +57,8 @@ public:
     explicit NetworkClient(QObject *parent = nullptr);
     void setServerUrl(const QString &url);
     void discoverAndSetServer();
-    void discoverInRange(const QString &networkPrefix); // e.g., "10.1.1" to scan 10.1.1.*
+    void discoverInRange(const QString &networkPrefix);
+    void setSpecificServer(const QString &serverUrl); // e.g., "10.1.1" to scan 10.1.1.*
     void fetchSchedule();
     void fetchCurrentMedia();
     void startPeriodicFetch();

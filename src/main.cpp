@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     QCommandLineOption autoOption(QStringList() << "auto", "Automatically discover and connect to the server.");
     parser.addOption(autoOption);
     
-    QCommandLineOption networkOption(QStringList() << "network", "Scan specific network range for server (e.g., 10.1.1 for 10.1.1.*:3232).", "range");
+    QCommandLineOption networkOption(QStringList() << "network", "Connect to specific server URL (e.g., 10.135.176.176:3232) or scan network range (e.g., 10.1.1 for 10.1.1.*:3232).", "server_or_range");
     parser.addOption(networkOption);
 
     parser.process(a);
