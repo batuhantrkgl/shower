@@ -34,6 +34,7 @@ private:
     QString getContentType(const QString &fileName);
     QString getDefaultSchedule();
     void ensureDefaultSchedule();
+    void ensurePlaylist();
     void generatePlaylist();
     bool shouldRegeneratePlaylist();
     void toggleAutoRegenerate(QTcpSocket *socket);

@@ -24,8 +24,8 @@ HttpServer::HttpServer(QObject *parent) : QObject(parent), port(3232) {
         // Create default schedule if needed
         ensureDefaultSchedule();
         
-        // Generate playlist from media folder
-        generatePlaylist();
+        // Generate playlist from media folder only if needed
+        ensurePlaylist();
     }
 
 HttpServer::~HttpServer() {
@@ -296,6 +296,37 @@ void HttpServer::ensureDefaultSchedule() {
         QString filePath = dataDir + "/schedule.json";
         if (!QFile::exists(filePath)) {
             writeFile(filePath, getDefaultSchedule().toUtf8());
+        }
+    }
+
+void HttpServer::ensurePlaylist() {
+        QString filePath = dataDir + "/playlist.json";
+        
+        // If playlist doesn't exist, create it
+        if (!QFile::exists(filePath)) {
+            generatePlaylist();
+            return;
+        }
+        
+        // If playlist exists, check if we should auto-regenerate
+        QString json = readFile(filePath);
+        QJsonParseError error;
+        QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
+        
+        if (error.error == QJsonParseError::NoError && doc.isObject()) {
+            QJsonObject playlist = doc.object();
+            bool autoRegenerate = playlist.value("auto_regenerate").toBool(true); // Default to true for backward compatibility
+            
+            if (autoRegenerate && shouldRegeneratePlaylist()) {
+                std::cout << "Auto-regenerating playlist on startup due to media folder changes" << std::endl;
+                generatePlaylist();
+            } else {
+                std::cout << "Preserving existing playlist (auto_regenerate: " << (autoRegenerate ? "true" : "false") << ")" << std::endl;
+            }
+        } else {
+            // If JSON is invalid, regenerate
+            std::cout << "Invalid playlist JSON, regenerating..." << std::endl;
+            generatePlaylist();
         }
     }
 

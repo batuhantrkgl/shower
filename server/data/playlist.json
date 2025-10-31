@@ -1,20 +1,20 @@
 {
-    "auto_regenerate": true,
+    "auto_regenerate": false,
     "items": [
         {
-            "duration": 5000,
+            "duration": 60000,
             "muted": false,
             "type": "image",
             "url": "/media/10th_Anniversary_Speech.jpg"
         },
         {
-            "duration": 5000,
+            "duration": 60000,
             "muted": false,
             "type": "image",
             "url": "/media/ekran-goruntusu-2023-10-29-095052.png"
         },
         {
-            "duration": 5000,
+            "duration": 60000,
             "muted": false,
             "type": "image",
             "url": "/media/images.jpg"
