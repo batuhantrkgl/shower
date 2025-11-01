@@ -66,7 +66,7 @@ check_qt() {
 clean_build() {
     print_info "Cleaning build artifacts..."
 
-    # Remove CMake build directory
+    # Remove entire CMake build directory (including cache)
     rm -rf "$CMAKE_BUILD_DIR"
 
     # Remove built binaries
