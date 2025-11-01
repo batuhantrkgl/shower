@@ -47,7 +47,11 @@ template <> constexpr inline auto MainWindow::qt_create_metaobjectdata<qt_meta_t
         "schoolEnd",
         "QList<ScheduleBlock>",
         "schedule",
-        "updateUIState"
+        "updateUIState",
+        "positionActivityOverlay",
+        "onMediaChanged",
+        "MediaItem",
+        "item"
     };
 
     QtMocHelpers::UintData qt_methods {
@@ -57,6 +61,12 @@ template <> constexpr inline auto MainWindow::qt_create_metaobjectdata<qt_meta_t
         }}),
         // Slot 'updateUIState'
         QtMocHelpers::SlotData<void()>(7, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'positionActivityOverlay'
+        QtMocHelpers::SlotData<void()>(8, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'onMediaChanged'
+        QtMocHelpers::SlotData<void(const MediaItem &)>(9, 2, QMC::AccessPrivate, QMetaType::Void, {{
+            { 0x80000000 | 10, 11 },
+        }}),
     };
     QtMocHelpers::UintData qt_properties {
     };
@@ -82,6 +92,8 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         switch (_id) {
         case 0: _t->onScheduleReceived((*reinterpret_cast<std::add_pointer_t<QTime>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<QTime>>(_a[2])),(*reinterpret_cast<std::add_pointer_t<QList<ScheduleBlock>>>(_a[3]))); break;
         case 1: _t->updateUIState(); break;
+        case 2: _t->positionActivityOverlay(); break;
+        case 3: _t->onMediaChanged((*reinterpret_cast<std::add_pointer_t<MediaItem>>(_a[1]))); break;
         default: ;
         }
     }
@@ -106,14 +118,14 @@ int MainWindow::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 2)
+        if (_id < 4)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 2;
+        _id -= 4;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 2)
+        if (_id < 4)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 2;
+        _id -= 4;
     }
     return _id;
 }

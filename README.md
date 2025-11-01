@@ -7,6 +7,7 @@ A full-screen media display application for schools that shows schedules, images
 - **Full-screen media display** with automatic playlist looping
 - **Auto server discovery** with `--auto` flag
 - **Schedule timeline** showing current school period
+- **Floating activity overlay** prominently displaying current activity (e.g., "Teneffüs")
 - **Smart playlist system**:
   - Multiple images with customizable durations
   - Videos with mute/unmute support
@@ -252,7 +253,8 @@ sudo systemctl start videotimeline.service
 
 - **MainWindow**: Full-screen window management
 - **VideoWidget**: Media display (video/image switching)
-- **TimelineWidget**: Schedule timeline display
+- **TimelineWidget**: Status bar showing current activity, time remaining, and next activity
+- **ActivityOverlay**: Floating overlay displaying current activity (e.g., "Teneffüs", "Ders 1") positioned above the timeline
 - **NetworkClient**: Server communication
 - **MediaPlayer**: Playlist management and playback
 

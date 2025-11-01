@@ -1,160 +1,257 @@
 #include "timelinewidget.h"
 #include "mainwindow.h"
 #include "md3colors.h"
-#include <QPainter>
-#include <QPaintEvent>
-#include <QTime>
-#include <QFontMetrics>
+#include <QHBoxLayout>
+#include <QVBoxLayout>
 #include <QFont>
-#include "networkclient.h"
 #include <QFontDatabase>
-#include <QPainterPath>
 #include <QDateTime>
-#include <QDebug>
-#include <QGuiApplication>
-#include <QScreen>
 
 const QTime TimelineWidget::FIRST_PERIOD_END(9, 30);
 const QTime TimelineWidget::LUNCH_START(12, 0);
 const QTime TimelineWidget::LUNCH_END(12, 45);
 const QString preferredFont = "Inter";
 
-
 TimelineWidget::TimelineWidget(NetworkClient *networkClient, QWidget *parent) : QWidget(parent)
     , m_schoolStart(8, 50)
     , m_schoolEnd(15, 55)
+    , m_networkClient(networkClient)
+    , m_scheduleLoaded(false)
 {
-    // Get screen DPI for scaling (supports forced DPI for testing)
-    qreal dpi = MainWindow::getDpiForScreen(this);
-    
-    // Scale height based on DPI (96 DPI = 140px, scales up/down)
-    qreal scaleFactor = dpi / 96.0;
-    int timelineHeight = qRound(140 * scaleFactor);
-    
-    setFixedHeight(timelineHeight);
-    
-    QString timelineStyle = QString(
-        "TimelineWidget {"
-            "background-color: %1;"
-            "border: 1px solid %2;"
-        "}"
-    ).arg(MD3Colors::DarkTheme::surfaceContainer().name())
-     .arg(MD3Colors::DarkTheme::outline().name());
-    setStyleSheet(timelineStyle);
-    m_currentTime = QTime();
+    setupUI();
+
     connect(networkClient, &NetworkClient::scheduleReceived,
             this, &TimelineWidget::onScheduleReceived);
     connect(networkClient, &NetworkClient::networkError, this, &TimelineWidget::onNetworkError);
+
+    // Generate default schedule
     generateSchoolSchedule();
+    updateDisplay();
 }
 
-void TimelineWidget::paintEvent(QPaintEvent *event)
+void TimelineWidget::setupUI()
 {
-    QWidget::paintEvent(event);
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing);
-    painter.setRenderHint(QPainter::TextAntialiasing);
-
     // Get screen DPI for scaling (supports forced DPI for testing)
     qreal dpi = MainWindow::getDpiForScreen(this);
+
+    // Scale factors based on DPI (96 DPI = 100%, 192 DPI = 200%)
     qreal scaleFactor = dpi / 96.0;
-    
-    const int spacing = qRound(MD3Spacing::spacing4() * scaleFactor);
-    const int timeScaleAreaHeight = qRound(30 * scaleFactor);
 
-    QRect blocksAreaRect = rect().adjusted(spacing, spacing + timeScaleAreaHeight, -spacing, -spacing);
-
-    int totalMinutes = m_schoolStart.msecsTo(m_schoolEnd) / 60000;
-
-    QFont labelFont;
+    // Scale dimensions
+    int barHeight = qRound(32 * scaleFactor);
+    int iconSize = qRound(12 * scaleFactor);
+    int margin = qRound(12 * scaleFactor);
+    int smallMargin = qRound(4 * scaleFactor);
+    int spacing = qRound(16 * scaleFactor);
     int fontSize = qRound(12 * scaleFactor);
-    if (QFontDatabase().families().contains(preferredFont)) {
-        labelFont = QFont(preferredFont, fontSize, QFont::DemiBold);
-    } else if (QFontDatabase().families().contains("Roboto")) {
-        labelFont = QFont("Roboto", qRound(MD3Typography::LabelMedium::size() * scaleFactor), MD3Typography::LabelMedium::weight());
-    } else {
-        labelFont = QFont(font().family(), qRound(MD3Typography::LabelMedium::size() * scaleFactor), MD3Typography::LabelMedium::weight());
-    }
-    painter.setFont(labelFont);
-    painter.setPen(MD3Colors::DarkTheme::onSurfaceVariant());
-    QFontMetrics fm(labelFont);
 
-    for (int hour = 9; hour <= 15; ++hour) {
-        QTime timeMarker(hour, 0);
-        int minutesFromStart = m_schoolStart.msecsTo(timeMarker) / 60000;
-        if (timeMarker < m_schoolStart || timeMarker > m_schoolEnd) continue;
+    setFixedHeight(barHeight);
 
-        double xPos = blocksAreaRect.left() + (double)minutesFromStart / totalMinutes * blocksAreaRect.width();
-        QString timeString = timeMarker.toString("HH:mm");
-        int textWidth = fm.horizontalAdvance(timeString);
+    QHBoxLayout *layout = new QHBoxLayout(this);
+    layout->setContentsMargins(margin, smallMargin, margin, smallMargin);
+    layout->setSpacing(spacing);
 
-        painter.drawText(QPointF(xPos - textWidth / 2.0, blocksAreaRect.top() - spacing), timeString);
+    // Current activity icon
+    m_currentActivityIcon = new QLabel("●");
+    m_currentActivityIcon->setFixedSize(iconSize, iconSize);
+    m_currentActivityIcon->setAlignment(Qt::AlignCenter);
 
-        painter.setPen(QPen(MD3Colors::DarkTheme::outline(), 1.5));
-        painter.drawLine(QPointF(xPos, blocksAreaRect.top() - spacing / 2.0),
-                         QPointF(xPos, blocksAreaRect.top()));
-    }
+    // Current activity label
+    m_currentActivityLabel = new QLabel("Loading...");
+    m_currentActivityLabel->setObjectName("currentActivityLabel");
+    m_currentActivityLabel->setAutoFillBackground(true);
+    QPalette palette = m_currentActivityLabel->palette();
+    palette.setColor(QPalette::Window, MD3Colors::DarkTheme::surfaceContainerHigh());
+    palette.setColor(QPalette::WindowText, MD3Colors::DarkTheme::onSurface());
+    m_currentActivityLabel->setPalette(palette);
+    m_currentActivityLabel->setContentsMargins(4, 2, 4, 2);
 
-    for (int i = 0; i < m_schedule.size(); ++i) {
-        const ScheduleBlock &block = m_schedule.at(i);
-        QColor fillColor, textColor;
-        if (block.type == "lesson") {
-            fillColor = MD3Colors::DarkTheme::primaryContainer();
-            textColor = MD3Colors::DarkTheme::onPrimaryContainer();
-        } else if (block.type == "break") {
-            fillColor = MD3Colors::DarkTheme::secondaryContainer();
-            textColor = MD3Colors::DarkTheme::onSecondaryContainer();
-        } else if (block.type == "lunch") {
-            fillColor = MD3Colors::DarkTheme::tertiaryContainer();
-            textColor = MD3Colors::DarkTheme::onTertiaryContainer();
-        }
-        drawActivityBlock(painter, blocksAreaRect, block.startTime, block.endTime,
-                          m_schoolStart, totalMinutes, blocksAreaRect.top(), blocksAreaRect.height(),
-                          fillColor, textColor, block.name,
-                          i == 0, i == m_schedule.size() - 1);
-    }
+    // Time remaining
+    m_timeRemainingLabel = new QLabel("--:--");
 
+    // Next activity
+    m_nextActivityLabel = new QLabel("Next: --");
+
+    // Current time (right-aligned)
+    m_timeLabel = new QLabel();
+    m_timeLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+
+    // Add widgets to layout
+    layout->addWidget(m_currentActivityIcon);
+    layout->addWidget(m_currentActivityLabel);
+    layout->addWidget(m_timeRemainingLabel);
+    layout->addWidget(m_nextActivityLabel);
+    layout->addStretch();
+    layout->addWidget(m_timeLabel);
+
+    // Style with scaled font
+    QString style = QString(
+        "QLabel {"
+        "color: %1;"
+        "font-size: %2px;"
+        "font-weight: 500;"
+        "}"
+        "QLabel#currentActivityLabel {"
+        "background-color: %3;"
+        "color: %1;"
+        "padding: 2px 4px;"
+        "border-radius: 4px;"
+        "font-weight: 500;"
+        "}"
+    ).arg(MD3Colors::DarkTheme::onSurface().name())
+     .arg(fontSize)
+     .arg(MD3Colors::DarkTheme::surfaceContainerHigh().name());
+
+    setStyleSheet(style);
+
+    // Set background color like StatusBar
+    QString widgetStyle = QString(
+        "TimelineWidget {"
+        "background-color: %1;"
+        "border: none;"
+        "}"
+    ).arg(MD3Colors::DarkTheme::surfaceContainer().name());
+    setStyleSheet(widgetStyle + style);
+}
+
+void TimelineWidget::updateCurrentTime(const QTime &currentTime)
+{
+    m_currentTime = currentTime;
+    updateDisplay();
+}
+
+void TimelineWidget::updateDisplay()
+{
+    // Update time label
     if (m_currentTime.isValid()) {
-        drawCurrentTimeIndicator(painter, blocksAreaRect, m_schoolStart, totalMinutes,
-                                 blocksAreaRect.top(), blocksAreaRect.height());
-    } else if (m_scheduleLoaded) {
-        drawOffHoursIndicator(painter, blocksAreaRect);
+        m_timeLabel->setText(m_currentTime.toString("HH:mm:ss"));
+    } else {
+        m_timeLabel->setText("--:--:--");
+    }
+
+    if (!m_scheduleLoaded) {
+        m_currentActivityLabel->setText("No schedule");
+        m_timeRemainingLabel->setText("--:--");
+        m_nextActivityLabel->setText("Next: --");
+        m_currentActivityIcon->setStyleSheet("color: #666666;");
+        emit currentActivityChanged("No schedule");
+        return;
+    }
+
+    updateActivityIndicators();
+}
+
+void TimelineWidget::updateActivityIndicators()
+{
+    if (!m_currentTime.isValid()) {
+        m_currentActivityLabel->setText("Off hours");
+        m_timeRemainingLabel->setText("--:--");
+        m_nextActivityLabel->setText("Next: --");
+        m_currentActivityIcon->setStyleSheet("color: #666666;");
+        emit currentActivityChanged("Off hours");
+        return;
+    }
+
+    QString currentActivity = getCurrentActivityName(m_currentTime);
+    // ... existing code ...
+    QString nextActivity = getNextActivityName(m_currentTime);
+    QTime nextActivityStart = getNextActivityStartTime(m_currentTime);
+
+    // Update current activity
+    m_currentActivityLabel->setText(currentActivity);
+    emit currentActivityChanged(currentActivity);
+
+    // Update icon color based on activity type
+    QString iconColor = "#666666"; // Default gray
+    if (currentActivity.contains("Ders")) {
+        iconColor = "#2196F3"; // Blue for lessons
+    } else if (currentActivity.contains("Teneffüs")) {
+        iconColor = "#4CAF50"; // Green for breaks
+    } else if (currentActivity.contains("Öğle")) {
+        iconColor = "#FF9800"; // Orange for lunch
+    }
+    m_currentActivityIcon->setStyleSheet(QString("color: %1;").arg(iconColor));
+
+    // Update time remaining
+    if (!currentActivity.isEmpty() && currentActivity != "Off hours") {
+        // Find current activity end time
+        QTime endTime;
+        for (const ScheduleBlock &block : m_schedule) {
+            if (m_currentTime >= block.startTime && m_currentTime < block.endTime) {
+                endTime = block.endTime;
+                break;
+            }
+        }
+        if (endTime.isValid()) {
+            m_timeRemainingLabel->setText(formatTimeRemaining(m_currentTime, endTime));
+        } else {
+            m_timeRemainingLabel->setText("--:--");
+        }
+    } else {
+        m_timeRemainingLabel->setText("--:--");
+    }
+
+    // Update next activity
+    if (!nextActivity.isEmpty()) {
+        QString nextText = QString("Next: %1").arg(nextActivity);
+        if (nextActivityStart.isValid()) {
+            nextText += QString(" (%1)").arg(nextActivityStart.toString("HH:mm"));
+        }
+        m_nextActivityLabel->setText(nextText);
+    } else {
+        m_nextActivityLabel->setText("Next: --");
     }
 }
 
-void TimelineWidget::drawOffHoursIndicator(QPainter &painter, const QRect &timelineRect)
+QString TimelineWidget::getCurrentActivityName(const QTime &currentTime)
 {
-    // Get screen DPI for scaling (supports forced DPI for testing)
-    qreal dpi = MainWindow::getDpiForScreen(this);
-    qreal scaleFactor = dpi / 96.0;
-    
-    QString text = "Mesai Dışı";
-    QFont textFont;
-    int fontSize = qRound(12 * scaleFactor);
-    if (QFontDatabase().families().contains(preferredFont)) {
-        textFont = QFont(preferredFont, fontSize, QFont::Normal);
-    } else if (QFontDatabase().families().contains("Roboto")) {
-        textFont = QFont("Roboto", qRound(MD3Typography::LabelMedium::size() * scaleFactor), MD3Typography::LabelMedium::weight());
-    } else {
-        textFont = QFont(font().family(), qRound(MD3Typography::LabelMedium::size() * scaleFactor), MD3Typography::LabelMedium::weight());
+    if (currentTime < m_schoolStart || currentTime > m_schoolEnd) {
+        return "Off hours";
     }
-    painter.setFont(textFont);
-    QFontMetrics fm(textFont);
 
-    QFontMetrics labelFm(painter.font());
-    int timeScaleHeight = qRound((labelFm.height() + MD3Spacing::spacing4()) * scaleFactor);
-    int indicatorYStart = timelineRect.top() + timeScaleHeight;
-    int indicatorAreaHeight = qRound(MD3Spacing::spacing4() * scaleFactor);
+    for (const ScheduleBlock &block : m_schedule) {
+        if (currentTime >= block.startTime && currentTime < block.endTime) {
+            return block.name;
+        }
+    }
+    return "Free time";
+}
 
-    int textWidth = qRound((fm.horizontalAdvance(text) + MD3Spacing::spacing4()) * scaleFactor);
-    int textHeight = qRound((fm.height() + MD3Spacing::spacing2()) * scaleFactor);
-    int xPos = timelineRect.left() + (timelineRect.width() - textWidth) / 2;
-    int yPos = indicatorYStart + (indicatorAreaHeight - textHeight) / 2;
-    QRect textRect(xPos, yPos, textWidth, textHeight);
+QString TimelineWidget::getNextActivityName(const QTime &currentTime)
+{
+    for (const ScheduleBlock &block : m_schedule) {
+        if (currentTime < block.startTime) {
+            return block.name;
+        }
+    }
+    return QString();
+}
 
-    painter.fillRect(textRect, MD3Colors::DarkTheme::surfaceContainerHighest());
-    painter.setPen(MD3Colors::DarkTheme::onSurface());
-    painter.drawText(textRect, Qt::AlignCenter, text);
+QTime TimelineWidget::getNextActivityStartTime(const QTime &currentTime)
+{
+    for (const ScheduleBlock &block : m_schedule) {
+        if (currentTime < block.startTime) {
+            return block.startTime;
+        }
+    }
+    return QTime();
+}
+
+QString TimelineWidget::formatTimeRemaining(const QTime &currentTime, const QTime &endTime)
+{
+    if (!currentTime.isValid() || !endTime.isValid()) {
+        return "--:--";
+    }
+
+    int secondsRemaining = currentTime.secsTo(endTime);
+    if (secondsRemaining <= 0) {
+        return "00:00";
+    }
+
+    int minutes = secondsRemaining / 60;
+    int seconds = secondsRemaining % 60;
+
+    return QString("%1:%2").arg(minutes, 2, 10, QChar('0')).arg(seconds, 2, 10, QChar('0'));
 }
 
 void TimelineWidget::onScheduleReceived(const QTime &schoolStart, const QTime &schoolEnd,
@@ -165,146 +262,7 @@ void TimelineWidget::onScheduleReceived(const QTime &schoolStart, const QTime &s
     m_schoolEnd = schoolEnd;
     m_schedule = schedule;
     m_scheduleLoaded = true;
-    update();
-}
-
-void TimelineWidget::updateCurrentTime(const QTime &currentTime)
-{
-    m_currentTime = currentTime;
-    update();
-}
-
-void TimelineWidget::drawActivityBlock(QPainter &painter, const QRect &timelineRect,
-                                       const QTime &startTime, const QTime &endTime,
-                                       const QTime &referenceTime, int totalMinutes,
-                                       int yPos, int height,
-                                       const QColor &fillColor, const QColor &textColor,
-                                       const QString &label, bool isFirst, bool isLast)
-{
-    // Get screen DPI for scaling (supports forced DPI for testing)
-    qreal dpi = MainWindow::getDpiForScreen(this);
-    qreal scaleFactor = dpi / 96.0;
-    
-    int startMinutes = (startTime.hour() * 60 + startTime.minute()) - (referenceTime.hour() * 60 + referenceTime.minute());
-    int endMinutes = (endTime.hour() * 60 + endTime.minute()) - (referenceTime.hour() * 60 + referenceTime.minute());
-    double x1 = timelineRect.left() + (double)startMinutes / totalMinutes * timelineRect.width();
-    double x2 = timelineRect.left() + (double)endMinutes / totalMinutes * timelineRect.width();
-    if (x1 >= timelineRect.right() || x2 <= timelineRect.left()) return;
-    x1 = qMax(x1, (double)timelineRect.left());
-    x2 = qMin(x2, (double)timelineRect.right());
-    if (x2 - x1 < 2) return;
-    QRectF blockRect(x1, yPos, x2 - x1, height);
-
-
-    painter.setPen(QPen(MD3Colors::DarkTheme::outline(), 1));
-    painter.setBrush(fillColor);
-    const qreal radius = qRound(8.0 * scaleFactor);
-    QPainterPath path;
-    path.moveTo(blockRect.left() + (isFirst ? radius : 0), blockRect.top());
-    path.lineTo(blockRect.right() - (isLast ? radius : 0), blockRect.top());
-    if (isLast)
-        path.arcTo(blockRect.right() - 2 * radius, blockRect.top(), 2 * radius, 2 * radius, 90, -90);
-    path.lineTo(blockRect.right(), blockRect.bottom() - (isLast ? radius : 0));
-    if (isLast)
-        path.arcTo(blockRect.right() - 2 * radius, blockRect.bottom() - 2 * radius, 2 * radius, 2 * radius, 0, -90);
-    path.lineTo(blockRect.left() + (isFirst ? radius : 0), blockRect.bottom());
-    if (isFirst)
-        path.arcTo(blockRect.left(), blockRect.bottom() - 2 * radius, 2 * radius, 2 * radius, 270, -90);
-    path.lineTo(blockRect.left(), blockRect.top() + (isFirst ? radius : 0));
-    if (isFirst)
-        path.arcTo(blockRect.left(), blockRect.top(), 2 * radius, 2 * radius, 180, -90);
-    painter.drawPath(path);
-    if (!isLast) {
-        painter.setPen(QPen(MD3Colors::DarkTheme::outline(), 1));
-        painter.drawLine(blockRect.topRight(), blockRect.bottomRight());
-    }
-
-    if (blockRect.width() > qRound(40 * scaleFactor)) {
-        QFont blockFont;
-        int fontSize = qRound(10 * scaleFactor);
-        if (QFontDatabase().families().contains(preferredFont)) {
-            blockFont = QFont(preferredFont, fontSize, QFont::Medium);
-        } else if (QFontDatabase().families().contains("Roboto")) {
-            blockFont = QFont("Roboto", qRound(MD3Typography::LabelSmall::size() * scaleFactor), MD3Typography::LabelSmall::weight());
-        } else {
-            blockFont = QFont(font().family(), qRound(MD3Typography::LabelSmall::size() * scaleFactor), MD3Typography::LabelSmall::weight());
-        }
-        painter.setFont(blockFont);
-        painter.setPen(textColor);
-        QFontMetrics blockFm(blockFont);
-        if (blockRect.width() > blockFm.horizontalAdvance(label) + qRound(MD3Spacing::spacing2() * scaleFactor)) {
-            painter.drawText(blockRect, Qt::AlignCenter, label);
-        }
-    }
-}
-
-void TimelineWidget::drawCurrentTimeIndicator(QPainter &painter, const QRect &timelineRect,
-                                              const QTime &referenceTime, int totalMinutes,
-                                              int yStart, int height)
-{
-    // Get screen DPI for scaling (supports forced DPI for testing)
-    qreal dpi = MainWindow::getDpiForScreen(this);
-    qreal scaleFactor = dpi / 96.0;
-    
-    if (m_currentTime < m_schoolStart || m_currentTime > m_schoolEnd) {
-        return;
-    }
-    int minutesFromStart = referenceTime.msecsTo(m_currentTime) / 60000;
-    double xPos = timelineRect.left() + (double)minutesFromStart / totalMinutes * timelineRect.width();
-
-
-    QFont timeFont;
-    int fontSize = qRound(11 * scaleFactor);
-    if (QFontDatabase().families().contains(preferredFont)) {
-        // --- THIS IS THE FIX ---
-        // Changed QFont::SemiBold to QFont::DemiBold, which is the correct enum in Qt.
-        timeFont = QFont(preferredFont, fontSize, QFont::DemiBold);
-        // --- END OF FIX ---
-    } else if (QFontDatabase().families().contains("Roboto")) {
-        timeFont = QFont("Roboto", qRound(MD3Typography::LabelSmall::size() * scaleFactor), MD3Typography::LabelSmall::weight());
-    } else {
-        timeFont = QFont(font().family(), qRound(MD3Typography::LabelSmall::size() * scaleFactor), MD3Typography::LabelSmall::weight());
-    }
-
-    painter.setFont(timeFont);
-    QString currentTimeText = m_currentTime.toString("HH:mm");
-    QString activityText = getCurrentActivityName(m_currentTime);
-    QString fullText = currentTimeText + " - " + activityText;
-    QFontMetrics timeFm(timeFont);
-    int textWidth = qRound((timeFm.horizontalAdvance(fullText) + MD3Spacing::spacing4()) * scaleFactor);
-    int textHeight = qRound((timeFm.height() + MD3Spacing::spacing2()) * scaleFactor);
-
-    const qreal pointerHeight = qRound(6.0 * scaleFactor);
-    const qreal pointerWidth = qRound(10.0 * scaleFactor);
-    const qreal radius = qRound(8.0 * scaleFactor);
-    const QRectF textRect(
-        xPos - textWidth / 2.0,
-        yStart - textHeight - pointerHeight,
-        textWidth,
-        textHeight
-    );
-
-    QPainterPath path;
-    path.moveTo(xPos, textRect.bottom() + pointerHeight);
-    path.lineTo(xPos - pointerWidth / 2.0, textRect.bottom());
-    path.lineTo(textRect.left() + radius, textRect.bottom());
-    path.arcTo(textRect.left(), textRect.bottom() - 2 * radius, 2 * radius, 2 * radius, 270, -90);
-    path.lineTo(textRect.left(), textRect.top() + radius);
-    path.arcTo(textRect.left(), textRect.top(), 2 * radius, 2 * radius, 180, -90);
-    path.lineTo(textRect.right() - radius, textRect.top());
-    path.arcTo(textRect.right() - 2 * radius, textRect.top(), 2 * radius, 2 * radius, 90, -90);
-    path.lineTo(textRect.right(), textRect.bottom() - radius);
-    path.arcTo(textRect.right() - 2 * radius, textRect.bottom() - 2 * radius, 2 * radius, 2 * radius, 0, -90);
-    path.lineTo(xPos + pointerWidth / 2.0, textRect.bottom());
-    path.closeSubpath();
-
-    painter.setPen(QPen(MD3Colors::DarkTheme::error(), 2));
-    painter.drawLine(QPointF(xPos, yStart), QPointF(xPos, yStart + height));
-    painter.setBrush(MD3Colors::DarkTheme::errorContainer());
-    painter.setPen(Qt::NoPen);
-    painter.drawPath(path);
-    painter.setPen(MD3Colors::DarkTheme::onErrorContainer());
-    painter.drawText(textRect, Qt::AlignCenter, fullText);
+    updateDisplay();
 }
 
 void TimelineWidget::generateSchoolSchedule()
@@ -338,22 +296,10 @@ void TimelineWidget::generateSchoolSchedule()
     m_schedule.append({break6End, m_schoolEnd, "Ders 8", "lesson"});
 }
 
-QString TimelineWidget::getCurrentActivityName(const QTime &currentTime)
-{
-    for (const ScheduleBlock &block : m_schedule) {
-        if (currentTime >= block.startTime && currentTime < block.endTime) {
-            return block.name;
-        }
-    }
-    if (currentTime < m_schoolStart) {
-        return "Okul Öncesi";
-    } else if (currentTime >= m_schoolEnd) {
-        return "Okul Sonrası";
-    }
-    return "Boş Zaman";
-}
-
 void TimelineWidget::onNetworkError(const QString &error)
 {
     qDebug() << "Network error:" << error;
+    m_currentActivityLabel->setText("Connection error");
+    m_currentActivityIcon->setStyleSheet("color: #F44336;"); // Red for error
+    emit currentActivityChanged("Connection error");
 }

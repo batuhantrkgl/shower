@@ -251,6 +251,30 @@ VideoTimeline_autogen/mocs_compilation.cpp.s:
 	cd /home/batuhantrkgl/Stuff/shower/build && $(MAKE) $(MAKESILENT) -f src/CMakeFiles/VideoTimeline.dir/build.make src/CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/mocs_compilation.cpp.s
 .PHONY : VideoTimeline_autogen/mocs_compilation.cpp.s
 
+activityoverlay.o: activityoverlay.cpp.o
+.PHONY : activityoverlay.o
+
+# target to build an object file
+activityoverlay.cpp.o:
+	cd /home/batuhantrkgl/Stuff/shower/build && $(MAKE) $(MAKESILENT) -f src/CMakeFiles/VideoTimeline.dir/build.make src/CMakeFiles/VideoTimeline.dir/activityoverlay.cpp.o
+.PHONY : activityoverlay.cpp.o
+
+activityoverlay.i: activityoverlay.cpp.i
+.PHONY : activityoverlay.i
+
+# target to preprocess a source file
+activityoverlay.cpp.i:
+	cd /home/batuhantrkgl/Stuff/shower/build && $(MAKE) $(MAKESILENT) -f src/CMakeFiles/VideoTimeline.dir/build.make src/CMakeFiles/VideoTimeline.dir/activityoverlay.cpp.i
+.PHONY : activityoverlay.cpp.i
+
+activityoverlay.s: activityoverlay.cpp.s
+.PHONY : activityoverlay.s
+
+# target to generate assembly for a file
+activityoverlay.cpp.s:
+	cd /home/batuhantrkgl/Stuff/shower/build && $(MAKE) $(MAKESILENT) -f src/CMakeFiles/VideoTimeline.dir/build.make src/CMakeFiles/VideoTimeline.dir/activityoverlay.cpp.s
+.PHONY : activityoverlay.cpp.s
+
 main.o: main.cpp.o
 .PHONY : main.o
 
@@ -440,6 +464,9 @@ help:
 	@echo "... VideoTimeline_autogen/mocs_compilation.o"
 	@echo "... VideoTimeline_autogen/mocs_compilation.i"
 	@echo "... VideoTimeline_autogen/mocs_compilation.s"
+	@echo "... activityoverlay.o"
+	@echo "... activityoverlay.i"
+	@echo "... activityoverlay.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"

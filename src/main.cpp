@@ -56,6 +56,9 @@ int main(int argc, char *argv[])
     
     QCommandLineOption dpiOption(QStringList() << "dpi", "Override screen DPI for testing UI scaling (e.g., 96, 144, 192).", "dpi_value");
     parser.addOption(dpiOption);
+    
+    QCommandLineOption testTimeOption(QStringList() << "test-time", "Force a specific time for testing time-based UI states (e.g., '06:00' for off-hours, '09:00' for school hours).", "time_value");
+    parser.addOption(testTimeOption);
 
     parser.process(a);
     
@@ -96,8 +99,9 @@ int main(int argc, char *argv[])
 
     QString networkRange = parser.value(networkOption);
     qreal forcedDpi = parser.value(dpiOption).toDouble();
+    QString testTimeStr = parser.value(testTimeOption);
     
-    MainWindow w(parser.isSet(autoOption), networkRange, forcedDpi);
+    MainWindow w(parser.isSet(autoOption), networkRange, forcedDpi, testTimeStr);
     w.showFullScreen();
 
     return a.exec();

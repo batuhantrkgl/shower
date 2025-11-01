@@ -9,6 +9,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/EWIEGA46WW/qrc_icons.cpp.o.d"
   "CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/mocs_compilation.cpp.o"
   "CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/mocs_compilation.cpp.o.d"
+  "CMakeFiles/VideoTimeline.dir/activityoverlay.cpp.o"
+  "CMakeFiles/VideoTimeline.dir/activityoverlay.cpp.o.d"
   "CMakeFiles/VideoTimeline.dir/main.cpp.o"
   "CMakeFiles/VideoTimeline.dir/main.cpp.o.d"
   "CMakeFiles/VideoTimeline.dir/mainwindow.cpp.o"

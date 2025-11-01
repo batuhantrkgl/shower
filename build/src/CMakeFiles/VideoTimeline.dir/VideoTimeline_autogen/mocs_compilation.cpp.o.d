@@ -1,10 +1,9 @@
 src/CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/mocs_compilation.cpp.o: \
  /home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/mocs_compilation.cpp \
  /usr/include/stdc-predef.h \
- /home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/EWIEGA46WW/moc_mainwindow.cpp \
- /home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/EWIEGA46WW/../../../../src/mainwindow.h \
- /usr/include/qt6/QtWidgets/QMainWindow \
- /usr/include/qt6/QtWidgets/qmainwindow.h \
+ /home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/EWIEGA46WW/moc_activityoverlay.cpp \
+ /home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/EWIEGA46WW/../../../../src/activityoverlay.h \
+ /usr/include/qt6/QtWidgets/QWidget /usr/include/qt6/QtWidgets/qwidget.h \
  /usr/include/qt6/QtWidgets/qtwidgetsglobal.h \
  /usr/include/qt6/QtGui/qtguiglobal.h /usr/include/qt6/QtCore/qglobal.h \
  /usr/include/c++/15/type_traits \
@@ -145,7 +144,6 @@ src/CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/mocs_compilation.cpp.o: \
  /usr/include/qt6/QtGui/qtguiexports.h \
  /usr/include/qt6/QtWidgets/qtwidgets-config.h \
  /usr/include/qt6/QtWidgets/qtwidgetsexports.h \
- /usr/include/qt6/QtWidgets/qwidget.h \
  /usr/include/qt6/QtGui/qwindowdefs.h \
  /usr/include/qt6/QtCore/qobjectdefs.h \
  /usr/include/qt6/QtCore/qnamespace.h /usr/include/qt6/QtCore/qcompare.h \
@@ -325,16 +323,38 @@ src/CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/mocs_compilation.cpp.o: \
  /usr/include/qt6/QtGui/qfontvariableaxis.h \
  /usr/include/qt6/QtWidgets/qsizepolicy.h \
  /usr/include/qt6/QtGui/qcursor.h /usr/include/qt6/QtGui/qbitmap.h \
- /usr/include/qt6/QtWidgets/qtabwidget.h /usr/include/qt6/QtCore/QTime \
+ /usr/include/qt6/QtWidgets/QLabel /usr/include/qt6/QtWidgets/qlabel.h \
+ /usr/include/qt6/QtWidgets/qframe.h /usr/include/qt6/QtWidgets/qwidget.h \
+ /usr/include/qt6/QtGui/qpicture.h /usr/include/qt6/QtCore/qiodevice.h \
+ /usr/include/qt6/QtGui/qtextdocument.h /usr/include/qt6/QtCore/qurl.h \
+ /usr/include/qt6/QtWidgets/QFrame /usr/include/qt6/QtWidgets/qframe.h \
+ /usr/include/qt6/QtWidgets/QHBoxLayout \
+ /usr/include/qt6/QtWidgets/qboxlayout.h \
+ /usr/include/qt6/QtWidgets/qlayout.h \
+ /usr/include/qt6/QtWidgets/qlayoutitem.h \
+ /usr/include/qt6/QtWidgets/qboxlayout.h \
+ /usr/include/qt6/QtWidgets/qgridlayout.h /usr/include/qt6/QtCore/QTime \
  /usr/include/qt6/QtCore/qdatetime.h /usr/include/qt6/QtCore/qcalendar.h \
- /usr/include/qt6/QtCore/qlocale.h /usr/include/qt6/QtCore/QTimer \
+ /usr/include/qt6/QtCore/qlocale.h \
+ /home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/EWIEGA46WW/../../../../src/md3colors.h \
+ /usr/include/qt6/QtGui/QColor /usr/include/qt6/QtGui/qcolor.h \
+ /usr/include/qt6/QtCore/QString /usr/include/qt6/QtCore/qstring.h \
+ /usr/include/qt6/QtGui/qtextcursor.h \
+ /usr/include/qt6/QtGui/qtextformat.h /usr/include/qt6/QtGui/qpen.h \
+ /usr/include/qt6/QtGui/qtextoption.h \
+ /usr/include/qt6/QtCore/qtmochelpers.h \
+ /usr/include/qt6/QtCore/qtmocconstants.h \
+ /usr/include/qt6/QtCore/q20algorithm.h \
+ /usr/include/qt6/QtCore/q23type_traits.h \
+ /home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/EWIEGA46WW/moc_mainwindow.cpp \
+ /home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/EWIEGA46WW/../../../../src/mainwindow.h \
+ /usr/include/qt6/QtWidgets/QMainWindow \
+ /usr/include/qt6/QtWidgets/qmainwindow.h \
+ /usr/include/qt6/QtWidgets/qtabwidget.h /usr/include/qt6/QtCore/QTimer \
  /usr/include/qt6/QtCore/qtimer.h /usr/include/qt6/QtCore/qbasictimer.h \
  /usr/include/qt6/QtCore/qabstracteventdispatcher.h \
  /usr/include/qt6/QtCore/qeventloop.h \
  /usr/include/qt6/QtCore/qdeadlinetimer.h \
- /home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/EWIEGA46WW/../../../../src/md3colors.h \
- /usr/include/qt6/QtGui/QColor /usr/include/qt6/QtGui/qcolor.h \
- /usr/include/qt6/QtCore/QString /usr/include/qt6/QtCore/qstring.h \
  /home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/EWIEGA46WW/../../../../src/networkclient.h \
  /usr/include/qt6/QtCore/QObject /usr/include/qt6/QtCore/qobject.h \
  /usr/include/qt6/QtNetwork/QNetworkAccessManager \
@@ -357,7 +377,6 @@ src/CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/mocs_compilation.cpp.o: \
  /usr/include/qt6/QtNetwork/qsslsocket.h \
  /usr/include/qt6/QtNetwork/qtcpsocket.h \
  /usr/include/qt6/QtNetwork/qabstractsocket.h \
- /usr/include/qt6/QtCore/qiodevice.h \
  /usr/include/qt6/QtNetwork/qhostaddress.h \
  /usr/include/qt6/QtNetwork/qsslerror.h \
  /usr/include/qt6/QtNetwork/qsslcertificate.h \
@@ -379,8 +398,7 @@ src/CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/mocs_compilation.cpp.o: \
  /usr/include/qt6/QtCore/qcborvalue.h \
  /usr/include/qt6/QtCore/qcborcommon.h \
  /usr/include/qt6/QtCore/qregularexpression.h \
- /usr/include/qt6/QtCore/qurl.h /usr/include/qt6/QtCore/quuid.h \
- /usr/include/qt6/QtCore/qjsondocument.h \
+ /usr/include/qt6/QtCore/quuid.h /usr/include/qt6/QtCore/qjsondocument.h \
  /usr/include/qt6/QtCore/qjsonparseerror.h \
  /usr/include/qt6/QtCore/QJsonArray /usr/include/qt6/QtCore/qjsonarray.h \
  /usr/include/qt6/QtCore/QList /usr/include/qt6/QtNetwork/QHostAddress \
@@ -391,10 +409,6 @@ src/CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/mocs_compilation.cpp.o: \
  /usr/include/qt6/QtNetwork/qabstractsocket.h \
  /usr/include/qt6/QtNetwork/QSslError \
  /usr/include/qt6/QtNetwork/qsslerror.h \
- /usr/include/qt6/QtCore/qtmochelpers.h \
- /usr/include/qt6/QtCore/qtmocconstants.h \
- /usr/include/qt6/QtCore/q20algorithm.h \
- /usr/include/qt6/QtCore/q23type_traits.h \
  /home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/EWIEGA46WW/moc_mediaplayer.cpp \
  /home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/EWIEGA46WW/../../../../src/mediaplayer.h \
  /usr/include/qt6/QtMultimedia/QMediaPlayer \
@@ -408,19 +422,13 @@ src/CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/mocs_compilation.cpp.o: \
  /usr/include/qt6/QtMultimediaWidgets/qvideowidget.h \
  /usr/include/qt6/QtMultimediaWidgets/qtmultimediawidgetsglobal.h \
  /usr/include/qt6/QtMultimediaWidgets/qtmultimediawidgetsexports.h \
- /usr/include/qt6/QtWidgets/QLabel /usr/include/qt6/QtWidgets/qlabel.h \
- /usr/include/qt6/QtWidgets/qframe.h /usr/include/qt6/QtGui/qpicture.h \
- /usr/include/qt6/QtGui/qtextdocument.h \
  /usr/include/qt6/QtWidgets/QStackedLayout \
  /usr/include/qt6/QtWidgets/qstackedlayout.h \
- /usr/include/qt6/QtWidgets/qlayout.h \
- /usr/include/qt6/QtWidgets/qlayoutitem.h \
- /usr/include/qt6/QtWidgets/qboxlayout.h \
- /usr/include/qt6/QtWidgets/qgridlayout.h /usr/include/qt6/QtGui/QScreen \
- /usr/include/qt6/QtGui/qscreen.h /usr/include/qt6/QtCore/QRect \
- /usr/include/qt6/QtCore/qrect.h /usr/include/qt6/QtCore/QSize \
- /usr/include/qt6/QtCore/qsize.h /usr/include/qt6/QtCore/QSizeF \
- /usr/include/qt6/QtGui/QTransform /usr/include/qt6/QtGui/qtransform.h \
+ /usr/include/qt6/QtGui/QScreen /usr/include/qt6/QtGui/qscreen.h \
+ /usr/include/qt6/QtCore/QRect /usr/include/qt6/QtCore/qrect.h \
+ /usr/include/qt6/QtCore/QSize /usr/include/qt6/QtCore/qsize.h \
+ /usr/include/qt6/QtCore/QSizeF /usr/include/qt6/QtGui/QTransform \
+ /usr/include/qt6/QtGui/qtransform.h \
  /usr/include/qt6/QtCore/qnativeinterface.h \
  /usr/include/qt6/QtGui/qscreen_platform.h \
  /usr/include/qt6/QtGui/qguiapplication.h \
@@ -462,17 +470,11 @@ src/CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/mocs_compilation.cpp.o: \
  /usr/include/c++/15/bits/fs_dir.h /usr/include/c++/15/bits/fs_ops.h \
  /usr/include/qt6/QtCore/qfileinfo.h /usr/include/qt6/QtCore/qtimezone.h \
  /usr/include/qt6/QtCore/QDebug /usr/include/qt6/QtCore/qdebug.h \
- /usr/include/qt6/QtWidgets/QWidget /usr/include/qt6/QtWidgets/qwidget.h \
  /usr/include/qt6/QtGui/QPixmap /usr/include/qt6/QtGui/qpixmap.h \
- /usr/include/qt6/QtGui/qtextcursor.h \
- /usr/include/qt6/QtGui/qtextformat.h /usr/include/qt6/QtGui/qpen.h \
- /usr/include/qt6/QtGui/qtextoption.h \
  /home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/EWIEGA46WW/moc_networkclient.cpp \
  /home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/EWIEGA46WW/../../../../src/networkclient.h \
  /home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/EWIEGA46WW/moc_statusbar.cpp \
  /home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/EWIEGA46WW/../../../../src/statusbar.h \
- /usr/include/qt6/QtWidgets/QHBoxLayout \
- /usr/include/qt6/QtWidgets/qboxlayout.h \
  /home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/EWIEGA46WW/moc_timelinewidget.cpp \
  /home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/EWIEGA46WW/../../../../src/timelinewidget.h \
  /home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/EWIEGA46WW/moc_videowidget.cpp \

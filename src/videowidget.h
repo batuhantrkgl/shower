@@ -18,6 +18,9 @@ class VideoWidget : public QWidget
 public:
     explicit VideoWidget(QWidget *parent = nullptr);
 
+signals:
+    void mediaChanged(const MediaItem &item);
+
 public slots:
     // Slot to handle successfully fetched playlist from the server
     void onPlaylistReceived(const MediaPlaylist &playlist);

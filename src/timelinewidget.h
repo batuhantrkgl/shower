@@ -4,6 +4,8 @@
 #include <QWidget>
 #include <QTimer>
 #include <QTime>
+#include <QHBoxLayout>
+#include <QLabel>
 #include "md3colors.h"
 #include "networkclient.h"
 
@@ -18,20 +20,18 @@ public slots:
     void onScheduleReceived(const QTime &schoolStart, const QTime &schoolEnd, const QList<ScheduleBlock> &schedule);
     void onNetworkError(const QString &error);
 
-protected:
-    void paintEvent(QPaintEvent *event) override;
-    void drawActivityBlock(QPainter &painter, const QRect &timelineRect,
-                           const QTime &startTime, const QTime &endTime,
-                           const QTime &referenceTime, int totalMinutes,
-                           int yPos, int height,
-                           const QColor &fillColor, const QColor &textColor,
-                           const QString &label, bool isFirst, bool isLast); // <-- MODIFIED
-    void drawCurrentTimeIndicator(QPainter &painter, const QRect &timelineRect,
-                                  const QTime &referenceTime, int totalMinutes,
-                                  int yStart, int height);
-    void drawOffHoursIndicator(QPainter &painter, const QRect &timelineRect);
-    void generateSchoolSchedule();
+signals:
+    void currentActivityChanged(const QString &activityName);
+
+private:
+    void setupUI();
+    void updateDisplay();
+    void updateActivityIndicators();
     QString getCurrentActivityName(const QTime &currentTime);
+    QString getNextActivityName(const QTime &currentTime);
+    QTime getNextActivityStartTime(const QTime &currentTime);
+    QString formatTimeRemaining(const QTime &currentTime, const QTime &endTime);
+    void generateSchoolSchedule();
 
 private:
     QTime m_currentTime;
@@ -40,6 +40,14 @@ private:
     bool m_scheduleLoaded = false;
     QTime m_schoolStart;
     QTime m_schoolEnd;
+
+    // UI elements
+    QLabel *m_currentActivityIcon;
+    QLabel *m_currentActivityLabel;
+    QLabel *m_timeRemainingLabel;
+    QLabel *m_nextActivityLabel;
+    QLabel *m_timeLabel;
+
     static const QTime FIRST_PERIOD_END;
     static const QTime LUNCH_START;
     static const QTime LUNCH_END;

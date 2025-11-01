@@ -40,29 +40,34 @@ template <> constexpr inline auto VideoWidget::qt_create_metaobjectdata<qt_meta_
     namespace QMC = QtMocConstants;
     QtMocHelpers::StringRefStorage qt_stringData {
         "VideoWidget",
-        "onPlaylistReceived",
+        "mediaChanged",
         "",
+        "MediaItem",
+        "item",
+        "onPlaylistReceived",
         "MediaPlaylist",
         "playlist",
         "onNetworkError",
         "error",
-        "onMediaChanged",
-        "MediaItem",
-        "item"
+        "onMediaChanged"
     };
 
     QtMocHelpers::UintData qt_methods {
-        // Slot 'onPlaylistReceived'
-        QtMocHelpers::SlotData<void(const MediaPlaylist &)>(1, 2, QMC::AccessPublic, QMetaType::Void, {{
+        // Signal 'mediaChanged'
+        QtMocHelpers::SignalData<void(const MediaItem &)>(1, 2, QMC::AccessPublic, QMetaType::Void, {{
             { 0x80000000 | 3, 4 },
         }}),
+        // Slot 'onPlaylistReceived'
+        QtMocHelpers::SlotData<void(const MediaPlaylist &)>(5, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { 0x80000000 | 6, 7 },
+        }}),
         // Slot 'onNetworkError'
-        QtMocHelpers::SlotData<void(const QString &)>(5, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::QString, 6 },
+        QtMocHelpers::SlotData<void(const QString &)>(8, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 9 },
         }}),
         // Slot 'onMediaChanged'
-        QtMocHelpers::SlotData<void(const MediaItem &)>(7, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { 0x80000000 | 8, 9 },
+        QtMocHelpers::SlotData<void(const MediaItem &)>(10, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { 0x80000000 | 3, 4 },
         }}),
     };
     QtMocHelpers::UintData qt_properties {
@@ -87,11 +92,16 @@ void VideoWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id,
     auto *_t = static_cast<VideoWidget *>(_o);
     if (_c == QMetaObject::InvokeMetaMethod) {
         switch (_id) {
-        case 0: _t->onPlaylistReceived((*reinterpret_cast<std::add_pointer_t<MediaPlaylist>>(_a[1]))); break;
-        case 1: _t->onNetworkError((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
-        case 2: _t->onMediaChanged((*reinterpret_cast<std::add_pointer_t<MediaItem>>(_a[1]))); break;
+        case 0: _t->mediaChanged((*reinterpret_cast<std::add_pointer_t<MediaItem>>(_a[1]))); break;
+        case 1: _t->onPlaylistReceived((*reinterpret_cast<std::add_pointer_t<MediaPlaylist>>(_a[1]))); break;
+        case 2: _t->onNetworkError((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
+        case 3: _t->onMediaChanged((*reinterpret_cast<std::add_pointer_t<MediaItem>>(_a[1]))); break;
         default: ;
         }
+    }
+    if (_c == QMetaObject::IndexOfMethod) {
+        if (QtMocHelpers::indexOfMethod<void (VideoWidget::*)(const MediaItem & )>(_a, &VideoWidget::mediaChanged, 0))
+            return;
     }
 }
 
@@ -114,15 +124,21 @@ int VideoWidget::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 3)
+        if (_id < 4)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 3;
+        _id -= 4;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 3)
+        if (_id < 4)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 3;
+        _id -= 4;
     }
     return _id;
+}
+
+// SIGNAL 0
+void VideoWidget::mediaChanged(const MediaItem & _t1)
+{
+    QMetaObject::activate<void>(this, &staticMetaObject, 0, nullptr, _t1);
 }
 QT_WARNING_POP

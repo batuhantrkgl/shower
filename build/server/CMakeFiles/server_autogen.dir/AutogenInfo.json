@@ -69,8 +69,8 @@
 	"MOC_COMPILATION_FILE" : "/home/batuhantrkgl/Stuff/shower/build/server/server_autogen/mocs_compilation.cpp",
 	"MOC_DEFINITIONS" : 
 	[
-		"DATA_DIR=\"/home/batuhantrkgl/Stuff/shower/../data\"",
-		"MEDIA_DIR=\"/home/batuhantrkgl/Stuff/shower/../data/media\"",
+		"DATA_DIR=\"/home/batuhantrkgl/Stuff/shower/server/../data\"",
+		"MEDIA_DIR=\"/home/batuhantrkgl/Stuff/shower/server/../data/media\"",
 		"QT_CORE_LIB",
 		"QT_NETWORK_LIB",
 		"QT_NO_DEBUG"

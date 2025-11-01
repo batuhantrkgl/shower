@@ -1,6 +1,8 @@
 VideoTimeline_autogen/timestamp: \
 	/home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/moc_predefs.h \
 	/home/batuhantrkgl/Stuff/shower/src/CMakeLists.txt \
+	/home/batuhantrkgl/Stuff/shower/src/activityoverlay.cpp \
+	/home/batuhantrkgl/Stuff/shower/src/activityoverlay.h \
 	/home/batuhantrkgl/Stuff/shower/src/icons.qrc \
 	/home/batuhantrkgl/Stuff/shower/src/main.cpp \
 	/home/batuhantrkgl/Stuff/shower/src/mainwindow.cpp \
@@ -544,6 +546,7 @@ VideoTimeline_autogen/timestamp: \
 	/usr/include/qt6/QtNetwork/qtnetwork-config.h \
 	/usr/include/qt6/QtNetwork/qtnetworkexports.h \
 	/usr/include/qt6/QtNetwork/qtnetworkglobal.h \
+	/usr/include/qt6/QtWidgets/QFrame \
 	/usr/include/qt6/QtWidgets/QHBoxLayout \
 	/usr/include/qt6/QtWidgets/QLabel \
 	/usr/include/qt6/QtWidgets/QMainWindow \

@@ -24,13 +24,13 @@ VideoWidget::VideoWidget(QWidget *parent)
     m_fallbackLabel = new QLabel(this);
     m_fallbackLabel->setAlignment(Qt::AlignCenter);
     m_fallbackLabel->setScaledContents(false); // Don't stretch - we'll handle scaling manually
-    QPixmap fallbackPixmap("media/default.jpeg");
-    if(fallbackPixmap.isNull()) {
-        qDebug() << "ERROR: Could not load fallback image from media/default.jpeg";
+    // QPixmap fallbackPixmap("media/default.jpeg");
+    // if(fallbackPixmap.isNull()) {
+        qDebug() << "ERROR: Could not load fallback image";
         m_fallbackLabel->setText("Fallback image not found!");
-    } else {
-        m_fallbackLabel->setPixmap(fallbackPixmap);
-    }
+    // } else {
+    //     m_fallbackLabel->setPixmap(fallbackPixmap);
+    // }
 
     // --- Layout to Switch Between Video and Image ---
     m_mainLayout = new QStackedLayout(this);
@@ -67,6 +67,9 @@ void VideoWidget::onMediaChanged(const MediaItem &item)
 {
     qDebug() << "Current media changed to:" << item.type << item.url;
     // The MediaPlayer handles switching between video and image views
+    
+    // Emit signal to notify MainWindow (so it can raise the overlay)
+    emit mediaChanged(item);
 }
 
 void VideoWidget::onNetworkError(const QString &error)

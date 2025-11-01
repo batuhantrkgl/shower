@@ -29,6 +29,6 @@ set_target_properties(server PROPERTIES
 
 # Set data directory path
 target_compile_definitions(server PRIVATE
-    DATA_DIR="${CMAKE_SOURCE_DIR}/../data"
-    MEDIA_DIR="${CMAKE_SOURCE_DIR}/../data/media"
+    DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../data"
+    MEDIA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../data/media"
 )

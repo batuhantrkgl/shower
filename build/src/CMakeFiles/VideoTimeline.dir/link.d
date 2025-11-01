@@ -7,6 +7,7 @@
   CMakeFiles/VideoTimeline.dir/mainwindow.cpp.o \
   CMakeFiles/VideoTimeline.dir/videowidget.cpp.o \
   CMakeFiles/VideoTimeline.dir/timelinewidget.cpp.o \
+  CMakeFiles/VideoTimeline.dir/activityoverlay.cpp.o \
   CMakeFiles/VideoTimeline.dir/networkclient.cpp.o \
   CMakeFiles/VideoTimeline.dir/mediaplayer.cpp.o \
   CMakeFiles/VideoTimeline.dir/statusbar.cpp.o \
@@ -138,6 +139,8 @@ CMakeFiles/VideoTimeline.dir/mainwindow.cpp.o:
 CMakeFiles/VideoTimeline.dir/videowidget.cpp.o:
 
 CMakeFiles/VideoTimeline.dir/timelinewidget.cpp.o:
+
+CMakeFiles/VideoTimeline.dir/activityoverlay.cpp.o:
 
 CMakeFiles/VideoTimeline.dir/networkclient.cpp.o:
 

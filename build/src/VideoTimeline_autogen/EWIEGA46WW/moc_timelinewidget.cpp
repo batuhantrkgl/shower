@@ -7,6 +7,7 @@
 *****************************************************************************/
 
 #include "../../../../src/timelinewidget.h"
+#include <QtGui/qtextcursor.h>
 #include <QtNetwork/QSslError>
 #include <QtCore/qmetatype.h>
 #include <QtCore/QList>
@@ -41,8 +42,10 @@ template <> constexpr inline auto TimelineWidget::qt_create_metaobjectdata<qt_me
     namespace QMC = QtMocConstants;
     QtMocHelpers::StringRefStorage qt_stringData {
         "TimelineWidget",
-        "updateCurrentTime",
+        "currentActivityChanged",
         "",
+        "activityName",
+        "updateCurrentTime",
         "currentTime",
         "onScheduleReceived",
         "schoolStart",
@@ -54,17 +57,21 @@ template <> constexpr inline auto TimelineWidget::qt_create_metaobjectdata<qt_me
     };
 
     QtMocHelpers::UintData qt_methods {
+        // Signal 'currentActivityChanged'
+        QtMocHelpers::SignalData<void(const QString &)>(1, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 3 },
+        }}),
         // Slot 'updateCurrentTime'
-        QtMocHelpers::SlotData<void(const QTime &)>(1, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::QTime, 3 },
+        QtMocHelpers::SlotData<void(const QTime &)>(4, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QTime, 5 },
         }}),
         // Slot 'onScheduleReceived'
-        QtMocHelpers::SlotData<void(const QTime &, const QTime &, const QList<ScheduleBlock> &)>(4, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::QTime, 5 }, { QMetaType::QTime, 6 }, { 0x80000000 | 7, 8 },
+        QtMocHelpers::SlotData<void(const QTime &, const QTime &, const QList<ScheduleBlock> &)>(6, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QTime, 7 }, { QMetaType::QTime, 8 }, { 0x80000000 | 9, 10 },
         }}),
         // Slot 'onNetworkError'
-        QtMocHelpers::SlotData<void(const QString &)>(9, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::QString, 10 },
+        QtMocHelpers::SlotData<void(const QString &)>(11, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 12 },
         }}),
     };
     QtMocHelpers::UintData qt_properties {
@@ -89,11 +96,16 @@ void TimelineWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _
     auto *_t = static_cast<TimelineWidget *>(_o);
     if (_c == QMetaObject::InvokeMetaMethod) {
         switch (_id) {
-        case 0: _t->updateCurrentTime((*reinterpret_cast<std::add_pointer_t<QTime>>(_a[1]))); break;
-        case 1: _t->onScheduleReceived((*reinterpret_cast<std::add_pointer_t<QTime>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<QTime>>(_a[2])),(*reinterpret_cast<std::add_pointer_t<QList<ScheduleBlock>>>(_a[3]))); break;
-        case 2: _t->onNetworkError((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
+        case 0: _t->currentActivityChanged((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
+        case 1: _t->updateCurrentTime((*reinterpret_cast<std::add_pointer_t<QTime>>(_a[1]))); break;
+        case 2: _t->onScheduleReceived((*reinterpret_cast<std::add_pointer_t<QTime>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<QTime>>(_a[2])),(*reinterpret_cast<std::add_pointer_t<QList<ScheduleBlock>>>(_a[3]))); break;
+        case 3: _t->onNetworkError((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
         default: ;
         }
+    }
+    if (_c == QMetaObject::IndexOfMethod) {
+        if (QtMocHelpers::indexOfMethod<void (TimelineWidget::*)(const QString & )>(_a, &TimelineWidget::currentActivityChanged, 0))
+            return;
     }
 }
 
@@ -116,15 +128,21 @@ int TimelineWidget::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 3)
+        if (_id < 4)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 3;
+        _id -= 4;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 3)
+        if (_id < 4)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 3;
+        _id -= 4;
     }
     return _id;
+}
+
+// SIGNAL 0
+void TimelineWidget::currentActivityChanged(const QString & _t1)
+{
+    QMetaObject::activate<void>(this, &staticMetaObject, 0, nullptr, _t1);
 }
 QT_WARNING_POP

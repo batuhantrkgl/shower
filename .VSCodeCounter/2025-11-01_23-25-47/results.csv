@@ -1,0 +1,37 @@
+"filename", "language", "Shell Script", "JSON", "CMake", "C++", "Markdown", "XML", "comment", "blank", "total"
+"/home/batuhantrkgl/Stuff/shower/CMakeLists.txt", "CMake", 0, 0, 23, 0, 0, 0, 0, 7, 30
+"/home/batuhantrkgl/Stuff/shower/QUICKSTART.md", "Markdown", 0, 0, 0, 0, 47, 0, 0, 22, 69
+"/home/batuhantrkgl/Stuff/shower/README.md", "Markdown", 0, 0, 0, 0, 242, 0, 0, 80, 322
+"/home/batuhantrkgl/Stuff/shower/data/playlist.json", "JSON", 0, 23, 0, 0, 0, 0, 0, 1, 24
+"/home/batuhantrkgl/Stuff/shower/data/schedule.json", "JSON", 0, 21, 0, 0, 0, 0, 0, 0, 21
+"/home/batuhantrkgl/Stuff/shower/run.sh", "Shell Script", 160, 0, 0, 0, 0, 0, 18, 25, 203
+"/home/batuhantrkgl/Stuff/shower/scripts/build.sh", "Shell Script", 152, 0, 0, 0, 0, 0, 24, 34, 210
+"/home/batuhantrkgl/Stuff/shower/scripts/install_rpi.sh", "Shell Script", 105, 0, 0, 0, 0, 0, 20, 25, 150
+"/home/batuhantrkgl/Stuff/shower/scripts/server-build.sh", "Shell Script", 26, 0, 0, 0, 0, 0, 8, 12, 46
+"/home/batuhantrkgl/Stuff/shower/server/CMakeLists.txt", "CMake", 0, 0, 26, 0, 0, 0, 0, 8, 34
+"/home/batuhantrkgl/Stuff/shower/server/README.md", "Markdown", 0, 0, 0, 0, 50, 0, 0, 22, 72
+"/home/batuhantrkgl/Stuff/shower/server/run.sh", "Shell Script", 226, 0, 0, 0, 0, 0, 22, 33, 281
+"/home/batuhantrkgl/Stuff/shower/server/server.cpp", "C++", 0, 0, 0, 616, 0, 0, 44, 126, 786
+"/home/batuhantrkgl/Stuff/shower/server/server.h", "C++", 0, 0, 0, 54, 0, 0, 0, 11, 65
+"/home/batuhantrkgl/Stuff/shower/src/CMakeLists.txt", "CMake", 0, 0, 48, 0, 0, 0, 0, 7, 55
+"/home/batuhantrkgl/Stuff/shower/src/activityoverlay.cpp", "C++", 0, 0, 0, 107, 0, 0, 15, 23, 145
+"/home/batuhantrkgl/Stuff/shower/src/activityoverlay.h", "C++", 0, 0, 0, 29, 0, 0, 0, 8, 37
+"/home/batuhantrkgl/Stuff/shower/src/icons/book.svg", "XML", 0, 0, 0, 0, 0, 1, 0, 0, 1
+"/home/batuhantrkgl/Stuff/shower/src/icons/coffee.svg", "XML", 0, 0, 0, 0, 0, 1, 0, 0, 1
+"/home/batuhantrkgl/Stuff/shower/src/icons/utensils.svg", "XML", 0, 0, 0, 0, 0, 1, 0, 0, 1
+"/home/batuhantrkgl/Stuff/shower/src/main.cpp", "C++", 0, 0, 0, 72, 0, 0, 10, 27, 109
+"/home/batuhantrkgl/Stuff/shower/src/mainwindow.cpp", "C++", 0, 0, 0, 188, 0, 0, 31, 39, 258
+"/home/batuhantrkgl/Stuff/shower/src/mainwindow.h", "C++", 0, 0, 0, 40, 0, 0, 0, 9, 49
+"/home/batuhantrkgl/Stuff/shower/src/md3colors.h", "C++", 0, 0, 0, 160, 0, 0, 14, 31, 205
+"/home/batuhantrkgl/Stuff/shower/src/mediaplayer.cpp", "C++", 0, 0, 0, 283, 0, 0, 31, 57, 371
+"/home/batuhantrkgl/Stuff/shower/src/mediaplayer.h", "C++", 0, 0, 0, 55, 0, 0, 1, 12, 68
+"/home/batuhantrkgl/Stuff/shower/src/networkclient.cpp", "C++", 0, 0, 0, 459, 0, 0, 37, 83, 579
+"/home/batuhantrkgl/Stuff/shower/src/networkclient.h", "C++", 0, 0, 0, 91, 0, 0, 2, 17, 110
+"/home/batuhantrkgl/Stuff/shower/src/qt6compat.h", "C++", 0, 0, 0, 110, 0, 0, 21, 34, 165
+"/home/batuhantrkgl/Stuff/shower/src/statusbar.cpp", "C++", 0, 0, 0, 116, 0, 0, 11, 22, 149
+"/home/batuhantrkgl/Stuff/shower/src/statusbar.h", "C++", 0, 0, 0, 33, 0, 0, 0, 8, 41
+"/home/batuhantrkgl/Stuff/shower/src/timelinewidget.cpp", "C++", 0, 0, 0, 247, 0, 0, 19, 40, 306
+"/home/batuhantrkgl/Stuff/shower/src/timelinewidget.h", "C++", 0, 0, 0, 46, 0, 0, 1, 10, 57
+"/home/batuhantrkgl/Stuff/shower/src/videowidget.cpp", "C++", 0, 0, 0, 55, 0, 0, 14, 12, 81
+"/home/batuhantrkgl/Stuff/shower/src/videowidget.h", "C++", 0, 0, 0, 29, 0, 0, 4, 10, 43
+"Total", "-", 669, 44, 97, 2790, 339, 3, 347, 855, 5144

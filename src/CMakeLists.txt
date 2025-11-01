@@ -3,6 +3,7 @@ set(SOURCES
     mainwindow.cpp
     videowidget.cpp
     timelinewidget.cpp
+    activityoverlay.cpp
     networkclient.cpp
     mediaplayer.cpp
     statusbar.cpp
@@ -12,6 +13,7 @@ set(HEADERS
     mainwindow.h
     videowidget.h
     timelinewidget.h
+    activityoverlay.h
     networkclient.h
     md3colors.h
     mediaplayer.h
