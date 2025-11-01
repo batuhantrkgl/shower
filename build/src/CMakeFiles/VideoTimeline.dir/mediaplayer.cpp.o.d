@@ -349,7 +349,23 @@ src/CMakeFiles/VideoTimeline.dir/mediaplayer.cpp.o: \
  /usr/include/qt6/QtWidgets/qlayout.h \
  /usr/include/qt6/QtWidgets/qlayoutitem.h \
  /usr/include/qt6/QtWidgets/qboxlayout.h \
- /usr/include/qt6/QtWidgets/qgridlayout.h /usr/include/qt6/QtCore/QString \
+ /usr/include/qt6/QtWidgets/qgridlayout.h /usr/include/qt6/QtGui/QScreen \
+ /usr/include/qt6/QtGui/qscreen.h /usr/include/qt6/QtCore/QList \
+ /usr/include/qt6/QtCore/qlist.h /usr/include/qt6/QtCore/QObject \
+ /usr/include/qt6/QtCore/QRect /usr/include/qt6/QtCore/qrect.h \
+ /usr/include/qt6/QtCore/QSize /usr/include/qt6/QtCore/qsize.h \
+ /usr/include/qt6/QtCore/QSizeF /usr/include/qt6/QtGui/QTransform \
+ /usr/include/qt6/QtGui/qtransform.h \
+ /usr/include/qt6/QtCore/qnativeinterface.h \
+ /usr/include/qt6/QtGui/qscreen_platform.h \
+ /usr/include/qt6/QtGui/qguiapplication.h \
+ /usr/include/qt6/QtCore/qcoreapplication.h \
+ /usr/include/qt6/QtCore/qcoreevent.h \
+ /usr/include/qt6/QtCore/qcoreapplication_platform.h \
+ /usr/include/qt6/QtGui/qinputmethod.h /usr/include/qt6/QtCore/qlocale.h \
+ /usr/include/qt6/QtGui/qguiapplication_platform.h \
+ /usr/include/qt6/QtGui/QGuiApplication \
+ /usr/include/qt6/QtGui/qguiapplication.h /usr/include/qt6/QtCore/QString \
  /usr/include/qt6/QtCore/qstring.h \
  /home/batuhantrkgl/Stuff/shower/src/qt6compat.h \
  /usr/include/qt6/QtCore/QtGlobal /usr/include/qt6/QtCore/qglobal.h \
@@ -362,7 +378,7 @@ src/CMakeFiles/VideoTimeline.dir/mediaplayer.cpp.o: \
  /usr/include/qt6/QtNetwork/qtnetworkexports.h \
  /usr/include/qt6/QtNetwork/qhttpheaders.h \
  /usr/include/qt6/QtCore/qdatetime.h /usr/include/qt6/QtCore/qcalendar.h \
- /usr/include/qt6/QtCore/qlocale.h /usr/include/qt6/QtCore/qmetaobject.h \
+ /usr/include/qt6/QtCore/qmetaobject.h \
  /usr/include/qt6/QtCore/QSharedDataPointer \
  /usr/include/qt6/QtCore/qshareddata.h /usr/include/qt6/QtCore/QString \
  /usr/include/qt6/QtCore/QUrl /usr/include/qt6/QtCore/qurl.h \
@@ -396,12 +412,11 @@ src/CMakeFiles/VideoTimeline.dir/mediaplayer.cpp.o: \
  /usr/include/qt6/QtCore/QDebug /usr/include/qt6/QtCore/qdebug.h \
  /usr/include/qt6/QtWidgets/QWidget /usr/include/qt6/QtWidgets/qwidget.h \
  /usr/include/qt6/QtGui/QPixmap /usr/include/qt6/QtGui/qpixmap.h \
- /usr/include/qt6/QtCore/QList /usr/include/qt6/QtCore/qlist.h \
- /usr/include/qt6/QtCore/QTime /usr/include/qt6/QtCore/qdatetime.h \
+ /usr/include/qt6/QtCore/QList /usr/include/qt6/QtCore/QTime \
+ /usr/include/qt6/QtCore/qdatetime.h \
  /usr/include/qt6/QtNetwork/QNetworkAccessManager \
  /usr/include/qt6/QtNetwork/qnetworkaccessmanager.h \
  /usr/include/qt6/QtNetwork/qnetworkrequest.h \
- /usr/include/qt6/QtCore/QList /usr/include/qt6/QtCore/QObject \
  /usr/include/qt6/QtNetwork/QSslConfiguration \
  /usr/include/qt6/QtNetwork/qsslconfiguration.h \
  /usr/include/qt6/QtNetwork/qsslsocket.h \
@@ -436,4 +451,9 @@ src/CMakeFiles/VideoTimeline.dir/mediaplayer.cpp.o: \
  /usr/include/qt6/QtNetwork/QNetworkInterface \
  /usr/include/qt6/QtNetwork/qnetworkinterface.h \
  /usr/include/qt6/QtNetwork/QAbstractSocket \
- /usr/include/qt6/QtNetwork/qabstractsocket.h
+ /usr/include/qt6/QtNetwork/qabstractsocket.h \
+ /usr/include/qt6/QtWidgets/QApplication \
+ /usr/include/qt6/QtWidgets/qapplication.h \
+ /usr/include/qt6/QtGui/QPainter /usr/include/qt6/QtGui/qpainter.h \
+ /usr/include/qt6/QtGui/qtextoption.h /usr/include/qt6/QtGui/qpen.h \
+ /usr/include/qt6/QtGui/QFont /usr/include/qt6/QtGui/qfont.h

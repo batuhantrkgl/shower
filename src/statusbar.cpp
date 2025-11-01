@@ -1,4 +1,5 @@
 #include "statusbar.h"
+#include "mainwindow.h"
 #include <QDateTime>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -28,9 +29,8 @@ StatusBar::~StatusBar()
 
 void StatusBar::setupUI()
 {
-    // Get screen DPI for scaling
-    QScreen *screen = QGuiApplication::primaryScreen();
-    qreal dpi = screen ? screen->logicalDotsPerInch() : 96.0;
+    // Get screen DPI for scaling (supports forced DPI for testing)
+    qreal dpi = MainWindow::getDpiForScreen(this);
     
     // Scale factors based on DPI (96 DPI = 100%, 192 DPI = 200%)
     qreal scaleFactor = dpi / 96.0;

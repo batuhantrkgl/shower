@@ -52,6 +52,7 @@ private:
     void generatePlaylist();
     bool shouldRegeneratePlaylist();
     void toggleAutoRegenerate(QTcpSocket *socket);
+    void toggleScreenMirroring(QTcpSocket *socket);
 
     QTcpServer *server;
     quint16 port;

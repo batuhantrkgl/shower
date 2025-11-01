@@ -406,4 +406,5 @@ src/CMakeFiles/VideoTimeline.dir/main.cpp.o: \
  /usr/include/qt6/QtCore/QCommandLineOption \
  /usr/include/qt6/QtCore/qcommandlineoption.h \
  /usr/include/qt6/QtCore/QTextStream \
- /usr/include/qt6/QtCore/qtextstream.h
+ /usr/include/qt6/QtCore/qtextstream.h /usr/include/qt6/QtCore/QDebug \
+ /usr/include/qt6/QtCore/qdebug.h

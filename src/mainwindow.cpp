@@ -8,9 +8,14 @@
 #include <QApplication>
 #include <QScreen>
 
-MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, QWidget *parent)
-    : QMainWindow(parent)
+static qreal s_forcedDpi = 0.0;
+
+MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal forcedDpi, QWidget *parent)
+    : QMainWindow(parent), m_forcedDpi(forcedDpi)
 {
+    // Set the global forced DPI for all widgets to use
+    s_forcedDpi = forcedDpi;
+
     setWindowTitle("Video Timeline");
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
     setAttribute(Qt::WA_DeleteOnClose);
@@ -110,4 +115,29 @@ void MainWindow::updateUIState()
     } else {
         m_timelineWidget->updateCurrentTime(currentTime);
     }
+}
+
+qreal MainWindow::getDpiForScreen(QWidget *widget)
+{
+    // If forced DPI is set (for testing), use it
+    if (s_forcedDpi > 0.0) {
+        // Only show debug output once to avoid spam
+        static bool shownDebug = false;
+        if (!shownDebug) {
+            qDebug() << "[DPI TEST] Using forced DPI:" << s_forcedDpi << "DPI (scale factor:" << (s_forcedDpi / 96.0) << ")";
+            shownDebug = true;
+        }
+        return s_forcedDpi;
+    }
+    
+    // Otherwise get actual screen DPI
+    QScreen *screen = nullptr;
+    if (widget) {
+        screen = widget->screen();
+    } else {
+        // Fallback to primary screen
+        screen = QApplication::primaryScreen();
+    }
+    
+    return screen ? screen->logicalDotsPerInch() : 96.0;
 }

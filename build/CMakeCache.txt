@@ -369,6 +369,15 @@ Vulkan_INCLUDE_DIR:PATH=/usr/include
 //Path to a library.
 Vulkan_LIBRARY:FILEPATH=/lib64/libvulkan.so
 
+//Value Computed by CMake
+server_BINARY_DIR:STATIC=/home/batuhantrkgl/Stuff/shower/build/server
+
+//Value Computed by CMake
+server_IS_TOP_LEVEL:STATIC=OFF
+
+//Value Computed by CMake
+server_SOURCE_DIR:STATIC=/home/batuhantrkgl/Stuff/shower/server
+
 
 ########################
 # INTERNAL cache entries

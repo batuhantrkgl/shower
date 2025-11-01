@@ -277,7 +277,10 @@
   /usr/include/qt6/QtCore/QList \
   /usr/include/qt6/QtCore/QMetaType \
   /usr/include/qt6/QtCore/QObject \
+  /usr/include/qt6/QtCore/QRect \
   /usr/include/qt6/QtCore/QSharedDataPointer \
+  /usr/include/qt6/QtCore/QSize \
+  /usr/include/qt6/QtCore/QSizeF \
   /usr/include/qt6/QtCore/QString \
   /usr/include/qt6/QtCore/QTime \
   /usr/include/qt6/QtCore/QTimer \
@@ -325,6 +328,9 @@
   /usr/include/qt6/QtCore/qcontainerinfo.h \
   /usr/include/qt6/QtCore/qcontainertools_impl.h \
   /usr/include/qt6/QtCore/qcontiguouscache.h \
+  /usr/include/qt6/QtCore/qcoreapplication.h \
+  /usr/include/qt6/QtCore/qcoreapplication_platform.h \
+  /usr/include/qt6/QtCore/qcoreevent.h \
   /usr/include/qt6/QtCore/qcryptographichash.h \
   /usr/include/qt6/QtCore/qdarwinhelpers.h \
   /usr/include/qt6/QtCore/qdatastream.h \
@@ -372,6 +378,7 @@
   /usr/include/qt6/QtCore/qmetatype.h \
   /usr/include/qt6/QtCore/qminmax.h \
   /usr/include/qt6/QtCore/qnamespace.h \
+  /usr/include/qt6/QtCore/qnativeinterface.h \
   /usr/include/qt6/QtCore/qnumeric.h \
   /usr/include/qt6/QtCore/qobject.h \
   /usr/include/qt6/QtCore/qobject_impl.h \
@@ -440,7 +447,10 @@
   /usr/include/qt6/QtCore/qversiontagging.h \
   /usr/include/qt6/QtCore/qxptype_traits.h \
   /usr/include/qt6/QtCore/qyieldcpu.h \
+  /usr/include/qt6/QtGui/QGuiApplication \
   /usr/include/qt6/QtGui/QPixmap \
+  /usr/include/qt6/QtGui/QScreen \
+  /usr/include/qt6/QtGui/QTransform \
   /usr/include/qt6/QtGui/qaction.h \
   /usr/include/qt6/QtGui/qbitmap.h \
   /usr/include/qt6/QtGui/qbrush.h \
@@ -450,8 +460,11 @@
   /usr/include/qt6/QtGui/qfontinfo.h \
   /usr/include/qt6/QtGui/qfontmetrics.h \
   /usr/include/qt6/QtGui/qfontvariableaxis.h \
+  /usr/include/qt6/QtGui/qguiapplication.h \
+  /usr/include/qt6/QtGui/qguiapplication_platform.h \
   /usr/include/qt6/QtGui/qicon.h \
   /usr/include/qt6/QtGui/qimage.h \
+  /usr/include/qt6/QtGui/qinputmethod.h \
   /usr/include/qt6/QtGui/qkeysequence.h \
   /usr/include/qt6/QtGui/qpaintdevice.h \
   /usr/include/qt6/QtGui/qpalette.h \
@@ -462,6 +475,8 @@
   /usr/include/qt6/QtGui/qregion.h \
   /usr/include/qt6/QtGui/qrgb.h \
   /usr/include/qt6/QtGui/qrgba64.h \
+  /usr/include/qt6/QtGui/qscreen.h \
+  /usr/include/qt6/QtGui/qscreen_platform.h \
   /usr/include/qt6/QtGui/qtextdocument.h \
   /usr/include/qt6/QtGui/qtgui-config.h \
   /usr/include/qt6/QtGui/qtguiexports.h \

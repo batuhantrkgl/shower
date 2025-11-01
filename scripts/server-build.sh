@@ -4,51 +4,39 @@
 
 echo "Building VideoTimeline Server..."
 
-# Check for Qt6
-if command -v qmake6 >/dev/null 2>&1; then
-    QMAKE="qmake6"
-elif command -v qmake >/dev/null 2>&1; then
-    QMAKE="qmake"
-    # Check if it's Qt6
-    QT_VERSION=$(qmake -query QT_VERSION 2>/dev/null | cut -d. -f1)
-    if [ "$QT_VERSION" != "6" ]; then
-        echo "Error: Qt6 is required (found Qt$QT_VERSION)"
-        exit 1
-    fi
-else
-    echo "Error: qmake not found. Please install Qt6 development tools."
+# Check for CMake
+if ! command -v cmake >/dev/null 2>&1; then
+    echo "Error: CMake not found. Please install CMake."
     exit 1
 fi
 
-echo "Using: $QMAKE"
+echo "Using: cmake"
 
-# Clean up any previous in-place build artifacts
-if [ -f "server/Makefile" ]; then
+# Clean up any previous build artifacts
+if [ -d "server/build" ]; then
     echo "Cleaning up old build artifacts..."
-    cd server
-    make clean 2>/dev/null || true
-    rm -f Makefile .qmake.stash
-    cd ..
+    rm -rf server/build
 fi
 
-# Create necessary directories
-mkdir -p server/moc server/obj server/rcc
+# Create build directory
+mkdir -p server/build
+cd server/build
 
-# Generate Makefile
-echo "Generating Makefile..."
-$QMAKE server/server.pro
+# Configure with CMake
+echo "Configuring with CMake..."
+cmake .. -DCMAKE_BUILD_TYPE=Release
 
 # Build
 echo "Compiling..."
-cd server
 make -j$(nproc 2>/dev/null || echo 4)
-cd ..
 
-if [ -f "server/server" ] || [ -f "server/server.exe" ]; then
+cd ../..
+
+if [ -f "server/build/server" ] || [ -f "server/build/server.exe" ]; then
     echo "✓ Build successful!"
-    # Copy to build directory
+    # Copy to main build directory
     mkdir -p build/server
-    cp server/server* build/server/ 2>/dev/null || true
+    cp server/build/server* build/server/ 2>/dev/null || true
     echo "Binary copied to build/server/"
 else
     echo "✗ Build failed!"

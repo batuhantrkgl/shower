@@ -100,7 +100,8 @@ inline void startSingleShotTimer(QTimer *timer, int msec) {
 // Ensure consistent widget indices
 enum StackedLayoutIndices {
     VIDEO_WIDGET_INDEX = 0,
-    IMAGE_WIDGET_INDEX = 1
+    IMAGE_WIDGET_INDEX = 1,
+    SCREEN_WIDGET_INDEX = 2
 };
 
 // Error handling macros

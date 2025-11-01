@@ -106,16 +106,18 @@ CMakeFiles/server.dir/server.cpp.o: \
  /usr/include/bits/byteswap.h /usr/include/bits/uintn-identity.h \
  /usr/include/sys/select.h /usr/include/bits/select.h \
  /usr/include/bits/types/sigset_t.h /usr/include/alloca.h \
- /usr/include/bits/stdlib-float.h /usr/include/c++/15/bits/std_abs.h \
- /usr/include/c++/15/cstdio /usr/include/stdio.h \
- /usr/include/bits/types/__fpos_t.h /usr/include/bits/types/__fpos64_t.h \
+ /usr/include/bits/stdlib-bsearch.h /usr/include/bits/stdlib-float.h \
+ /usr/include/c++/15/bits/std_abs.h /usr/include/c++/15/cstdio \
+ /usr/include/stdio.h /usr/include/bits/types/__fpos_t.h \
+ /usr/include/bits/types/__fpos64_t.h \
  /usr/include/bits/types/struct_FILE.h \
  /usr/include/bits/types/cookie_io_functions_t.h \
- /usr/include/bits/stdio_lim.h /usr/include/c++/15/cerrno \
- /usr/include/errno.h /usr/include/bits/errno.h \
- /usr/include/linux/errno.h /usr/include/asm/errno.h \
- /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
- /usr/include/bits/types/error_t.h /usr/include/c++/15/bits/charconv.h \
+ /usr/include/bits/stdio_lim.h /usr/include/bits/stdio.h \
+ /usr/include/c++/15/cerrno /usr/include/errno.h \
+ /usr/include/bits/errno.h /usr/include/linux/errno.h \
+ /usr/include/asm/errno.h /usr/include/asm-generic/errno.h \
+ /usr/include/asm-generic/errno-base.h /usr/include/bits/types/error_t.h \
+ /usr/include/c++/15/bits/charconv.h \
  /usr/include/c++/15/bits/basic_string.tcc \
  /usr/include/c++/15/bits/memory_resource.h /usr/include/c++/15/cstddef \
  /usr/include/c++/15/bits/uses_allocator.h \
@@ -365,6 +367,8 @@ CMakeFiles/server.dir/server.cpp.o: \
  /usr/include/qt6/QtCore/QUrlQuery /usr/include/qt6/QtCore/qurlquery.h \
  /usr/include/qt6/QtCore/QUrl /usr/include/qt6/QtCore/qurl.h \
  /usr/include/qt6/QtCore/QDateTime /usr/include/qt6/QtCore/qdatetime.h \
+ /usr/include/qt6/QtNetwork/QHostInfo \
+ /usr/include/qt6/QtNetwork/qhostinfo.h \
  /home/batuhantrkgl/Stuff/shower/server/server.h \
  /usr/include/qt6/QtCore/QObject /usr/include/qt6/QtCore/qobject.h \
  /usr/include/qt6/QtCore/QString /usr/include/qt6/QtCore/qstring.h

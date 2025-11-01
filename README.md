@@ -203,6 +203,13 @@ sudo systemctl start videotimeline.service
 # Auto-discover and connect to server
 ./VideoTimeline --auto
 
+# Use specific server
+./VideoTimeline --network 192.168.1.100:3232
+
+# Test UI scaling with different DPI (for testing on different resolutions)
+./VideoTimeline --dpi 144  # Test with 144 DPI (150% scaling)
+./VideoTimeline --dpi 192  # Test with 192 DPI (200% scaling)
+
 # Use default connection
 ./VideoTimeline
 ```

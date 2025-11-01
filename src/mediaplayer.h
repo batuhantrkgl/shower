@@ -7,6 +7,8 @@
 #include <QVideoWidget>
 #include <QLabel>
 #include <QStackedLayout>
+#include <QScreen>
+#include <QGuiApplication>
 #include <QString>
 #include "qt6compat.h"
 #include "networkclient.h"
@@ -32,22 +34,27 @@ private slots:
     void onImageTimerFinished();
     void onVideoFinished();
     void onVideoStateChanged(QMediaPlayer::PlaybackState state);
+    void onScreenCaptureTimer();
 
 private:
     void playCurrentItem();
     void showVideo();
     void showImage();
+    void showScreen();
     void loadImage(const QString &url);
     void startImageTimer(int durationMs);
     void scaleAndSetImage(const QPixmap &originalPixmap);
+    void captureScreen();
 
     QMediaPlayer *m_player;
     QVideoWidget *m_videoOutput;
     QLabel *m_imageLabel;
+    QLabel *m_screenLabel;
     QStackedLayout *m_layout;
     
     MediaPlaylist m_playlist;
     QTimer *m_imageTimer;
+    QTimer *m_screenTimer;
     QPixmap m_currentImage; // Store original image for rescaling
     
     bool m_isPlaying;
@@ -55,6 +62,7 @@ private:
     // Widget indices for stacked layout (using compatibility constants)
     static const int VIDEO_INDEX = VIDEO_WIDGET_INDEX;
     static const int IMAGE_INDEX = IMAGE_WIDGET_INDEX;
+    static const int SCREEN_INDEX = SCREEN_WIDGET_INDEX;
 };
 
 #endif // MEDIAPLAYER_H

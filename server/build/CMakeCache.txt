@@ -22,7 +22,7 @@ CMAKE_AR:FILEPATH=/usr/bin/ar
 
 //Choose the type of build, options are: None Debug Release RelWithDebInfo
 // MinSizeRel ...
-CMAKE_BUILD_TYPE:STRING=
+CMAKE_BUILD_TYPE:STRING=Release
 
 //Enable/Disable color output during build.
 CMAKE_COLOR_MAKEFILE:BOOL=ON
@@ -196,7 +196,7 @@ CMAKE_PROJECT_DESCRIPTION:STATIC=
 CMAKE_PROJECT_HOMEPAGE_URL:STATIC=
 
 //Value Computed by CMake
-CMAKE_PROJECT_NAME:STATIC=VideoTimelineServer
+CMAKE_PROJECT_NAME:STATIC=server
 
 //Path to a program.
 CMAKE_RANLIB:FILEPATH=/usr/bin/ranlib
@@ -283,13 +283,13 @@ Qt6Network_DIR:PATH=/usr/lib64/cmake/Qt6Network
 Qt6_DIR:PATH=/usr/lib64/cmake/Qt6
 
 //Value Computed by CMake
-VideoTimelineServer_BINARY_DIR:STATIC=/home/batuhantrkgl/Stuff/shower/server/build
+server_BINARY_DIR:STATIC=/home/batuhantrkgl/Stuff/shower/server/build
 
 //Value Computed by CMake
-VideoTimelineServer_IS_TOP_LEVEL:STATIC=ON
+server_IS_TOP_LEVEL:STATIC=ON
 
 //Value Computed by CMake
-VideoTimelineServer_SOURCE_DIR:STATIC=/home/batuhantrkgl/Stuff/shower/server
+server_SOURCE_DIR:STATIC=/home/batuhantrkgl/Stuff/shower/server
 
 
 ########################

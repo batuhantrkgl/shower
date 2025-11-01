@@ -16,8 +16,10 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(bool autoDiscover = false, const QString &networkRange = QString(), QWidget *parent = nullptr);
+    MainWindow(bool autoDiscover = false, const QString &networkRange = QString(), qreal forcedDpi = 0.0, QWidget *parent = nullptr);
     ~MainWindow();
+    
+    static qreal getDpiForScreen(QWidget *widget = nullptr);
 
 private slots:
     void onScheduleReceived(const QTime &schoolStart, const QTime &schoolEnd, const QList<ScheduleBlock> &schedule);
@@ -32,5 +34,6 @@ private:
     QTime m_schoolStartTime;
     QTime m_schoolEndTime;
     bool m_scheduleLoaded = false;
+    qreal m_forcedDpi = 0.0;
 };
 #endif // MAINWINDOW_H

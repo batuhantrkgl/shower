@@ -416,7 +416,21 @@ src/CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/mocs_compilation.cpp.o: \
  /usr/include/qt6/QtWidgets/qlayout.h \
  /usr/include/qt6/QtWidgets/qlayoutitem.h \
  /usr/include/qt6/QtWidgets/qboxlayout.h \
- /usr/include/qt6/QtWidgets/qgridlayout.h \
+ /usr/include/qt6/QtWidgets/qgridlayout.h /usr/include/qt6/QtGui/QScreen \
+ /usr/include/qt6/QtGui/qscreen.h /usr/include/qt6/QtCore/QRect \
+ /usr/include/qt6/QtCore/qrect.h /usr/include/qt6/QtCore/QSize \
+ /usr/include/qt6/QtCore/qsize.h /usr/include/qt6/QtCore/QSizeF \
+ /usr/include/qt6/QtGui/QTransform /usr/include/qt6/QtGui/qtransform.h \
+ /usr/include/qt6/QtCore/qnativeinterface.h \
+ /usr/include/qt6/QtGui/qscreen_platform.h \
+ /usr/include/qt6/QtGui/qguiapplication.h \
+ /usr/include/qt6/QtCore/qcoreapplication.h \
+ /usr/include/qt6/QtCore/qcoreevent.h \
+ /usr/include/qt6/QtCore/qcoreapplication_platform.h \
+ /usr/include/qt6/QtGui/qinputmethod.h \
+ /usr/include/qt6/QtGui/qguiapplication_platform.h \
+ /usr/include/qt6/QtGui/QGuiApplication \
+ /usr/include/qt6/QtGui/qguiapplication.h \
  /home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/EWIEGA46WW/../../../../src/qt6compat.h \
  /usr/include/qt6/QtCore/QtGlobal /usr/include/qt6/QtCore/qglobal.h \
  /usr/include/qt6/QtMultimedia/QAudioOutput \
@@ -464,19 +478,7 @@ src/CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/mocs_compilation.cpp.o: \
  /home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/EWIEGA46WW/moc_videowidget.cpp \
  /home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/EWIEGA46WW/../../../../src/videowidget.h \
  /usr/include/qt6/QtGui/QResizeEvent /usr/include/qt6/QtGui/qevent.h \
- /usr/include/qt6/QtCore/qcoreevent.h \
  /usr/include/qt6/QtGui/qeventpoint.h /usr/include/qt6/QtGui/qvector2d.h \
  /usr/include/qt6/QtGui/qvectornd.h \
  /usr/include/qt6/QtGui/qpointingdevice.h \
- /usr/include/qt6/QtGui/qinputdevice.h /usr/include/qt6/QtGui/qscreen.h \
- /usr/include/qt6/QtCore/QRect /usr/include/qt6/QtCore/qrect.h \
- /usr/include/qt6/QtCore/QSize /usr/include/qt6/QtCore/qsize.h \
- /usr/include/qt6/QtCore/QSizeF /usr/include/qt6/QtGui/QTransform \
- /usr/include/qt6/QtGui/qtransform.h \
- /usr/include/qt6/QtCore/qnativeinterface.h \
- /usr/include/qt6/QtGui/qscreen_platform.h \
- /usr/include/qt6/QtGui/qguiapplication.h \
- /usr/include/qt6/QtCore/qcoreapplication.h \
- /usr/include/qt6/QtCore/qcoreapplication_platform.h \
- /usr/include/qt6/QtGui/qinputmethod.h \
- /usr/include/qt6/QtGui/qguiapplication_platform.h
+ /usr/include/qt6/QtGui/qinputdevice.h /usr/include/qt6/QtGui/qscreen.h

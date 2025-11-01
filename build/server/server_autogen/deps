@@ -398,4 +398,45 @@ server_autogen/timestamp: \
 	/usr/lib/gcc/x86_64-redhat-linux/15/include/stddef.h \
 	/usr/lib/gcc/x86_64-redhat-linux/15/include/stdint.h \
 	/usr/lib/gcc/x86_64-redhat-linux/15/include/syslimits.h \
+	/usr/lib64/cmake/Qt6/Qt6Config.cmake \
+	/usr/lib64/cmake/Qt6/Qt6ConfigExtras.cmake \
+	/usr/lib64/cmake/Qt6/Qt6ConfigVersion.cmake \
+	/usr/lib64/cmake/Qt6/Qt6ConfigVersionImpl.cmake \
+	/usr/lib64/cmake/Qt6/Qt6Dependencies.cmake \
+	/usr/lib64/cmake/Qt6/Qt6Targets.cmake \
+	/usr/lib64/cmake/Qt6/Qt6VersionlessAliasTargets.cmake \
+	/usr/lib64/cmake/Qt6/QtFeature.cmake \
+	/usr/lib64/cmake/Qt6/QtFeatureCommon.cmake \
+	/usr/lib64/cmake/Qt6/QtInstallPaths.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicAndroidHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicAppleHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicCMakeEarlyPolicyHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicCMakeHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicCMakeVersionHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicDependencyHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicExternalProjectHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicFinalizerHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicFindPackageHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicGitHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicPluginHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicPluginHelpers_v2.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicSbomAttributionHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicSbomCpeHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicSbomDepHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicSbomFileHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicSbomGenerationHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicSbomHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicSbomLicenseHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicSbomOpsHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicSbomPurlHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicSbomPythonHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicSbomQtEntityHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicSbomSystemDepHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicTargetHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicTestHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicToolHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicWalkLibsHelpers.cmake \
+	/usr/lib64/cmake/Qt6/QtPublicWindowsHelpers.cmake \
+	/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake \
+	/usr/share/cmake/Modules/CheckCXXCompilerFlag.cmake \
 	/usr/bin/cmake

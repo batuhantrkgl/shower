@@ -421,7 +421,9 @@ src/CMakeFiles/VideoTimeline.dir/videowidget.cpp.o: \
  /usr/include/qt6/QtWidgets/qlayout.h \
  /usr/include/qt6/QtWidgets/qlayoutitem.h \
  /usr/include/qt6/QtWidgets/qboxlayout.h \
- /usr/include/qt6/QtWidgets/qgridlayout.h \
+ /usr/include/qt6/QtWidgets/qgridlayout.h /usr/include/qt6/QtGui/QScreen \
+ /usr/include/qt6/QtGui/qscreen.h /usr/include/qt6/QtGui/QGuiApplication \
+ /usr/include/qt6/QtGui/qguiapplication.h \
  /home/batuhantrkgl/Stuff/shower/src/qt6compat.h \
  /usr/include/qt6/QtCore/QtGlobal /usr/include/qt6/QtCore/qglobal.h \
  /usr/include/qt6/QtMultimedia/QAudioOutput \
@@ -847,8 +849,7 @@ src/CMakeFiles/VideoTimeline.dir/videowidget.cpp.o: \
  /usr/include/qt6/QtGui/qgenericmatrix.h \
  /usr/include/qt6/QtGui/qgenericplugin.h \
  /usr/include/qt6/QtGui/qgenericpluginfactory.h \
- /usr/include/qt6/QtGui/qglyphrun.h \
- /usr/include/qt6/QtGui/qguiapplication.h /usr/include/qt6/QtGui/qicon.h \
+ /usr/include/qt6/QtGui/qglyphrun.h /usr/include/qt6/QtGui/qicon.h \
  /usr/include/qt6/QtGui/qiconengine.h \
  /usr/include/qt6/QtGui/qiconengineplugin.h \
  /usr/include/qt6/QtGui/qimage.h /usr/include/qt6/QtGui/qimageiohandler.h \
@@ -899,7 +900,7 @@ src/CMakeFiles/VideoTimeline.dir/videowidget.cpp.o: \
  /usr/include/qt6/QtGui/QPaintDeviceWindow \
  /usr/include/qt6/QtGui/qrawfont.h /usr/include/qt6/QtGui/qregion.h \
  /usr/include/qt6/QtGui/qrgb.h /usr/include/qt6/QtGui/qrgba64.h \
- /usr/include/qt6/QtGui/qrgbafloat.h /usr/include/qt6/QtGui/qscreen.h \
+ /usr/include/qt6/QtGui/qrgbafloat.h \
  /usr/include/qt6/QtGui/qsessionmanager.h \
  /usr/include/qt6/QtGui/qshortcut.h \
  /usr/include/qt6/QtGui/qstandarditemmodel.h \

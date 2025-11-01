@@ -386,10 +386,14 @@ src/CMakeFiles/VideoTimeline.dir/timelinewidget.cpp.o: \
  /usr/include/qt6/QtNetwork/qnetworkinterface.h \
  /usr/include/qt6/QtNetwork/QAbstractSocket \
  /usr/include/qt6/QtNetwork/qabstractsocket.h \
- /usr/include/qt6/QtGui/QPainter /usr/include/qt6/QtGui/qpainter.h \
- /usr/include/qt6/QtGui/qtextoption.h /usr/include/qt6/QtGui/qpen.h \
- /usr/include/qt6/QtGui/QPaintEvent /usr/include/qt6/QtGui/qevent.h \
- /usr/include/qt6/QtCore/qcoreevent.h \
+ /home/batuhantrkgl/Stuff/shower/src/mainwindow.h \
+ /usr/include/qt6/QtWidgets/QMainWindow \
+ /usr/include/qt6/QtWidgets/qmainwindow.h \
+ /usr/include/qt6/QtWidgets/qwidget.h \
+ /usr/include/qt6/QtWidgets/qtabwidget.h /usr/include/qt6/QtGui/QPainter \
+ /usr/include/qt6/QtGui/qpainter.h /usr/include/qt6/QtGui/qtextoption.h \
+ /usr/include/qt6/QtGui/qpen.h /usr/include/qt6/QtGui/QPaintEvent \
+ /usr/include/qt6/QtGui/qevent.h /usr/include/qt6/QtCore/qcoreevent.h \
  /usr/include/qt6/QtGui/qeventpoint.h /usr/include/qt6/QtGui/qvector2d.h \
  /usr/include/qt6/QtGui/qvectornd.h \
  /usr/include/qt6/QtGui/qpointingdevice.h \

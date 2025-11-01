@@ -6,6 +6,7 @@
 #include <QCommandLineParser>
 #include <QCommandLineOption>
 #include <QTextStream>
+#include <QDebug> // Include QDebug for debug output
 
 #ifndef QT_STRINGIFY
 #define QT_STRINGIFY2(x) #x
@@ -52,9 +53,12 @@ int main(int argc, char *argv[])
     
     QCommandLineOption networkOption(QStringList() << "network", "Connect to specific server URL (e.g., 10.135.176.176:3232) or scan network range (e.g., 10.1.1 for 10.1.1.*:3232).", "server_or_range");
     parser.addOption(networkOption);
+    
+    QCommandLineOption dpiOption(QStringList() << "dpi", "Override screen DPI for testing UI scaling (e.g., 96, 144, 192).", "dpi_value");
+    parser.addOption(dpiOption);
 
     parser.process(a);
-
+    
     // If --version or -v was passed, print info and exit gracefully
     if (parser.isSet(versionOption)) {
         QTextStream out(stdout);
@@ -91,7 +95,9 @@ int main(int argc, char *argv[])
     a.setFont(appFont);
 
     QString networkRange = parser.value(networkOption);
-    MainWindow w(parser.isSet(autoOption), networkRange);
+    qreal forcedDpi = parser.value(dpiOption).toDouble();
+    
+    MainWindow w(parser.isSet(autoOption), networkRange, forcedDpi);
     w.showFullScreen();
 
     return a.exec();

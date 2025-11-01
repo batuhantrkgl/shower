@@ -1,4 +1,5 @@
 #include "timelinewidget.h"
+#include "mainwindow.h"
 #include "md3colors.h"
 #include <QPainter>
 #include <QPaintEvent>
@@ -23,9 +24,8 @@ TimelineWidget::TimelineWidget(NetworkClient *networkClient, QWidget *parent) : 
     , m_schoolStart(8, 50)
     , m_schoolEnd(15, 55)
 {
-    // Get screen DPI for scaling
-    QScreen *screen = QGuiApplication::primaryScreen();
-    qreal dpi = screen ? screen->logicalDotsPerInch() : 96.0;
+    // Get screen DPI for scaling (supports forced DPI for testing)
+    qreal dpi = MainWindow::getDpiForScreen(this);
     
     // Scale height based on DPI (96 DPI = 140px, scales up/down)
     qreal scaleFactor = dpi / 96.0;
@@ -55,9 +55,8 @@ void TimelineWidget::paintEvent(QPaintEvent *event)
     painter.setRenderHint(QPainter::Antialiasing);
     painter.setRenderHint(QPainter::TextAntialiasing);
 
-    // Get screen DPI for scaling
-    QScreen *screen = QGuiApplication::primaryScreen();
-    qreal dpi = screen ? screen->logicalDotsPerInch() : 96.0;
+    // Get screen DPI for scaling (supports forced DPI for testing)
+    qreal dpi = MainWindow::getDpiForScreen(this);
     qreal scaleFactor = dpi / 96.0;
     
     const int spacing = qRound(MD3Spacing::spacing4() * scaleFactor);
@@ -125,9 +124,8 @@ void TimelineWidget::paintEvent(QPaintEvent *event)
 
 void TimelineWidget::drawOffHoursIndicator(QPainter &painter, const QRect &timelineRect)
 {
-    // Get screen DPI for scaling
-    QScreen *screen = QGuiApplication::primaryScreen();
-    qreal dpi = screen ? screen->logicalDotsPerInch() : 96.0;
+    // Get screen DPI for scaling (supports forced DPI for testing)
+    qreal dpi = MainWindow::getDpiForScreen(this);
     qreal scaleFactor = dpi / 96.0;
     
     QString text = "Mesai Dışı";
@@ -183,9 +181,8 @@ void TimelineWidget::drawActivityBlock(QPainter &painter, const QRect &timelineR
                                        const QColor &fillColor, const QColor &textColor,
                                        const QString &label, bool isFirst, bool isLast)
 {
-    // Get screen DPI for scaling
-    QScreen *screen = QGuiApplication::primaryScreen();
-    qreal dpi = screen ? screen->logicalDotsPerInch() : 96.0;
+    // Get screen DPI for scaling (supports forced DPI for testing)
+    qreal dpi = MainWindow::getDpiForScreen(this);
     qreal scaleFactor = dpi / 96.0;
     
     int startMinutes = (startTime.hour() * 60 + startTime.minute()) - (referenceTime.hour() * 60 + referenceTime.minute());
@@ -245,9 +242,8 @@ void TimelineWidget::drawCurrentTimeIndicator(QPainter &painter, const QRect &ti
                                               const QTime &referenceTime, int totalMinutes,
                                               int yStart, int height)
 {
-    // Get screen DPI for scaling
-    QScreen *screen = QGuiApplication::primaryScreen();
-    qreal dpi = screen ? screen->logicalDotsPerInch() : 96.0;
+    // Get screen DPI for scaling (supports forced DPI for testing)
+    qreal dpi = MainWindow::getDpiForScreen(this);
     qreal scaleFactor = dpi / 96.0;
     
     if (m_currentTime < m_schoolStart || m_currentTime > m_schoolEnd) {

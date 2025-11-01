@@ -6,6 +6,12 @@
 #include <QPixmap>
 #include <QDebug>
 #include <QUrl>
+#include <QScreen>
+#include <QGuiApplication>
+#include <QWidget>
+#include <QApplication>
+#include <QPainter>
+#include <QFont>
 
 MediaPlayer::MediaPlayer(QVideoWidget *videoOutput, QLabel *imageLabel, QStackedLayout *layout, QObject *parent)
     : QObject(parent)
@@ -43,6 +49,16 @@ MediaPlayer::MediaPlayer(QVideoWidget *videoOutput, QLabel *imageLabel, QStacked
     m_imageTimer = new QTimer(this);
     m_imageTimer->setSingleShot(true);
     connect(m_imageTimer, &QTimer::timeout, this, &MediaPlayer::onImageTimerFinished);
+
+    // Initialize screen capture timer (capture every 100ms for smooth display)
+    m_screenTimer = new QTimer(this);
+    connect(m_screenTimer, &QTimer::timeout, this, &MediaPlayer::onScreenCaptureTimer);
+
+    // Initialize screen label
+    m_screenLabel = new QLabel();
+    m_screenLabel->setAlignment(Qt::AlignCenter);
+    m_screenLabel->setScaledContents(true);
+    m_layout->addWidget(m_screenLabel); // Add to layout at SCREEN_INDEX
 }
 
 void MediaPlayer::setPlaylist(const MediaPlaylist &playlist)
@@ -69,6 +85,7 @@ void MediaPlayer::stop()
     m_isPlaying = false;
     m_player->stop();
     m_imageTimer->stop();
+    m_screenTimer->stop();
 }
 
 void MediaPlayer::next()
@@ -80,6 +97,7 @@ void MediaPlayer::next()
     // Stop current playback
     m_player->stop();
     m_imageTimer->stop();
+    m_screenTimer->stop();
     
     // Move to next item
     m_playlist.moveToNext();
@@ -114,6 +132,10 @@ void MediaPlayer::playCurrentItem()
         showImage();
         loadImage(currentItem.url);
         startImageTimer(currentItem.duration);
+    } else if (currentItem.type == "screen") {
+        showScreen();
+        // Start screen capture timer (capture every 100ms)
+        m_screenTimer->start(100);
     } else {
         qDebug() << "Unknown media type:" << currentItem.type;
         next(); // Skip unknown types
@@ -128,6 +150,11 @@ void MediaPlayer::showVideo()
 void MediaPlayer::showImage()
 {
     m_layout->setCurrentIndex(IMAGE_WIDGET_INDEX);
+}
+
+void MediaPlayer::showScreen()
+{
+    m_layout->setCurrentIndex(SCREEN_INDEX);
 }
 
 void MediaPlayer::loadImage(const QString &url)
@@ -236,4 +263,109 @@ void MediaPlayer::onVideoStateChanged(QMediaPlayer::PlaybackState state)
         // Video was stopped (could be due to error or end of media)
         // The mediaStatusChanged signal will handle EndOfMedia case
     }
+}
+
+void MediaPlayer::onScreenCaptureTimer()
+{
+    captureScreen();
+}
+
+void MediaPlayer::captureScreen()
+{
+    qDebug() << "Attempting screen capture...";
+
+    // Get the primary screen
+    QScreen *screen = QGuiApplication::primaryScreen();
+    if (!screen) {
+        qDebug() << "ERROR: No primary screen found for screen capture";
+        // Fallback: create a placeholder image
+        QPixmap placeholder(800, 600);
+        placeholder.fill(Qt::black);
+        QPainter painter(&placeholder);
+        painter.setPen(Qt::white);
+        painter.setFont(QFont("Arial", 24));
+        painter.drawText(placeholder.rect(), Qt::AlignCenter, "Screen Capture\nNot Available");
+        m_screenLabel->setPixmap(placeholder.scaled(m_screenLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        return;
+    }
+
+    qDebug() << "Primary screen found:" << screen->name() << "size:" << screen->size();
+
+    // Check display server type
+    QString sessionType = qgetenv("XDG_SESSION_TYPE");
+    bool isWayland = (sessionType == "wayland");
+
+    qDebug() << "Display server type:" << sessionType;
+
+    // On Wayland, screen capture is restricted by design for security
+    if (isWayland) {
+        qDebug() << "Wayland detected - screen capture not supported with Qt";
+
+        // Create helpful error message for Wayland
+        QPixmap placeholder(800, 600);
+        placeholder.fill(Qt::darkBlue);
+        QPainter painter(&placeholder);
+        painter.setPen(Qt::white);
+        painter.setFont(QFont("Arial", 16));
+
+        QString waylandMessage =
+            "Screen Mirroring Unavailable\n\n"
+            "This application is running on Wayland,\n"
+            "which restricts screen capture for security.\n\n"
+            "To enable screen mirroring:\n"
+            "• Log out and select X11/Xorg session\n"
+            "• Or use a different display manager\n\n"
+            "Wayland security prevents Qt applications\n"
+            "from capturing the screen without special\n"
+            "permissions or portal APIs.";
+
+        painter.drawText(placeholder.rect(), Qt::AlignCenter, waylandMessage);
+        m_screenLabel->setPixmap(placeholder.scaled(m_screenLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        return;
+    }
+
+    // Try screen capture (should work on X11)
+    QPixmap screenshot = screen->grabWindow(0);
+    if (screenshot.isNull()) {
+        qDebug() << "Screen capture failed on X11";
+
+        // Create error placeholder for X11 issues
+        QPixmap placeholder(800, 600);
+        placeholder.fill(Qt::darkRed);
+        QPainter painter(&placeholder);
+        painter.setPen(Qt::white);
+        painter.setFont(QFont("Arial", 16));
+
+        QString x11Message =
+            "Screen Capture Failed\n\n"
+            "Running on X11 but capture failed.\n"
+            "Possible causes:\n"
+            "• Missing X11 permissions\n"
+            "• Compositor restrictions\n"
+            "• Display access issues\n\n"
+            "Check X11 configuration.";
+
+        painter.drawText(placeholder.rect(), Qt::AlignCenter, x11Message);
+        m_screenLabel->setPixmap(placeholder.scaled(m_screenLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        return;
+    }
+
+    qDebug() << "Screen captured successfully, size:" << screenshot.size();
+
+    // Scale the screenshot to fit the label while maintaining aspect ratio
+    QSize labelSize = m_screenLabel->size();
+    if (labelSize.width() <= 0 || labelSize.height() <= 0) {
+        if (m_screenLabel->parentWidget()) {
+            labelSize = m_screenLabel->parentWidget()->size();
+        } else {
+            labelSize = QSize(800, 600); // Fallback size
+        }
+    }
+
+    QPixmap scaledScreenshot = screenshot.scaled(labelSize,
+                                               Qt::KeepAspectRatio,
+                                               Qt::SmoothTransformation);
+
+    m_screenLabel->setPixmap(scaledScreenshot);
+    qDebug() << "Screen displayed on label, scaled to:" << scaledScreenshot.size();
 }

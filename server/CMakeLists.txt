@@ -1,3 +1,10 @@
+cmake_minimum_required(VERSION 3.16)
+
+project(server)
+
+# Find Qt6
+find_package(Qt6 REQUIRED COMPONENTS Core Network)
+
 set(SOURCES
     server.cpp
 )
@@ -22,6 +29,6 @@ set_target_properties(server PROPERTIES
 
 # Set data directory path
 target_compile_definitions(server PRIVATE
-    DATA_DIR="${CMAKE_SOURCE_DIR}/data"
-    MEDIA_DIR="${CMAKE_SOURCE_DIR}/data/media"
+    DATA_DIR="${CMAKE_SOURCE_DIR}/../data"
+    MEDIA_DIR="${CMAKE_SOURCE_DIR}/../data/media"
 )

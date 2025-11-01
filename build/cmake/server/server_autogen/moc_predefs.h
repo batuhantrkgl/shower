@@ -218,7 +218,7 @@
 #define __LDBL_DECIMAL_DIG__ 21
 #define __VERSION__ "15.2.1 20251022 (Red Hat 15.2.1-3)"
 #define __UINT64_C(c) c ## UL
-#define DATA_DIR "/home/batuhantrkgl/Stuff/shower/data"
+#define DATA_DIR "/home/batuhantrkgl/Stuff/shower/../data"
 #define __cpp_unicode_characters 201411L
 #define __DEC64X_MIN__ 1E-6143D64x
 #define _STDC_PREDEF_H 1
@@ -444,7 +444,7 @@
 #define __GLIBCXX_TYPE_INT_N_0 __int128
 #define __UINTMAX_MAX__ 0xffffffffffffffffUL
 #define __FLT32X_DENORM_MIN__ 4.94065645841246544176568792868221372e-324F32x
-#define MEDIA_DIR "/home/batuhantrkgl/Stuff/shower/data/media"
+#define MEDIA_DIR "/home/batuhantrkgl/Stuff/shower/../data/media"
 #define __cpp_template_template_args 201611L
 #define __DBL_MAX_10_EXP__ 308
 #define __LDBL_DENORM_MIN__ 3.64519953188247460252840593361941982e-4951L

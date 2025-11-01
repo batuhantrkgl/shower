@@ -59,6 +59,7 @@ The client will auto-discover the server and start displaying your media.
 
 - **Video naming**: Name with `mute`, `silent`, or `background` for muted videos
 - **Image timing**: Use `quick`, `short`, `long`, or `schedule` in filenames for smart durations
+- **DPI testing**: Use `--dpi 144` or `--dpi 192` to test UI scaling on different screen resolutions
 - **Full playlist control**: Edit `server/data/playlist.json` to customize order and timing
 
 ## Need Help?

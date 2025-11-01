@@ -345,4 +345,19 @@ src/CMakeFiles/VideoTimeline.dir/statusbar.cpp.o: \
  /usr/include/qt6/QtCore/QDateTime /usr/include/qt6/QtCore/qdatetime.h \
  /usr/include/qt6/QtCore/qcalendar.h /usr/include/qt6/QtCore/qlocale.h \
  /usr/include/qt6/QtWidgets/QVBoxLayout /usr/include/qt6/QtGui/QFont \
- /usr/include/qt6/QtGui/qfont.h
+ /usr/include/qt6/QtGui/qfont.h /usr/include/qt6/QtGui/QGuiApplication \
+ /usr/include/qt6/QtGui/qguiapplication.h \
+ /usr/include/qt6/QtCore/qcoreapplication.h \
+ /usr/include/qt6/QtCore/qcoreevent.h \
+ /usr/include/qt6/QtCore/qnativeinterface.h \
+ /usr/include/qt6/QtCore/qcoreapplication_platform.h \
+ /usr/include/qt6/QtGui/qinputmethod.h \
+ /usr/include/qt6/QtGui/qguiapplication_platform.h \
+ /usr/include/qt6/QtGui/qguiapplication.h /usr/include/qt6/QtGui/QScreen \
+ /usr/include/qt6/QtGui/qscreen.h /usr/include/qt6/QtCore/QList \
+ /usr/include/qt6/QtCore/qlist.h /usr/include/qt6/QtCore/QObject \
+ /usr/include/qt6/QtCore/qobject.h /usr/include/qt6/QtCore/QRect \
+ /usr/include/qt6/QtCore/qrect.h /usr/include/qt6/QtCore/QSize \
+ /usr/include/qt6/QtCore/qsize.h /usr/include/qt6/QtCore/QSizeF \
+ /usr/include/qt6/QtGui/QTransform /usr/include/qt6/QtGui/qtransform.h \
+ /usr/include/qt6/QtGui/qscreen_platform.h

@@ -22,10 +22,10 @@ struct ScheduleBlock {
 };
 
 struct MediaItem {
-    QString type; // "video" or "image"
+    QString type; // "video", "image", or "screen"
     QString url;
-    int duration; // in milliseconds (for images) or -1 for full video duration
-    bool muted; // for videos, ignored for images
+    int duration; // in milliseconds (for images) or -1 for full video duration, ignored for screen
+    bool muted; // for videos, ignored for images and screen
 };
 
 struct MediaPlaylist {

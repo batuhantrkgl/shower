@@ -141,6 +141,8 @@ void HttpServer::handleGetRequest(QTcpSocket *socket, const QString &path) {
             sendResponse(socket, "200 OK", "application/json", "{\"status\":\"success\",\"message\":\"Playlist regenerated\"}");
         } else if (path == "/api/media/toggle-auto-regenerate") {
             toggleAutoRegenerate(socket);
+        } else if (path == "/api/screen/toggle") {
+            toggleScreenMirroring(socket);
         } else if (path.startsWith("/media/")) {
             handleGetMediaFile(socket, path);
         } else {
@@ -519,6 +521,18 @@ void HttpServer::generatePlaylist() {
         
         QJsonArray items;
         
+        // Add screen mirroring as the first item if requested
+        QString screenFlagPath = dataDir + "/enable_screen_mirroring";
+        if (QFile::exists(screenFlagPath)) {
+            QJsonObject screenItem;
+            screenItem["type"] = "screen";
+            screenItem["url"] = "screen://primary"; // Special URL for screen capture
+            screenItem["duration"] = -1; // Continuous until manually stopped
+            screenItem["muted"] = false;
+            items.append(screenItem);
+            log(DEBUG, "Added screen mirroring item to playlist");
+        }
+        
         for (const QFileInfo &fileInfo : files) {
             QString fileName = fileInfo.fileName();
             QString ext = fileInfo.suffix().toLower();
@@ -676,6 +690,42 @@ void HttpServer::toggleAutoRegenerate(QTcpSocket *socket) {
         sendResponse(socket, "200 OK", "application/json", message);
         
         log(INFO, QString("Auto-regenerate %1").arg(newValue ? "enabled" : "disabled"));
+    }
+
+void HttpServer::toggleScreenMirroring(QTcpSocket *socket) {
+        QString flagPath = dataDir + "/enable_screen_mirroring";
+        bool currentlyEnabled = QFile::exists(flagPath);
+        bool newState = !currentlyEnabled;
+        
+        if (newState) {
+            // Create the flag file to enable screen mirroring
+            QFile flagFile(flagPath);
+            if (flagFile.open(QIODevice::WriteOnly)) {
+                flagFile.write("1");
+                flagFile.close();
+                log(INFO, "Screen mirroring enabled");
+            } else {
+                log(ERROR, "Failed to create screen mirroring flag file");
+                sendResponse(socket, "500 Internal Server Error", "text/plain", "Failed to enable screen mirroring");
+                return;
+            }
+        } else {
+            // Remove the flag file to disable screen mirroring
+            if (QFile::remove(flagPath)) {
+                log(INFO, "Screen mirroring disabled");
+            } else {
+                log(WARN, "Failed to remove screen mirroring flag file");
+            }
+        }
+        
+        // Regenerate playlist to include/exclude screen mirroring
+        generatePlaylist();
+        
+        QString message = QString("{\"status\":\"success\",\"screen_mirroring\":%1,\"message\":\"Screen mirroring %2\"}")
+                         .arg(newState ? "true" : "false")
+                         .arg(newState ? "enabled" : "disabled");
+        
+        sendResponse(socket, "200 OK", "application/json", message);
     }
 
 
