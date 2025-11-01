@@ -1,18 +1,13 @@
-cmake_minimum_required(VERSION 3.16)
-project(VideoTimelineServer)
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# Find Qt6
-find_package(Qt6 REQUIRED COMPONENTS Core Network)
-
 set(SOURCES
     server.cpp
 )
 
+set(HEADERS
+    server.h
+)
+
 # Create executable
-add_executable(server ${SOURCES})
+add_executable(server ${SOURCES} ${HEADERS})
 
 # Link Qt libraries
 target_link_libraries(server
@@ -25,6 +20,8 @@ set_target_properties(server PROPERTIES
     AUTOMOC ON
 )
 
-# Installation
-install(TARGETS server DESTINATION bin)
-
+# Set data directory path
+target_compile_definitions(server PRIVATE
+    DATA_DIR="${CMAKE_SOURCE_DIR}/data"
+    MEDIA_DIR="${CMAKE_SOURCE_DIR}/data/media"
+)

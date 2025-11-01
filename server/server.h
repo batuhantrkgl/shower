@@ -19,6 +19,18 @@ private slots:
     void handleRequest(QTcpSocket *socket);
 
 private:
+    enum LogLevel {
+        DEBUG,
+        INFO,
+        WARN,
+        ERROR
+    };
+
+    void log(LogLevel level, const QString &message);
+    QString getLogLevelString(LogLevel level);
+    QString getLogLevelColor(LogLevel level);
+    QString getCurrentTimestamp();
+
     void handleGetRequest(QTcpSocket *socket, const QString &path);
     void handlePostRequest(QTcpSocket *socket, const QString &path, const QByteArray &request);
     void handleGetSchedule(QTcpSocket *socket);

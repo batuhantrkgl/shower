@@ -9,17 +9,56 @@
 #include <QJsonArray>
 #include <QUrlQuery>
 #include <QUrl>
+#include <QDateTime>
 #include "server.h"
 
+void HttpServer::log(LogLevel level, const QString &message) {
+    QString timestamp = getCurrentTimestamp();
+    QString levelStr = getLogLevelString(level);
+    QString colorCode = getLogLevelColor(level);
+    QString resetColor = "\033[0m"; // Reset to default color
+    
+    std::cout << colorCode.toStdString() << "[" << timestamp.toStdString() << "] [" << levelStr.toStdString() << "] " 
+              << message.toStdString() << resetColor.toStdString() << std::endl;
+}
+
+QString HttpServer::getLogLevelString(LogLevel level) {
+    switch (level) {
+        case DEBUG: return "DEBUG";
+        case INFO: return "INFO";
+        case WARN: return "WARN";
+        case ERROR: return "ERROR";
+        default: return "UNKNOWN";
+    }
+}
+
+QString HttpServer::getLogLevelColor(LogLevel level) {
+    switch (level) {
+        case DEBUG: return "\033[36m"; // Cyan
+        case INFO: return "\033[32m";  // Green
+        case WARN: return "\033[33m";  // Yellow
+        case ERROR: return "\033[31m"; // Red
+        default: return "\033[0m";     // Default
+    }
+}
+
+QString HttpServer::getCurrentTimestamp() {
+    return QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
+}
+
 HttpServer::HttpServer(QObject *parent) : QObject(parent), port(3232) {
-        dataDir = "data";
-        mediaDir = "media";
+        dataDir = DATA_DIR;
+        mediaDir = MEDIA_DIR;
         server = new QTcpServer(this);
         connect(server, &QTcpServer::newConnection, this, &HttpServer::handleNewConnection);
         
         // Setup directories
         QDir().mkpath(dataDir);
         QDir().mkpath(mediaDir);
+        
+        log(INFO, "Server initialized");
+        log(INFO, QString("Media directory: %1").arg(mediaDir));
+        log(INFO, QString("Data directory: %1").arg(dataDir));
         
         // Create default schedule if needed
         ensureDefaultSchedule();
@@ -35,20 +74,26 @@ HttpServer::~HttpServer() {
 bool HttpServer::listen(quint16 p) {
         port = p;
         if (server->listen(QHostAddress::Any, port)) {
-            std::cout << "Server listening on port " << port << std::endl;
-            std::cout << "Media directory: " << mediaDir.toStdString() << std::endl;
-            std::cout << "Data directory: " << dataDir.toStdString() << std::endl;
+            log(INFO, QString("Server listening on port %1").arg(port));
             return true;
+        } else {
+            log(ERROR, QString("Failed to bind to port %1").arg(port));
+            return false;
         }
-        return false;
     }
 
 void HttpServer::handleNewConnection() {
         QTcpSocket *socket = server->nextPendingConnection();
+        QString clientIP = socket->peerAddress().toString();
+        log(INFO, QString("New connection from %1:%2").arg(clientIP).arg(socket->peerPort()));
+        
         connect(socket, &QTcpSocket::readyRead, [this, socket]() {
             handleRequest(socket);
         });
-        connect(socket, &QTcpSocket::disconnected, socket, &QTcpSocket::deleteLater);
+        connect(socket, &QTcpSocket::disconnected, [this, socket, clientIP]() {
+            log(INFO, QString("Connection closed from %1").arg(clientIP));
+            socket->deleteLater();
+        });
     }
 
 void HttpServer::handleRequest(QTcpSocket *socket) {
@@ -58,6 +103,7 @@ void HttpServer::handleRequest(QTcpSocket *socket) {
         int firstSpace = request.indexOf(' ');
         int secondSpace = request.indexOf(' ', firstSpace + 1);
         if (firstSpace == -1 || secondSpace == -1) {
+            log(WARN, QString("Invalid request from %1 - malformed request line").arg(socket->peerAddress().toString()));
             sendResponse(socket, "400 Bad Request", "text/plain", "Bad Request");
             return;
         }
@@ -69,13 +115,15 @@ void HttpServer::handleRequest(QTcpSocket *socket) {
         QUrl url("http://localhost" + path);
         QString pathStr = url.path();
         
-        std::cout << "Request: " << method.toStdString() << " " << pathStr.toStdString() << std::endl;
+        QString clientIP = socket->peerAddress().toString();
+        log(INFO, QString("Request: %1 %2 from %3").arg(method).arg(pathStr).arg(clientIP));
         
         if (method == "GET") {
             handleGetRequest(socket, pathStr);
         } else if (method == "POST") {
             handlePostRequest(socket, pathStr, request);
         } else {
+            log(WARN, QString("Unsupported method %1 from %2").arg(method).arg(clientIP));
             sendResponse(socket, "405 Method Not Allowed", "text/plain", "Method Not Allowed");
         }
     }
@@ -130,6 +178,7 @@ void HttpServer::handleGetPlaylist(QTcpSocket *socket) {
         QString json = readFile(filePath);
         
         if (json.isEmpty()) {
+            log(WARN, "Playlist file not found, generating new playlist");
             generatePlaylist();
             json = readFile(filePath);
         } else {
@@ -142,10 +191,14 @@ void HttpServer::handleGetPlaylist(QTcpSocket *socket) {
                 bool autoRegenerate = playlist.value("auto_regenerate").toBool(true); // Default to true for backward compatibility
                 
                 if (autoRegenerate && shouldRegeneratePlaylist()) {
-                    std::cout << "Auto-regenerating playlist due to media folder changes" << std::endl;
+                    log(INFO, "Auto-regenerating playlist due to media folder changes");
                     generatePlaylist();
                     json = readFile(filePath);
                 }
+            } else {
+                log(ERROR, QString("Invalid playlist JSON, regenerating: %1").arg(error.errorString()));
+                generatePlaylist();
+                json = readFile(filePath);
             }
         }
         
@@ -157,6 +210,7 @@ void HttpServer::handleGetMediaFile(QTcpSocket *socket, const QString &path) {
         
         // Security: prevent directory traversal
         if (fileName.contains("..") || fileName.contains("/")) {
+            log(WARN, QString("Directory traversal attempt blocked: %1 from %2").arg(fileName).arg(socket->peerAddress().toString()));
             sendResponse(socket, "403 Forbidden", "text/plain", "Forbidden");
             return;
         }
@@ -164,6 +218,7 @@ void HttpServer::handleGetMediaFile(QTcpSocket *socket, const QString &path) {
         QString filePath = mediaDir + "/" + fileName;
         
         if (!QFile::exists(filePath)) {
+            log(WARN, QString("Requested file not found: %1 from %2").arg(filePath).arg(socket->peerAddress().toString()));
             sendResponse(socket, "404 Not Found", "text/plain", "File Not Found");
             return;
         }
@@ -172,8 +227,10 @@ void HttpServer::handleGetMediaFile(QTcpSocket *socket, const QString &path) {
         if (file.open(QIODevice::ReadOnly)) {
             QByteArray content = file.readAll();
             QString contentType = getContentType(fileName);
+            log(DEBUG, QString("Serving file: %1 (%2 bytes, %3) to %4").arg(fileName).arg(content.size()).arg(contentType).arg(socket->peerAddress().toString()));
             sendResponse(socket, "200 OK", contentType, content);
         } else {
+            log(ERROR, QString("Failed to read media file: %1").arg(filePath));
             sendResponse(socket, "500 Internal Server Error", "text/plain", "Could not read file");
         }
     }
@@ -185,8 +242,10 @@ void HttpServer::handlePostSchedule(QTcpSocket *socket, const QByteArray &body) 
         if (error.error == QJsonParseError::NoError && doc.isObject()) {
             QString filePath = dataDir + "/schedule.json";
             writeFile(filePath, body);
+            log(INFO, "Schedule updated successfully");
             sendResponse(socket, "200 OK", "application/json", "{\"status\":\"success\"}");
         } else {
+            log(ERROR, QString("Invalid JSON in schedule update: %1").arg(error.errorString()));
             sendResponse(socket, "400 Bad Request", "text/plain", "Invalid JSON");
         }
     }
@@ -210,8 +269,10 @@ void HttpServer::handlePostPlaylist(QTcpSocket *socket, const QByteArray &body) 
             
             bool autoRegenerate = playlist["auto_regenerate"].toBool();
             QString message = QString("{\"status\":\"success\",\"auto_regenerate\":%1}").arg(autoRegenerate ? "true" : "false");
+            log(INFO, QString("Playlist updated successfully (auto_regenerate: %1)").arg(autoRegenerate ? "true" : "false"));
             sendResponse(socket, "200 OK", "application/json", message);
         } else {
+            log(ERROR, QString("Invalid JSON in playlist update: %1").arg(error.errorString()));
             sendResponse(socket, "400 Bad Request", "text/plain", "Invalid JSON");
         }
     }
@@ -228,6 +289,9 @@ void HttpServer::sendResponse(QTcpSocket *socket, const QString &status, const Q
         
         socket->write(response.toUtf8() + body);
         socket->flush();
+        
+        QString clientIP = socket->peerAddress().toString();
+        log(DEBUG, QString("Response: %1 %2 (%3 bytes) to %4").arg(status).arg(contentType).arg(body.size()).arg(clientIP));
     }
     
 // Helper overloads to avoid ambiguity
@@ -242,15 +306,22 @@ void HttpServer::sendResponse(QTcpSocket *socket, const QString &status, const Q
 QString HttpServer::readFile(const QString &filePath) {
         QFile file(filePath);
         if (file.open(QIODevice::ReadOnly)) {
-            return file.readAll();
+            QString content = file.readAll();
+            log(DEBUG, QString("Read %1 bytes from file: %2").arg(content.size()).arg(filePath));
+            return content;
+        } else {
+            log(ERROR, QString("Failed to read file: %1").arg(filePath));
+            return QString();
         }
-        return QString();
     }
 
 void HttpServer::writeFile(const QString &filePath, const QByteArray &data) {
         QFile file(filePath);
         if (file.open(QIODevice::WriteOnly)) {
-            file.write(data);
+            qint64 bytesWritten = file.write(data);
+            log(DEBUG, QString("Wrote %1 bytes to file: %2").arg(bytesWritten).arg(filePath));
+        } else {
+            log(ERROR, QString("Failed to write file: %1").arg(filePath));
         }
     }
 
@@ -304,6 +375,7 @@ void HttpServer::ensurePlaylist() {
         
         // If playlist doesn't exist, create it
         if (!QFile::exists(filePath)) {
+            log(INFO, "Playlist file does not exist, generating new playlist");
             generatePlaylist();
             return;
         }
@@ -318,14 +390,14 @@ void HttpServer::ensurePlaylist() {
             bool autoRegenerate = playlist.value("auto_regenerate").toBool(true); // Default to true for backward compatibility
             
             if (autoRegenerate && shouldRegeneratePlaylist()) {
-                std::cout << "Auto-regenerating playlist on startup due to media folder changes" << std::endl;
+                log(INFO, "Auto-regenerating playlist on startup due to media folder changes");
                 generatePlaylist();
             } else {
-                std::cout << "Preserving existing playlist (auto_regenerate: " << (autoRegenerate ? "true" : "false") << ")" << std::endl;
+                log(INFO, QString("Preserving existing playlist (auto_regenerate: %1)").arg(autoRegenerate ? "true" : "false"));
             }
         } else {
             // If JSON is invalid, regenerate
-            std::cout << "Invalid playlist JSON, regenerating..." << std::endl;
+            log(WARN, QString("Invalid playlist JSON, regenerating: %1").arg(error.errorString()));
             generatePlaylist();
         }
     }
@@ -334,6 +406,8 @@ void HttpServer::generatePlaylist() {
         QDir dir(mediaDir);
         QStringList filters = {"*.jpg", "*.jpeg", "*.png", "*.gif", "*.webp", "*.mp4", "*.avi", "*.mov", "*.webm"};
         QFileInfoList files = dir.entryInfoList(filters, QDir::Files, QDir::Name);
+        
+        log(INFO, QString("Scanning media directory for files: found %1 files").arg(files.size()));
         
         QJsonArray items;
         
@@ -349,6 +423,7 @@ void HttpServer::generatePlaylist() {
                                 fileName.contains("silent", Qt::CaseInsensitive) ||
                                 fileName.contains("background", Qt::CaseInsensitive);
                 item["duration"] = -1;
+                log(DEBUG, QString("Added video file: %1 (muted: %2)").arg(fileName).arg(item["muted"].toBool()));
             } else {
                 item["type"] = "image";
                 item["muted"] = false;
@@ -364,6 +439,7 @@ void HttpServer::generatePlaylist() {
                     duration = 3000;
                 }
                 item["duration"] = duration;
+                log(DEBUG, QString("Added image file: %1 (duration: %2ms)").arg(fileName).arg(duration));
             }
             
             item["url"] = "/media/" + fileName;
@@ -396,7 +472,7 @@ void HttpServer::generatePlaylist() {
                     };
                     defaultFile.write(reinterpret_cast<const char*>(minJpeg), sizeof(minJpeg));
                     defaultFile.close();
-                    std::cout << "Created default placeholder image" << std::endl;
+                    log(INFO, "Created default placeholder image");
                 }
             }
             
@@ -406,6 +482,7 @@ void HttpServer::generatePlaylist() {
             defaultItem["duration"] = 5000;
             defaultItem["muted"] = false;
             items.append(defaultItem);
+            log(DEBUG, "Added default placeholder item to empty playlist");
         }
         
         QJsonObject playlist;
@@ -415,7 +492,7 @@ void HttpServer::generatePlaylist() {
         QJsonDocument doc(playlist);
         writeFile(dataDir + "/playlist.json", doc.toJson(QJsonDocument::Indented));
         
-        std::cout << "Generated playlist with " << items.size() << " items" << std::endl;
+        log(INFO, QString("Generated playlist with %1 items").arg(items.size()));
     }
 
 bool HttpServer::shouldRegeneratePlaylist() {
@@ -461,6 +538,7 @@ void HttpServer::toggleAutoRegenerate(QTcpSocket *socket) {
         QString json = readFile(filePath);
         
         if (json.isEmpty()) {
+            log(WARN, "Playlist file not found for auto-regenerate toggle");
             sendResponse(socket, "404 Not Found", "text/plain", "Playlist not found");
             return;
         }
@@ -469,6 +547,7 @@ void HttpServer::toggleAutoRegenerate(QTcpSocket *socket) {
         QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
         
         if (error.error != QJsonParseError::NoError || !doc.isObject()) {
+            log(ERROR, QString("Invalid playlist JSON for auto-regenerate toggle: %1").arg(error.errorString()));
             sendResponse(socket, "400 Bad Request", "text/plain", "Invalid playlist JSON");
             return;
         }
@@ -488,7 +567,7 @@ void HttpServer::toggleAutoRegenerate(QTcpSocket *socket) {
         
         sendResponse(socket, "200 OK", "application/json", message);
         
-        std::cout << "Auto-regenerate " << (newValue ? "enabled" : "disabled") << std::endl;
+        log(INFO, QString("Auto-regenerate %1").arg(newValue ? "enabled" : "disabled"));
     }
 
 
@@ -502,7 +581,6 @@ int main(int argc, char *argv[]) {
     
     HttpServer httpServer;
     if (!httpServer.listen(port)) {
-        std::cerr << "Failed to start server on port " << port << std::endl;
         return 1;
     }
     

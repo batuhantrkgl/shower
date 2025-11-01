@@ -1,0 +1,9 @@
+/home/batuhantrkgl/Stuff/shower/server/build/CMakeFiles/server.dir
+/home/batuhantrkgl/Stuff/shower/server/build/CMakeFiles/edit_cache.dir
+/home/batuhantrkgl/Stuff/shower/server/build/CMakeFiles/rebuild_cache.dir
+/home/batuhantrkgl/Stuff/shower/server/build/CMakeFiles/list_install_components.dir
+/home/batuhantrkgl/Stuff/shower/server/build/CMakeFiles/install.dir
+/home/batuhantrkgl/Stuff/shower/server/build/CMakeFiles/install/local.dir
+/home/batuhantrkgl/Stuff/shower/server/build/CMakeFiles/install/strip.dir
+/home/batuhantrkgl/Stuff/shower/server/build/CMakeFiles/server_autogen_timestamp_deps.dir
+/home/batuhantrkgl/Stuff/shower/server/build/CMakeFiles/server_autogen.dir
