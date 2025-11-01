@@ -3,6 +3,8 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QFont>
+#include <QGuiApplication>
+#include <QScreen>
 
 StatusBar::StatusBar(QWidget *parent)
     : QWidget(parent)
@@ -26,15 +28,30 @@ StatusBar::~StatusBar()
 
 void StatusBar::setupUI()
 {
-    setFixedHeight(32); // GNOME-like height
+    // Get screen DPI for scaling
+    QScreen *screen = QGuiApplication::primaryScreen();
+    qreal dpi = screen ? screen->logicalDotsPerInch() : 96.0;
+    
+    // Scale factors based on DPI (96 DPI = 100%, 192 DPI = 200%)
+    qreal scaleFactor = dpi / 96.0;
+    
+    // Scale dimensions
+    int barHeight = qRound(32 * scaleFactor);
+    int iconSize = qRound(12 * scaleFactor);
+    int margin = qRound(12 * scaleFactor);
+    int smallMargin = qRound(4 * scaleFactor);
+    int spacing = qRound(16 * scaleFactor);
+    int fontSize = qRound(12 * scaleFactor);
+    
+    setFixedHeight(barHeight);
 
     QHBoxLayout *layout = new QHBoxLayout(this);
-    layout->setContentsMargins(12, 4, 12, 4);
-    layout->setSpacing(16);
+    layout->setContentsMargins(margin, smallMargin, margin, smallMargin);
+    layout->setSpacing(spacing);
 
     // Connection status
     m_connectionIcon = new QLabel("●");
-    m_connectionIcon->setFixedSize(12, 12);
+    m_connectionIcon->setFixedSize(iconSize, iconSize);
     m_connectionText = new QLabel("Disconnected");
 
     // Server info
@@ -55,14 +72,15 @@ void StatusBar::setupUI()
     layout->addStretch();
     layout->addWidget(m_timeLabel);
 
-    // Style
+    // Style with scaled font
     QString style = QString(
         "QLabel {"
         "color: %1;"
-        "font-size: 12px;"
+        "font-size: %2px;"
         "font-weight: 500;"
         "}"
-    ).arg(MD3Colors::DarkTheme::onSurface().name());
+    ).arg(MD3Colors::DarkTheme::onSurface().name())
+     .arg(fontSize);
 
     setStyleSheet(style);
     updateConnectionIcon();

@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/server.dir/link.d CMakeFiles/server.dir/server_autogen/mocs_compilation.cpp.o CMakeFiles/server.dir/server.cpp.o -o ../bin/server  /usr/lib64/libQt6Network.so.6.10.0 /usr/lib64/libQt6Core.so.6.10.0

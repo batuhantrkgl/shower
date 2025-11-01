@@ -10,6 +10,8 @@
 #include <QPainterPath>
 #include <QDateTime>
 #include <QDebug>
+#include <QGuiApplication>
+#include <QScreen>
 
 const QTime TimelineWidget::FIRST_PERIOD_END(9, 30);
 const QTime TimelineWidget::LUNCH_START(12, 0);
@@ -21,7 +23,16 @@ TimelineWidget::TimelineWidget(NetworkClient *networkClient, QWidget *parent) : 
     , m_schoolStart(8, 50)
     , m_schoolEnd(15, 55)
 {
-    setFixedHeight(140);
+    // Get screen DPI for scaling
+    QScreen *screen = QGuiApplication::primaryScreen();
+    qreal dpi = screen ? screen->logicalDotsPerInch() : 96.0;
+    
+    // Scale height based on DPI (96 DPI = 140px, scales up/down)
+    qreal scaleFactor = dpi / 96.0;
+    int timelineHeight = qRound(140 * scaleFactor);
+    
+    setFixedHeight(timelineHeight);
+    
     QString timelineStyle = QString(
         "TimelineWidget {"
             "background-color: %1;"
@@ -44,20 +55,26 @@ void TimelineWidget::paintEvent(QPaintEvent *event)
     painter.setRenderHint(QPainter::Antialiasing);
     painter.setRenderHint(QPainter::TextAntialiasing);
 
-    const int spacing = MD3Spacing::spacing4();
-    const int timeScaleAreaHeight = 30;
+    // Get screen DPI for scaling
+    QScreen *screen = QGuiApplication::primaryScreen();
+    qreal dpi = screen ? screen->logicalDotsPerInch() : 96.0;
+    qreal scaleFactor = dpi / 96.0;
+    
+    const int spacing = qRound(MD3Spacing::spacing4() * scaleFactor);
+    const int timeScaleAreaHeight = qRound(30 * scaleFactor);
 
     QRect blocksAreaRect = rect().adjusted(spacing, spacing + timeScaleAreaHeight, -spacing, -spacing);
 
     int totalMinutes = m_schoolStart.msecsTo(m_schoolEnd) / 60000;
 
     QFont labelFont;
+    int fontSize = qRound(12 * scaleFactor);
     if (QFontDatabase().families().contains(preferredFont)) {
-        labelFont = QFont(preferredFont, 12, QFont::DemiBold);
+        labelFont = QFont(preferredFont, fontSize, QFont::DemiBold);
     } else if (QFontDatabase().families().contains("Roboto")) {
-        labelFont = QFont("Roboto", MD3Typography::LabelMedium::size(), MD3Typography::LabelMedium::weight());
+        labelFont = QFont("Roboto", qRound(MD3Typography::LabelMedium::size() * scaleFactor), MD3Typography::LabelMedium::weight());
     } else {
-        labelFont = QFont(font().family(), MD3Typography::LabelMedium::size(), MD3Typography::LabelMedium::weight());
+        labelFont = QFont(font().family(), qRound(MD3Typography::LabelMedium::size() * scaleFactor), MD3Typography::LabelMedium::weight());
     }
     painter.setFont(labelFont);
     painter.setPen(MD3Colors::DarkTheme::onSurfaceVariant());
@@ -108,25 +125,31 @@ void TimelineWidget::paintEvent(QPaintEvent *event)
 
 void TimelineWidget::drawOffHoursIndicator(QPainter &painter, const QRect &timelineRect)
 {
+    // Get screen DPI for scaling
+    QScreen *screen = QGuiApplication::primaryScreen();
+    qreal dpi = screen ? screen->logicalDotsPerInch() : 96.0;
+    qreal scaleFactor = dpi / 96.0;
+    
     QString text = "Mesai Dışı";
     QFont textFont;
+    int fontSize = qRound(12 * scaleFactor);
     if (QFontDatabase().families().contains(preferredFont)) {
-        textFont = QFont(preferredFont, 12, QFont::Normal);
+        textFont = QFont(preferredFont, fontSize, QFont::Normal);
     } else if (QFontDatabase().families().contains("Roboto")) {
-        textFont = QFont("Roboto", MD3Typography::LabelMedium::size(), MD3Typography::LabelMedium::weight());
+        textFont = QFont("Roboto", qRound(MD3Typography::LabelMedium::size() * scaleFactor), MD3Typography::LabelMedium::weight());
     } else {
-        textFont = QFont(font().family(), MD3Typography::LabelMedium::size(), MD3Typography::LabelMedium::weight());
+        textFont = QFont(font().family(), qRound(MD3Typography::LabelMedium::size() * scaleFactor), MD3Typography::LabelMedium::weight());
     }
     painter.setFont(textFont);
     QFontMetrics fm(textFont);
 
     QFontMetrics labelFm(painter.font());
-    int timeScaleHeight = labelFm.height() + MD3Spacing::spacing4();
+    int timeScaleHeight = qRound((labelFm.height() + MD3Spacing::spacing4()) * scaleFactor);
     int indicatorYStart = timelineRect.top() + timeScaleHeight;
-    int indicatorAreaHeight = MD3Spacing::spacing4();
+    int indicatorAreaHeight = qRound(MD3Spacing::spacing4() * scaleFactor);
 
-    int textWidth = fm.horizontalAdvance(text) + MD3Spacing::spacing4();
-    int textHeight = fm.height() + MD3Spacing::spacing2();
+    int textWidth = qRound((fm.horizontalAdvance(text) + MD3Spacing::spacing4()) * scaleFactor);
+    int textHeight = qRound((fm.height() + MD3Spacing::spacing2()) * scaleFactor);
     int xPos = timelineRect.left() + (timelineRect.width() - textWidth) / 2;
     int yPos = indicatorYStart + (indicatorAreaHeight - textHeight) / 2;
     QRect textRect(xPos, yPos, textWidth, textHeight);
@@ -160,6 +183,11 @@ void TimelineWidget::drawActivityBlock(QPainter &painter, const QRect &timelineR
                                        const QColor &fillColor, const QColor &textColor,
                                        const QString &label, bool isFirst, bool isLast)
 {
+    // Get screen DPI for scaling
+    QScreen *screen = QGuiApplication::primaryScreen();
+    qreal dpi = screen ? screen->logicalDotsPerInch() : 96.0;
+    qreal scaleFactor = dpi / 96.0;
+    
     int startMinutes = (startTime.hour() * 60 + startTime.minute()) - (referenceTime.hour() * 60 + referenceTime.minute());
     int endMinutes = (endTime.hour() * 60 + endTime.minute()) - (referenceTime.hour() * 60 + referenceTime.minute());
     double x1 = timelineRect.left() + (double)startMinutes / totalMinutes * timelineRect.width();
@@ -173,7 +201,7 @@ void TimelineWidget::drawActivityBlock(QPainter &painter, const QRect &timelineR
 
     painter.setPen(QPen(MD3Colors::DarkTheme::outline(), 1));
     painter.setBrush(fillColor);
-    const qreal radius = 8.0;
+    const qreal radius = qRound(8.0 * scaleFactor);
     QPainterPath path;
     path.moveTo(blockRect.left() + (isFirst ? radius : 0), blockRect.top());
     path.lineTo(blockRect.right() - (isLast ? radius : 0), blockRect.top());
@@ -194,19 +222,20 @@ void TimelineWidget::drawActivityBlock(QPainter &painter, const QRect &timelineR
         painter.drawLine(blockRect.topRight(), blockRect.bottomRight());
     }
 
-    if (blockRect.width() > 40) {
+    if (blockRect.width() > qRound(40 * scaleFactor)) {
         QFont blockFont;
+        int fontSize = qRound(10 * scaleFactor);
         if (QFontDatabase().families().contains(preferredFont)) {
-            blockFont = QFont(preferredFont, 10, QFont::Medium);
+            blockFont = QFont(preferredFont, fontSize, QFont::Medium);
         } else if (QFontDatabase().families().contains("Roboto")) {
-            blockFont = QFont("Roboto", MD3Typography::LabelSmall::size(), MD3Typography::LabelSmall::weight());
+            blockFont = QFont("Roboto", qRound(MD3Typography::LabelSmall::size() * scaleFactor), MD3Typography::LabelSmall::weight());
         } else {
-            blockFont = QFont(font().family(), MD3Typography::LabelSmall::size(), MD3Typography::LabelSmall::weight());
+            blockFont = QFont(font().family(), qRound(MD3Typography::LabelSmall::size() * scaleFactor), MD3Typography::LabelSmall::weight());
         }
         painter.setFont(blockFont);
         painter.setPen(textColor);
         QFontMetrics blockFm(blockFont);
-        if (blockRect.width() > blockFm.horizontalAdvance(label) + MD3Spacing::spacing2()) {
+        if (blockRect.width() > blockFm.horizontalAdvance(label) + qRound(MD3Spacing::spacing2() * scaleFactor)) {
             painter.drawText(blockRect, Qt::AlignCenter, label);
         }
     }
@@ -216,6 +245,11 @@ void TimelineWidget::drawCurrentTimeIndicator(QPainter &painter, const QRect &ti
                                               const QTime &referenceTime, int totalMinutes,
                                               int yStart, int height)
 {
+    // Get screen DPI for scaling
+    QScreen *screen = QGuiApplication::primaryScreen();
+    qreal dpi = screen ? screen->logicalDotsPerInch() : 96.0;
+    qreal scaleFactor = dpi / 96.0;
+    
     if (m_currentTime < m_schoolStart || m_currentTime > m_schoolEnd) {
         return;
     }
@@ -224,15 +258,16 @@ void TimelineWidget::drawCurrentTimeIndicator(QPainter &painter, const QRect &ti
 
 
     QFont timeFont;
+    int fontSize = qRound(11 * scaleFactor);
     if (QFontDatabase().families().contains(preferredFont)) {
         // --- THIS IS THE FIX ---
         // Changed QFont::SemiBold to QFont::DemiBold, which is the correct enum in Qt.
-        timeFont = QFont(preferredFont, 11, QFont::DemiBold);
+        timeFont = QFont(preferredFont, fontSize, QFont::DemiBold);
         // --- END OF FIX ---
     } else if (QFontDatabase().families().contains("Roboto")) {
-        timeFont = QFont("Roboto", MD3Typography::LabelSmall::size(), MD3Typography::LabelSmall::weight());
+        timeFont = QFont("Roboto", qRound(MD3Typography::LabelSmall::size() * scaleFactor), MD3Typography::LabelSmall::weight());
     } else {
-        timeFont = QFont(font().family(), MD3Typography::LabelSmall::size(), MD3Typography::LabelSmall::weight());
+        timeFont = QFont(font().family(), qRound(MD3Typography::LabelSmall::size() * scaleFactor), MD3Typography::LabelSmall::weight());
     }
 
     painter.setFont(timeFont);
@@ -240,12 +275,12 @@ void TimelineWidget::drawCurrentTimeIndicator(QPainter &painter, const QRect &ti
     QString activityText = getCurrentActivityName(m_currentTime);
     QString fullText = currentTimeText + " - " + activityText;
     QFontMetrics timeFm(timeFont);
-    int textWidth = timeFm.horizontalAdvance(fullText) + MD3Spacing::spacing4();
-    int textHeight = timeFm.height() + MD3Spacing::spacing2();
+    int textWidth = qRound((timeFm.horizontalAdvance(fullText) + MD3Spacing::spacing4()) * scaleFactor);
+    int textHeight = qRound((timeFm.height() + MD3Spacing::spacing2()) * scaleFactor);
 
-    const qreal pointerHeight = 6.0;
-    const qreal pointerWidth = 10.0;
-    const qreal radius = 8.0;
+    const qreal pointerHeight = qRound(6.0 * scaleFactor);
+    const qreal pointerWidth = qRound(10.0 * scaleFactor);
+    const qreal radius = qRound(8.0 * scaleFactor);
     const QRectF textRect(
         xPos - textWidth / 2.0,
         yStart - textHeight - pointerHeight,

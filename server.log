@@ -37,3 +37,23 @@ Press Ctrl+C to stop
 [32m[2025-11-01 16:46:28] [INFO] Connection closed from ::1[0m
 [32m[2025-11-01 16:46:28] [INFO] Connection closed from ::1[0m
 [32m[2025-11-01 16:46:28] [INFO] Connection closed from ::1[0m
+[32m[2025-11-01 16:49:21] [INFO] New connection from ::1:42712[0m
+[32m[2025-11-01 16:49:21] [INFO] Request: GET /api/schedule from ::1[0m
+[36m[2025-11-01 16:49:21] [DEBUG] Read 1371 bytes from file: /home/batuhantrkgl/Stuff/shower/data/schedule.json[0m
+[36m[2025-11-01 16:49:21] [DEBUG] Response: 200 OK application/json (2382 bytes) to ::1[0m
+[32m[2025-11-01 16:49:21] [INFO] Connection closed from ::1[0m
+[32m[2025-11-01 16:49:22] [INFO] New connection from ::1:42722[0m
+[32m[2025-11-01 16:49:22] [INFO] Request: GET /api/schedule from ::1[0m
+[36m[2025-11-01 16:49:22] [DEBUG] Read 1371 bytes from file: /home/batuhantrkgl/Stuff/shower/data/schedule.json[0m
+[36m[2025-11-01 16:49:22] [DEBUG] Response: 200 OK application/json (2382 bytes) to ::1[0m
+[32m[2025-11-01 16:49:22] [INFO] New connection from ::1:42724[0m
+[32m[2025-11-01 16:49:22] [INFO] Request: GET /api/media/playlist from ::1[0m
+[36m[2025-11-01 16:49:22] [DEBUG] Read 542 bytes from file: /home/batuhantrkgl/Stuff/shower/data/playlist.json[0m
+[36m[2025-11-01 16:49:22] [DEBUG] Response: 200 OK application/json (542 bytes) to ::1[0m
+[32m[2025-11-01 16:49:22] [INFO] New connection from ::1:42736[0m
+[32m[2025-11-01 16:49:22] [INFO] Request: GET /media/10th_Anniversary_Speech.jpg from ::1[0m
+[33m[2025-11-01 16:49:22] [WARN] Requested file not found: /home/batuhantrkgl/Stuff/shower/data/media/10th_Anniversary_Speech.jpg from ::1[0m
+[36m[2025-11-01 16:49:22] [DEBUG] Response: 404 Not Found text/plain (14 bytes) to ::1[0m
+[32m[2025-11-01 16:49:24] [INFO] Connection closed from ::1[0m
+[32m[2025-11-01 16:49:24] [INFO] Connection closed from ::1[0m
+[32m[2025-11-01 16:49:24] [INFO] Connection closed from ::1[0m

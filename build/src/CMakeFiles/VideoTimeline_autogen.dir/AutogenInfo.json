@@ -1,0 +1,152 @@
+{
+	"BUILD_DIR" : "/home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen",
+	"CMAKE_BINARY_DIR" : "/home/batuhantrkgl/Stuff/shower/build",
+	"CMAKE_CURRENT_BINARY_DIR" : "/home/batuhantrkgl/Stuff/shower/build/src",
+	"CMAKE_CURRENT_SOURCE_DIR" : "/home/batuhantrkgl/Stuff/shower/src",
+	"CMAKE_EXECUTABLE" : "/usr/bin/cmake",
+	"CMAKE_LIST_FILES" : 
+	[
+		"/home/batuhantrkgl/Stuff/shower/src/CMakeLists.txt",
+		"/home/batuhantrkgl/Stuff/shower/src/icons.qrc"
+	],
+	"CMAKE_SOURCE_DIR" : "/home/batuhantrkgl/Stuff/shower",
+	"CROSS_CONFIG" : false,
+	"DEP_FILE" : "/home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/deps",
+	"DEP_FILE_RULE_NAME" : "VideoTimeline_autogen/timestamp",
+	"HEADERS" : 
+	[
+		[
+			"/home/batuhantrkgl/Stuff/shower/src/mainwindow.h",
+			"Mu",
+			"EWIEGA46WW/moc_mainwindow.cpp",
+			null
+		],
+		[
+			"/home/batuhantrkgl/Stuff/shower/src/md3colors.h",
+			"Mu",
+			"EWIEGA46WW/moc_md3colors.cpp",
+			null
+		],
+		[
+			"/home/batuhantrkgl/Stuff/shower/src/mediaplayer.h",
+			"Mu",
+			"EWIEGA46WW/moc_mediaplayer.cpp",
+			null
+		],
+		[
+			"/home/batuhantrkgl/Stuff/shower/src/networkclient.h",
+			"Mu",
+			"EWIEGA46WW/moc_networkclient.cpp",
+			null
+		],
+		[
+			"/home/batuhantrkgl/Stuff/shower/src/qt6compat.h",
+			"Mu",
+			"EWIEGA46WW/moc_qt6compat.cpp",
+			null
+		],
+		[
+			"/home/batuhantrkgl/Stuff/shower/src/statusbar.h",
+			"Mu",
+			"EWIEGA46WW/moc_statusbar.cpp",
+			null
+		],
+		[
+			"/home/batuhantrkgl/Stuff/shower/src/timelinewidget.h",
+			"Mu",
+			"EWIEGA46WW/moc_timelinewidget.cpp",
+			null
+		],
+		[
+			"/home/batuhantrkgl/Stuff/shower/src/videowidget.h",
+			"Mu",
+			"EWIEGA46WW/moc_videowidget.cpp",
+			null
+		]
+	],
+	"HEADER_EXTENSIONS" : [ "h", "hh", "h++", "hm", "hpp", "hxx", "in", "txx" ],
+	"INCLUDE_DIR" : "/home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/include",
+	"MOC_COMPILATION_FILE" : "/home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/mocs_compilation.cpp",
+	"MOC_DEFINITIONS" : 
+	[
+		"APP_BUILD_ID=\"1762004939\"",
+		"APP_RELEASE_DATE=\"2025-11-01T13:48:59Z\"",
+		"APP_VERSION=\"1.1.0\"",
+		"QT_CORE_LIB",
+		"QT_GUI_LIB",
+		"QT_MULTIMEDIAWIDGETS_LIB",
+		"QT_MULTIMEDIA_LIB",
+		"QT_NETWORK_LIB",
+		"QT_NO_DEBUG",
+		"QT_WIDGETS_LIB"
+	],
+	"MOC_DEPEND_FILTERS" : 
+	[
+		[
+			"Q_PLUGIN_METADATA",
+			"[\n][ \t]*Q_PLUGIN_METADATA[ \t]*\\([^\\)]*FILE[ \t]*\"([^\"]+)\""
+		]
+	],
+	"MOC_INCLUDES" : 
+	[
+		"/home/batuhantrkgl/Stuff/shower/src",
+		"/home/batuhantrkgl/Stuff/shower/data",
+		"/usr/include/qt6/QtCore",
+		"/usr/include/qt6",
+		"/usr/lib64/qt6/mkspecs/linux-g++",
+		"/usr/include/qt6/QtWidgets",
+		"/usr/include/qt6/QtGui",
+		"/usr/include/qt6/QtMultimedia",
+		"/usr/include/qt6/QtNetwork",
+		"/usr/include/qt6/QtMultimediaWidgets",
+		"/usr/include",
+		"/usr/include/c++/15",
+		"/usr/include/c++/15/x86_64-redhat-linux",
+		"/usr/include/c++/15/backward",
+		"/usr/lib/gcc/x86_64-redhat-linux/15/include",
+		"/usr/local/include"
+	],
+	"MOC_MACRO_NAMES" : 
+	[
+		"Q_OBJECT",
+		"Q_GADGET",
+		"Q_NAMESPACE",
+		"Q_NAMESPACE_EXPORT",
+		"Q_GADGET_EXPORT",
+		"Q_ENUM_NS"
+	],
+	"MOC_OPTIONS" : [],
+	"MOC_PATH_PREFIX" : false,
+	"MOC_PREDEFS_CMD" : 
+	[
+		"/usr/bin/c++",
+		"-std=gnu++17",
+		"-dM",
+		"-E",
+		"-c",
+		"/usr/share/cmake/Modules/CMakeCXXCompilerABI.cpp"
+	],
+	"MOC_PREDEFS_FILE" : "/home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/moc_predefs.h",
+	"MOC_RELAXED_MODE" : false,
+	"MOC_SKIP" : [],
+	"MULTI_CONFIG" : false,
+	"PARALLEL" : 8,
+	"PARSE_CACHE_FILE" : "/home/batuhantrkgl/Stuff/shower/build/src/CMakeFiles/VideoTimeline_autogen.dir/ParseCache.txt",
+	"QT_MOC_EXECUTABLE" : "/usr/lib64/qt6/libexec/moc",
+	"QT_UIC_EXECUTABLE" : "",
+	"QT_VERSION_MAJOR" : 6,
+	"QT_VERSION_MINOR" : 10,
+	"SETTINGS_FILE" : "/home/batuhantrkgl/Stuff/shower/build/src/CMakeFiles/VideoTimeline_autogen.dir/AutogenUsed.txt",
+	"SOURCES" : 
+	[
+		[ "/home/batuhantrkgl/Stuff/shower/src/main.cpp", "Mu", null ],
+		[ "/home/batuhantrkgl/Stuff/shower/src/mainwindow.cpp", "Mu", null ],
+		[ "/home/batuhantrkgl/Stuff/shower/src/mediaplayer.cpp", "Mu", null ],
+		[ "/home/batuhantrkgl/Stuff/shower/src/networkclient.cpp", "Mu", null ],
+		[ "/home/batuhantrkgl/Stuff/shower/src/statusbar.cpp", "Mu", null ],
+		[ "/home/batuhantrkgl/Stuff/shower/src/timelinewidget.cpp", "Mu", null ],
+		[ "/home/batuhantrkgl/Stuff/shower/src/videowidget.cpp", "Mu", null ]
+	],
+	"USE_BETTER_GRAPH" : true,
+	"VERBOSITY" : 0
+}
