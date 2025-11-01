@@ -75,9 +75,9 @@
 	"MOC_COMPILATION_FILE" : "/home/batuhantrkgl/Stuff/shower/build/src/VideoTimeline_autogen/mocs_compilation.cpp",
 	"MOC_DEFINITIONS" : 
 	[
-		"APP_BUILD_ID=\"1762024711\"",
-		"APP_RELEASE_DATE=\"2025-11-01T19:18:31Z\"",
-		"APP_VERSION=\"1.1.0\"",
+		"APP_BUILD_ID=\"1762030388\"",
+		"APP_RELEASE_DATE=\"2025-11-01T20:53:08Z\"",
+		"APP_VERSION=\"3.0.0\"",
 		"QT_CORE_LIB",
 		"QT_GUI_LIB",
 		"QT_MULTIMEDIAWIDGETS_LIB",

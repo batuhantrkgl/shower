@@ -44,7 +44,7 @@ set_target_properties(VideoTimeline PROPERTIES
 )
 
 # Version information
-set(VERSION "1.1.0")
+set(VERSION "3.0.0")
 string(TIMESTAMP BUILD_DATE "%Y-%m-%dT%H:%M:%SZ" UTC)
 string(TIMESTAMP BUILD_ID "%s" UTC)
 

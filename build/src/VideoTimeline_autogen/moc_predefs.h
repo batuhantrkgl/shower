@@ -170,7 +170,7 @@
 #define __FLT16_DECIMAL_DIG__ 5
 #define __SSE2_MATH__ 1
 #define __ATOMIC_HLE_RELEASE 131072
-#define APP_BUILD_ID "1762024711"
+#define APP_BUILD_ID "1762030388"
 #define __PTRDIFF_MAX__ 0x7fffffffffffffffL
 #define __amd64 1
 #define __DEC64X_MAX__ 9.999999999999999999999999999999999E6144D64x
@@ -348,7 +348,7 @@
 #define __INTPTR_TYPE__ long int
 #define __UINT16_TYPE__ short unsigned int
 #define __WCHAR_TYPE__ int
-#define APP_VERSION "1.1.0"
+#define APP_VERSION "3.0.0"
 #define __UINTPTR_MAX__ 0xffffffffffffffffUL
 #define __INT_FAST64_WIDTH__ 64
 #define __INT_FAST64_MAX__ 0x7fffffffffffffffL
@@ -402,7 +402,7 @@
 #define __INTMAX_MAX__ 0x7fffffffffffffffL
 #define __INT_FAST8_TYPE__ signed char
 #define __FLT64X_MIN__ 3.36210314311209350626267781732175260e-4932F64x
-#define APP_RELEASE_DATE "2025-11-01T19:18:31Z"
+#define APP_RELEASE_DATE "2025-11-01T20:53:08Z"
 #define __STDCPP_THREADS__ 1
 #define __BFLT16_HAS_DENORM__ 1
 #define __GNUC_STDC_INLINE__ 1
