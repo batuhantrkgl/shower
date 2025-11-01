@@ -63,6 +63,10 @@ public:
     void fetchCurrentMedia();
     void startPeriodicFetch();
     void stopPeriodicFetch();
+    bool isConnected() const { return m_connected; }
+    int getLastPing() const { return m_lastPingMs; }
+    QString getServerUrl() const { return m_serverUrl; }
+    QString getHostname() const { return m_hostname; }
 
 signals:
     void scheduleReceived(const QTime &schoolStart, const QTime &schoolEnd, 
@@ -70,17 +74,27 @@ signals:
     void playlistReceived(const MediaPlaylist &playlist);
     void networkError(const QString &error);
     void serverDiscovered(const QString &serverUrl);
+    void connectionStatusChanged(bool connected, const QString &serverUrl = QString(), const QString &hostname = QString());
+    void pingUpdated(int pingMs);
 
 private slots:
     void onScheduleReplyFinished();
     void onMediaReplyFinished();
     void periodicFetch();
+    void measurePing();
+    void onPingReplyFinished();
+    void attemptReconnection();
 
 private:
     QNetworkAccessManager *m_networkManager;
     QString m_serverUrl;
     QTimer *m_fetchTimer;
     bool m_discovered = false;
+    bool m_connected = false;
+    int m_lastPingMs = -1;
+    QString m_hostname;
+    QTimer *m_pingTimer;
+    QTimer *m_reconnectTimer;
     
     // Server discovery helpers
     QString getLocalNetworkPrefix();  // Get local network prefix (e.g., "192.168.1" from "192.168.1.42")

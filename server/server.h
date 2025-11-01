@@ -33,12 +33,14 @@ private:
 
     void handleGetRequest(QTcpSocket *socket, const QString &path);
     void handlePostRequest(QTcpSocket *socket, const QString &path, const QByteArray &request);
+    void handleHeadRequest(QTcpSocket *socket, const QString &path);
     void handleGetSchedule(QTcpSocket *socket);
     void handleGetPlaylist(QTcpSocket *socket);
     void handleGetMediaFile(QTcpSocket *socket, const QString &path);
     void handlePostSchedule(QTcpSocket *socket, const QByteArray &body);
     void handlePostPlaylist(QTcpSocket *socket, const QByteArray &body);
     void sendResponse(QTcpSocket *socket, const QString &status, const QString &contentType, const QByteArray &body);
+    void sendHeadResponse(QTcpSocket *socket, const QString &status, const QString &contentType, qint64 contentLength);
     void sendResponse(QTcpSocket *socket, const QString &status, const QString &contentType, const QString &body);
     void sendResponse(QTcpSocket *socket, const QString &status, const QString &contentType, const char *body);
     QString readFile(const QString &filePath);

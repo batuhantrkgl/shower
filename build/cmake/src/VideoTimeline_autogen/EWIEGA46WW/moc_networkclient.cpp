@@ -54,9 +54,17 @@ template <> constexpr inline auto NetworkClient::qt_create_metaobjectdata<qt_met
         "error",
         "serverDiscovered",
         "serverUrl",
+        "connectionStatusChanged",
+        "connected",
+        "hostname",
+        "pingUpdated",
+        "pingMs",
         "onScheduleReplyFinished",
         "onMediaReplyFinished",
-        "periodicFetch"
+        "periodicFetch",
+        "measurePing",
+        "onPingReplyFinished",
+        "attemptReconnection"
     };
 
     QtMocHelpers::UintData qt_methods {
@@ -76,12 +84,34 @@ template <> constexpr inline auto NetworkClient::qt_create_metaobjectdata<qt_met
         QtMocHelpers::SignalData<void(const QString &)>(12, 2, QMC::AccessPublic, QMetaType::Void, {{
             { QMetaType::QString, 13 },
         }}),
+        // Signal 'connectionStatusChanged'
+        QtMocHelpers::SignalData<void(bool, const QString &, const QString &)>(14, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::Bool, 15 }, { QMetaType::QString, 13 }, { QMetaType::QString, 16 },
+        }}),
+        // Signal 'connectionStatusChanged'
+        QtMocHelpers::SignalData<void(bool, const QString &)>(14, 2, QMC::AccessPublic | QMC::MethodCloned, QMetaType::Void, {{
+            { QMetaType::Bool, 15 }, { QMetaType::QString, 13 },
+        }}),
+        // Signal 'connectionStatusChanged'
+        QtMocHelpers::SignalData<void(bool)>(14, 2, QMC::AccessPublic | QMC::MethodCloned, QMetaType::Void, {{
+            { QMetaType::Bool, 15 },
+        }}),
+        // Signal 'pingUpdated'
+        QtMocHelpers::SignalData<void(int)>(17, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::Int, 18 },
+        }}),
         // Slot 'onScheduleReplyFinished'
-        QtMocHelpers::SlotData<void()>(14, 2, QMC::AccessPrivate, QMetaType::Void),
+        QtMocHelpers::SlotData<void()>(19, 2, QMC::AccessPrivate, QMetaType::Void),
         // Slot 'onMediaReplyFinished'
-        QtMocHelpers::SlotData<void()>(15, 2, QMC::AccessPrivate, QMetaType::Void),
+        QtMocHelpers::SlotData<void()>(20, 2, QMC::AccessPrivate, QMetaType::Void),
         // Slot 'periodicFetch'
-        QtMocHelpers::SlotData<void()>(16, 2, QMC::AccessPrivate, QMetaType::Void),
+        QtMocHelpers::SlotData<void()>(21, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'measurePing'
+        QtMocHelpers::SlotData<void()>(22, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'onPingReplyFinished'
+        QtMocHelpers::SlotData<void()>(23, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'attemptReconnection'
+        QtMocHelpers::SlotData<void()>(24, 2, QMC::AccessPrivate, QMetaType::Void),
     };
     QtMocHelpers::UintData qt_properties {
     };
@@ -109,9 +139,16 @@ void NetworkClient::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _i
         case 1: _t->playlistReceived((*reinterpret_cast<std::add_pointer_t<MediaPlaylist>>(_a[1]))); break;
         case 2: _t->networkError((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
         case 3: _t->serverDiscovered((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
-        case 4: _t->onScheduleReplyFinished(); break;
-        case 5: _t->onMediaReplyFinished(); break;
-        case 6: _t->periodicFetch(); break;
+        case 4: _t->connectionStatusChanged((*reinterpret_cast<std::add_pointer_t<bool>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<QString>>(_a[2])),(*reinterpret_cast<std::add_pointer_t<QString>>(_a[3]))); break;
+        case 5: _t->connectionStatusChanged((*reinterpret_cast<std::add_pointer_t<bool>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<QString>>(_a[2]))); break;
+        case 6: _t->connectionStatusChanged((*reinterpret_cast<std::add_pointer_t<bool>>(_a[1]))); break;
+        case 7: _t->pingUpdated((*reinterpret_cast<std::add_pointer_t<int>>(_a[1]))); break;
+        case 8: _t->onScheduleReplyFinished(); break;
+        case 9: _t->onMediaReplyFinished(); break;
+        case 10: _t->periodicFetch(); break;
+        case 11: _t->measurePing(); break;
+        case 12: _t->onPingReplyFinished(); break;
+        case 13: _t->attemptReconnection(); break;
         default: ;
         }
     }
@@ -123,6 +160,10 @@ void NetworkClient::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _i
         if (QtMocHelpers::indexOfMethod<void (NetworkClient::*)(const QString & )>(_a, &NetworkClient::networkError, 2))
             return;
         if (QtMocHelpers::indexOfMethod<void (NetworkClient::*)(const QString & )>(_a, &NetworkClient::serverDiscovered, 3))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (NetworkClient::*)(bool , const QString & , const QString & )>(_a, &NetworkClient::connectionStatusChanged, 4))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (NetworkClient::*)(int )>(_a, &NetworkClient::pingUpdated, 7))
             return;
     }
 }
@@ -146,14 +187,14 @@ int NetworkClient::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 7)
+        if (_id < 14)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 7;
+        _id -= 14;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 7)
+        if (_id < 14)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 7;
+        _id -= 14;
     }
     return _id;
 }
@@ -180,5 +221,17 @@ void NetworkClient::networkError(const QString & _t1)
 void NetworkClient::serverDiscovered(const QString & _t1)
 {
     QMetaObject::activate<void>(this, &staticMetaObject, 3, nullptr, _t1);
+}
+
+// SIGNAL 4
+void NetworkClient::connectionStatusChanged(bool _t1, const QString & _t2, const QString & _t3)
+{
+    QMetaObject::activate<void>(this, &staticMetaObject, 4, nullptr, _t1, _t2, _t3);
+}
+
+// SIGNAL 7
+void NetworkClient::pingUpdated(int _t1)
+{
+    QMetaObject::activate<void>(this, &staticMetaObject, 7, nullptr, _t1);
 }
 QT_WARNING_POP

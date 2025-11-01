@@ -410,12 +410,17 @@ src/CMakeFiles/VideoTimeline.dir/mainwindow.cpp.o: \
  /usr/include/qt6/QtGui/qinputmethod.h \
  /usr/include/qt6/QtGui/qguiapplication_platform.h \
  /home/batuhantrkgl/Stuff/shower/src/timelinewidget.h \
- /usr/include/qt6/QtWidgets/QVBoxLayout \
+ /home/batuhantrkgl/Stuff/shower/src/statusbar.h \
+ /usr/include/qt6/QtWidgets/QHBoxLayout \
  /usr/include/qt6/QtWidgets/qboxlayout.h \
  /usr/include/qt6/QtWidgets/qlayout.h \
  /usr/include/qt6/QtWidgets/qlayoutitem.h \
  /usr/include/qt6/QtWidgets/qboxlayout.h \
  /usr/include/qt6/QtWidgets/qgridlayout.h \
+ /usr/include/qt6/QtWidgets/QLabel /usr/include/qt6/QtWidgets/qlabel.h \
+ /usr/include/qt6/QtWidgets/qframe.h /usr/include/qt6/QtGui/qpicture.h \
+ /usr/include/qt6/QtGui/qtextdocument.h \
+ /usr/include/qt6/QtWidgets/QVBoxLayout \
  /usr/include/qt6/QtWidgets/QApplication \
  /usr/include/qt6/QtWidgets/qapplication.h /usr/include/qt6/QtGui/QScreen \
  /usr/include/qt6/QtGui/qscreen.h

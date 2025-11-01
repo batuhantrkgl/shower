@@ -367,6 +367,8 @@ server/CMakeFiles/server.dir/server.cpp.o: \
  /usr/include/qt6/QtCore/QUrlQuery /usr/include/qt6/QtCore/qurlquery.h \
  /usr/include/qt6/QtCore/QUrl /usr/include/qt6/QtCore/qurl.h \
  /usr/include/qt6/QtCore/QDateTime /usr/include/qt6/QtCore/qdatetime.h \
+ /usr/include/qt6/QtNetwork/QHostInfo \
+ /usr/include/qt6/QtNetwork/qhostinfo.h \
  /home/batuhantrkgl/Stuff/shower/server/server.h \
  /usr/include/qt6/QtCore/QObject /usr/include/qt6/QtCore/qobject.h \
  /usr/include/qt6/QtCore/QString /usr/include/qt6/QtCore/qstring.h

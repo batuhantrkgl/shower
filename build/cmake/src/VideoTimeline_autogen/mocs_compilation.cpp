@@ -2,5 +2,6 @@
 #include "EWIEGA46WW/moc_mainwindow.cpp"
 #include "EWIEGA46WW/moc_mediaplayer.cpp"
 #include "EWIEGA46WW/moc_networkclient.cpp"
+#include "EWIEGA46WW/moc_statusbar.cpp"
 #include "EWIEGA46WW/moc_timelinewidget.cpp"
 #include "EWIEGA46WW/moc_videowidget.cpp"

@@ -15,6 +15,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/batuhantrkgl/Stuff/shower/src/mainwindow.cpp" "src/CMakeFiles/VideoTimeline.dir/mainwindow.cpp.o" "gcc" "src/CMakeFiles/VideoTimeline.dir/mainwindow.cpp.o.d"
   "/home/batuhantrkgl/Stuff/shower/src/mediaplayer.cpp" "src/CMakeFiles/VideoTimeline.dir/mediaplayer.cpp.o" "gcc" "src/CMakeFiles/VideoTimeline.dir/mediaplayer.cpp.o.d"
   "/home/batuhantrkgl/Stuff/shower/src/networkclient.cpp" "src/CMakeFiles/VideoTimeline.dir/networkclient.cpp.o" "gcc" "src/CMakeFiles/VideoTimeline.dir/networkclient.cpp.o.d"
+  "/home/batuhantrkgl/Stuff/shower/src/statusbar.cpp" "src/CMakeFiles/VideoTimeline.dir/statusbar.cpp.o" "gcc" "src/CMakeFiles/VideoTimeline.dir/statusbar.cpp.o.d"
   "/home/batuhantrkgl/Stuff/shower/src/timelinewidget.cpp" "src/CMakeFiles/VideoTimeline.dir/timelinewidget.cpp.o" "gcc" "src/CMakeFiles/VideoTimeline.dir/timelinewidget.cpp.o.d"
   "/home/batuhantrkgl/Stuff/shower/src/videowidget.cpp" "src/CMakeFiles/VideoTimeline.dir/videowidget.cpp.o" "gcc" "src/CMakeFiles/VideoTimeline.dir/videowidget.cpp.o.d"
   "" "bin/VideoTimeline" "gcc" "src/CMakeFiles/VideoTimeline.dir/link.d"

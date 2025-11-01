@@ -11,6 +11,8 @@ VideoTimeline_autogen/timestamp: \
 	/home/batuhantrkgl/Stuff/shower/src/networkclient.cpp \
 	/home/batuhantrkgl/Stuff/shower/src/networkclient.h \
 	/home/batuhantrkgl/Stuff/shower/src/qt6compat.h \
+	/home/batuhantrkgl/Stuff/shower/src/statusbar.cpp \
+	/home/batuhantrkgl/Stuff/shower/src/statusbar.h \
 	/home/batuhantrkgl/Stuff/shower/src/timelinewidget.cpp \
 	/home/batuhantrkgl/Stuff/shower/src/timelinewidget.h \
 	/home/batuhantrkgl/Stuff/shower/src/videowidget.cpp \
@@ -540,6 +542,7 @@ VideoTimeline_autogen/timestamp: \
 	/usr/include/qt6/QtNetwork/qtnetwork-config.h \
 	/usr/include/qt6/QtNetwork/qtnetworkexports.h \
 	/usr/include/qt6/QtNetwork/qtnetworkglobal.h \
+	/usr/include/qt6/QtWidgets/QHBoxLayout \
 	/usr/include/qt6/QtWidgets/QLabel \
 	/usr/include/qt6/QtWidgets/QMainWindow \
 	/usr/include/qt6/QtWidgets/QStackedLayout \

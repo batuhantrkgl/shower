@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 DEFAULT_PORT=3232
-SERVER_BINARY="../build/server/server"
+SERVER_BINARY="./build/server/server"
 BUILD_SCRIPT="../scripts/server-build.sh"
 
 # Function to print colored output

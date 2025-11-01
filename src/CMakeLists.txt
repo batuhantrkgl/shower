@@ -5,6 +5,7 @@ set(SOURCES
     timelinewidget.cpp
     networkclient.cpp
     mediaplayer.cpp
+    statusbar.cpp
 )
 
 set(HEADERS
@@ -15,6 +16,7 @@ set(HEADERS
     md3colors.h
     mediaplayer.h
     qt6compat.h
+    statusbar.h
 )
 
 set(RESOURCES

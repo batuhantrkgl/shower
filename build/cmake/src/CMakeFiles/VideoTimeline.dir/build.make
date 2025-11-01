@@ -186,10 +186,24 @@ src/CMakeFiles/VideoTimeline.dir/mediaplayer.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/VideoTimeline.dir/mediaplayer.cpp.s"
 	cd /home/batuhantrkgl/Stuff/shower/build/cmake/src && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/batuhantrkgl/Stuff/shower/src/mediaplayer.cpp -o CMakeFiles/VideoTimeline.dir/mediaplayer.cpp.s
 
+src/CMakeFiles/VideoTimeline.dir/statusbar.cpp.o: src/CMakeFiles/VideoTimeline.dir/flags.make
+src/CMakeFiles/VideoTimeline.dir/statusbar.cpp.o: /home/batuhantrkgl/Stuff/shower/src/statusbar.cpp
+src/CMakeFiles/VideoTimeline.dir/statusbar.cpp.o: src/CMakeFiles/VideoTimeline.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/batuhantrkgl/Stuff/shower/build/cmake/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object src/CMakeFiles/VideoTimeline.dir/statusbar.cpp.o"
+	cd /home/batuhantrkgl/Stuff/shower/build/cmake/src && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT src/CMakeFiles/VideoTimeline.dir/statusbar.cpp.o -MF CMakeFiles/VideoTimeline.dir/statusbar.cpp.o.d -o CMakeFiles/VideoTimeline.dir/statusbar.cpp.o -c /home/batuhantrkgl/Stuff/shower/src/statusbar.cpp
+
+src/CMakeFiles/VideoTimeline.dir/statusbar.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/VideoTimeline.dir/statusbar.cpp.i"
+	cd /home/batuhantrkgl/Stuff/shower/build/cmake/src && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/batuhantrkgl/Stuff/shower/src/statusbar.cpp > CMakeFiles/VideoTimeline.dir/statusbar.cpp.i
+
+src/CMakeFiles/VideoTimeline.dir/statusbar.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/VideoTimeline.dir/statusbar.cpp.s"
+	cd /home/batuhantrkgl/Stuff/shower/build/cmake/src && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/batuhantrkgl/Stuff/shower/src/statusbar.cpp -o CMakeFiles/VideoTimeline.dir/statusbar.cpp.s
+
 src/CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/EWIEGA46WW/qrc_icons.cpp.o: src/CMakeFiles/VideoTimeline.dir/flags.make
 src/CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/EWIEGA46WW/qrc_icons.cpp.o: src/VideoTimeline_autogen/EWIEGA46WW/qrc_icons.cpp
 src/CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/EWIEGA46WW/qrc_icons.cpp.o: src/CMakeFiles/VideoTimeline.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/batuhantrkgl/Stuff/shower/build/cmake/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object src/CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/EWIEGA46WW/qrc_icons.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/batuhantrkgl/Stuff/shower/build/cmake/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object src/CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/EWIEGA46WW/qrc_icons.cpp.o"
 	cd /home/batuhantrkgl/Stuff/shower/build/cmake/src && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT src/CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/EWIEGA46WW/qrc_icons.cpp.o -MF CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/EWIEGA46WW/qrc_icons.cpp.o.d -o CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/EWIEGA46WW/qrc_icons.cpp.o -c /home/batuhantrkgl/Stuff/shower/build/cmake/src/VideoTimeline_autogen/EWIEGA46WW/qrc_icons.cpp
 
 src/CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/EWIEGA46WW/qrc_icons.cpp.i: cmake_force
@@ -209,6 +223,7 @@ VideoTimeline_OBJECTS = \
 "CMakeFiles/VideoTimeline.dir/timelinewidget.cpp.o" \
 "CMakeFiles/VideoTimeline.dir/networkclient.cpp.o" \
 "CMakeFiles/VideoTimeline.dir/mediaplayer.cpp.o" \
+"CMakeFiles/VideoTimeline.dir/statusbar.cpp.o" \
 "CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/EWIEGA46WW/qrc_icons.cpp.o"
 
 # External object files for target VideoTimeline
@@ -221,6 +236,7 @@ bin/VideoTimeline: src/CMakeFiles/VideoTimeline.dir/videowidget.cpp.o
 bin/VideoTimeline: src/CMakeFiles/VideoTimeline.dir/timelinewidget.cpp.o
 bin/VideoTimeline: src/CMakeFiles/VideoTimeline.dir/networkclient.cpp.o
 bin/VideoTimeline: src/CMakeFiles/VideoTimeline.dir/mediaplayer.cpp.o
+bin/VideoTimeline: src/CMakeFiles/VideoTimeline.dir/statusbar.cpp.o
 bin/VideoTimeline: src/CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/EWIEGA46WW/qrc_icons.cpp.o
 bin/VideoTimeline: src/CMakeFiles/VideoTimeline.dir/build.make
 bin/VideoTimeline: src/CMakeFiles/VideoTimeline.dir/compiler_depend.ts
@@ -233,7 +249,7 @@ bin/VideoTimeline: /usr/lib64/libGLX.so
 bin/VideoTimeline: /usr/lib64/libOpenGL.so
 bin/VideoTimeline: /usr/lib64/libQt6Core.so.6.10.0
 bin/VideoTimeline: src/CMakeFiles/VideoTimeline.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/batuhantrkgl/Stuff/shower/build/cmake/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Linking CXX executable ../bin/VideoTimeline"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/batuhantrkgl/Stuff/shower/build/cmake/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Linking CXX executable ../bin/VideoTimeline"
 	cd /home/batuhantrkgl/Stuff/shower/build/cmake/src && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/VideoTimeline.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

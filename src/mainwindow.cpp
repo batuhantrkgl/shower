@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "videowidget.h"
 #include "timelinewidget.h"
+#include "statusbar.h"
 #include "md3colors.h"
 #include <QVBoxLayout>
 #include <QWidget>
@@ -44,10 +45,12 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, QWidget *
     }
     
     // Create UI widgets
+    m_statusBar = new StatusBar(this);
     m_videoWidget = new VideoWidget(this);
     m_timelineWidget = new TimelineWidget(m_networkClient, this);
 
     // Add widgets to layout
+    mainLayout->addWidget(m_statusBar, 0);
     mainLayout->addWidget(m_videoWidget, 1);
     mainLayout->addWidget(m_timelineWidget, 0);
 
@@ -58,6 +61,10 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, QWidget *
             this, &MainWindow::onScheduleReceived);
     connect(m_networkClient, &NetworkClient::networkError,
             m_videoWidget, &VideoWidget::onNetworkError);
+    connect(m_networkClient, &NetworkClient::connectionStatusChanged,
+            m_statusBar, &StatusBar::setConnectionStatus);
+    connect(m_networkClient, &NetworkClient::pingUpdated,
+            m_statusBar, &StatusBar::setPing);
 
     // Setup update timer
     m_updateTimer = new QTimer(this);

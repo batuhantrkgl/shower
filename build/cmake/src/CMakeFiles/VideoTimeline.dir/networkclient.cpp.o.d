@@ -367,4 +367,7 @@ src/CMakeFiles/VideoTimeline.dir/networkclient.cpp.o: \
  /usr/include/qt6/QtCore/QJsonDocument \
  /usr/include/qt6/QtCore/qjsondocument.h /usr/include/qt6/QtCore/QDebug \
  /usr/include/qt6/QtCore/qdebug.h /usr/include/qt6/QtCore/QEventLoop \
- /usr/include/qt6/QtCore/qeventloop.h
+ /usr/include/qt6/QtCore/qeventloop.h \
+ /usr/include/qt6/QtCore/QElapsedTimer \
+ /usr/include/qt6/QtCore/qelapsedtimer.h \
+ /usr/include/qt6/QtCore/QDateTime

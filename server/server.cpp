@@ -10,6 +10,7 @@
 #include <QUrlQuery>
 #include <QUrl>
 #include <QDateTime>
+#include <QHostInfo>
 #include "server.h"
 
 void HttpServer::log(LogLevel level, const QString &message) {
@@ -122,6 +123,8 @@ void HttpServer::handleRequest(QTcpSocket *socket) {
             handleGetRequest(socket, pathStr);
         } else if (method == "POST") {
             handlePostRequest(socket, pathStr, request);
+        } else if (method == "HEAD") {
+            handleHeadRequest(socket, pathStr);
         } else {
             log(WARN, QString("Unsupported method %1 from %2").arg(method).arg(clientIP));
             sendResponse(socket, "405 Method Not Allowed", "text/plain", "Method Not Allowed");
@@ -162,12 +165,100 @@ void HttpServer::handlePostRequest(QTcpSocket *socket, const QString &path, cons
         }
     }
 
+void HttpServer::handleHeadRequest(QTcpSocket *socket, const QString &path) {
+        if (path == "/api/schedule") {
+            // For HEAD requests, just send headers without body
+            QString filePath = dataDir + "/schedule.json";
+            QString json = readFile(filePath);
+            
+            if (json.isEmpty()) {
+                json = getDefaultSchedule();
+            }
+            
+            // Parse the JSON to add server information
+            QJsonParseError error;
+            QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
+            
+            if (error.error == QJsonParseError::NoError && doc.isObject()) {
+                QJsonObject scheduleObj = doc.object();
+                
+                // Add server information
+                QString hostname = QHostInfo::localHostName();
+                scheduleObj["server_hostname"] = hostname;
+                scheduleObj["server_ip"] = socket->localAddress().toString();
+                
+                // Re-create the document with server info
+                doc = QJsonDocument(scheduleObj);
+                json = doc.toJson(QJsonDocument::Indented);
+            }
+            
+            sendHeadResponse(socket, "200 OK", "application/json", json.size());
+        } else if (path == "/api/media/playlist") {
+            // For HEAD requests, just send headers without body
+            QString filePath = dataDir + "/playlist.json";
+            QString json = readFile(filePath);
+            
+            if (json.isEmpty()) {
+                log(WARN, "Playlist file not found for HEAD request");
+                sendHeadResponse(socket, "404 Not Found", "text/plain", 0);
+                return;
+            }
+            
+            sendHeadResponse(socket, "200 OK", "application/json", json.size());
+        } else if (path.startsWith("/media/")) {
+            QString fileName = path.mid(7); // Remove "/media/"
+            
+            // Security: prevent directory traversal
+            if (fileName.contains("..") || fileName.contains("/")) {
+                log(WARN, QString("Directory traversal attempt blocked: %1 from %2").arg(fileName).arg(socket->peerAddress().toString()));
+                sendHeadResponse(socket, "403 Forbidden", "text/plain", 0);
+                return;
+            }
+            
+            QString filePath = mediaDir + "/" + fileName;
+            
+            if (!QFile::exists(filePath)) {
+                log(WARN, QString("Requested file not found: %1 from %2").arg(filePath).arg(socket->peerAddress().toString()));
+                sendHeadResponse(socket, "404 Not Found", "text/plain", 0);
+                return;
+            }
+            
+            QFile file(filePath);
+            if (file.open(QIODevice::ReadOnly)) {
+                QString contentType = getContentType(fileName);
+                sendHeadResponse(socket, "200 OK", contentType, file.size());
+            } else {
+                log(ERROR, QString("Failed to read media file: %1").arg(filePath));
+                sendHeadResponse(socket, "500 Internal Server Error", "text/plain", 0);
+            }
+        } else {
+            sendHeadResponse(socket, "404 Not Found", "text/plain", 0);
+        }
+    }
+
 void HttpServer::handleGetSchedule(QTcpSocket *socket) {
         QString filePath = dataDir + "/schedule.json";
         QString json = readFile(filePath);
         
         if (json.isEmpty()) {
             json = getDefaultSchedule();
+        }
+        
+        // Parse the JSON to add server information
+        QJsonParseError error;
+        QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
+        
+        if (error.error == QJsonParseError::NoError && doc.isObject()) {
+            QJsonObject scheduleObj = doc.object();
+            
+            // Add server information
+            QString hostname = QHostInfo::localHostName();
+            scheduleObj["server_hostname"] = hostname;
+            scheduleObj["server_ip"] = socket->localAddress().toString();
+            
+            // Re-create the document with server info
+            doc = QJsonDocument(scheduleObj);
+            json = doc.toJson(QJsonDocument::Indented);
         }
         
         sendResponse(socket, "200 OK", "application/json", json);
@@ -292,6 +383,23 @@ void HttpServer::sendResponse(QTcpSocket *socket, const QString &status, const Q
         
         QString clientIP = socket->peerAddress().toString();
         log(DEBUG, QString("Response: %1 %2 (%3 bytes) to %4").arg(status).arg(contentType).arg(body.size()).arg(clientIP));
+    }
+    
+void HttpServer::sendHeadResponse(QTcpSocket *socket, const QString &status, const QString &contentType, qint64 contentLength) {
+        QString response = QString("HTTP/1.1 %1\r\n"
+                                  "Content-Type: %2\r\n"
+                                  "Content-Length: %3\r\n"
+                                  "Access-Control-Allow-Origin: *\r\n"
+                                  "\r\n")
+                          .arg(status)
+                          .arg(contentType)
+                          .arg(contentLength);
+        
+        socket->write(response.toUtf8());
+        socket->flush();
+        
+        QString clientIP = socket->peerAddress().toString();
+        log(DEBUG, QString("HEAD Response: %1 %2 (%3 bytes) to %4").arg(status).arg(contentType).arg(contentLength).arg(clientIP));
     }
     
 // Helper overloads to avoid ambiguity

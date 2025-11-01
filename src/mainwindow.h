@@ -9,6 +9,7 @@
 
 class VideoWidget;
 class TimelineWidget;
+class StatusBar;
 
 class MainWindow : public QMainWindow
 {
@@ -25,6 +26,7 @@ private slots:
 private:
     VideoWidget *m_videoWidget;
     TimelineWidget *m_timelineWidget;
+    StatusBar *m_statusBar;
     NetworkClient *m_networkClient;
     QTimer *m_updateTimer;
     QTime m_schoolStartTime;

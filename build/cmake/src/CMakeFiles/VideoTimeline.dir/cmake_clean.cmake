@@ -17,6 +17,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/VideoTimeline.dir/mediaplayer.cpp.o.d"
   "CMakeFiles/VideoTimeline.dir/networkclient.cpp.o"
   "CMakeFiles/VideoTimeline.dir/networkclient.cpp.o.d"
+  "CMakeFiles/VideoTimeline.dir/statusbar.cpp.o"
+  "CMakeFiles/VideoTimeline.dir/statusbar.cpp.o.d"
   "CMakeFiles/VideoTimeline.dir/timelinewidget.cpp.o"
   "CMakeFiles/VideoTimeline.dir/timelinewidget.cpp.o.d"
   "CMakeFiles/VideoTimeline.dir/videowidget.cpp.o"

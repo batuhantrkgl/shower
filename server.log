@@ -1,0 +1,39 @@
+[32m[2025-11-01 16:45:12] [INFO] Server initialized[0m
+[32m[2025-11-01 16:45:12] [INFO] Media directory: /home/batuhantrkgl/Stuff/shower/data/media[0m
+[32m[2025-11-01 16:45:12] [INFO] Data directory: /home/batuhantrkgl/Stuff/shower/data[0m
+[36m[2025-11-01 16:45:12] [DEBUG] Read 542 bytes from file: /home/batuhantrkgl/Stuff/shower/data/playlist.json[0m
+[32m[2025-11-01 16:45:12] [INFO] Preserving existing playlist (auto_regenerate: false)[0m
+[32m[2025-11-01 16:45:12] [INFO] Server listening on port 3232[0m
+VideoTimeline Server running on http://localhost:3232
+Press Ctrl+C to stop
+[32m[2025-11-01 16:45:14] [INFO] New connection from ::1:46276[0m
+[32m[2025-11-01 16:45:14] [INFO] Request: GET /api/schedule from ::1[0m
+[36m[2025-11-01 16:45:14] [DEBUG] Read 1371 bytes from file: /home/batuhantrkgl/Stuff/shower/data/schedule.json[0m
+[36m[2025-11-01 16:45:14] [DEBUG] Response: 200 OK application/json (2382 bytes) to ::1[0m
+[32m[2025-11-01 16:45:14] [INFO] Connection closed from ::1[0m
+[32m[2025-11-01 16:45:15] [INFO] New connection from ::1:46278[0m
+[32m[2025-11-01 16:45:15] [INFO] Request: GET /api/schedule from ::1[0m
+[36m[2025-11-01 16:45:15] [DEBUG] Read 1371 bytes from file: /home/batuhantrkgl/Stuff/shower/data/schedule.json[0m
+[36m[2025-11-01 16:45:15] [DEBUG] Response: 200 OK application/json (2382 bytes) to ::1[0m
+[32m[2025-11-01 16:45:15] [INFO] New connection from ::1:46280[0m
+[32m[2025-11-01 16:45:15] [INFO] Request: GET /api/media/playlist from ::1[0m
+[36m[2025-11-01 16:45:15] [DEBUG] Read 542 bytes from file: /home/batuhantrkgl/Stuff/shower/data/playlist.json[0m
+[36m[2025-11-01 16:45:15] [DEBUG] Response: 200 OK application/json (542 bytes) to ::1[0m
+[32m[2025-11-01 16:45:15] [INFO] New connection from ::1:46288[0m
+[32m[2025-11-01 16:45:15] [INFO] Request: GET /media/10th_Anniversary_Speech.jpg from ::1[0m
+[33m[2025-11-01 16:45:15] [WARN] Requested file not found: /home/batuhantrkgl/Stuff/shower/data/media/10th_Anniversary_Speech.jpg from ::1[0m
+[36m[2025-11-01 16:45:15] [DEBUG] Response: 404 Not Found text/plain (14 bytes) to ::1[0m
+[32m[2025-11-01 16:45:44] [INFO] Request: HEAD /api/schedule from ::1[0m
+[36m[2025-11-01 16:45:44] [DEBUG] Read 1371 bytes from file: /home/batuhantrkgl/Stuff/shower/data/schedule.json[0m
+[36m[2025-11-01 16:45:44] [DEBUG] HEAD Response: 200 OK application/json (2373 bytes) to ::1[0m
+[32m[2025-11-01 16:46:14] [INFO] Request: HEAD /api/schedule from ::1[0m
+[36m[2025-11-01 16:46:14] [DEBUG] Read 1371 bytes from file: /home/batuhantrkgl/Stuff/shower/data/schedule.json[0m
+[36m[2025-11-01 16:46:14] [DEBUG] HEAD Response: 200 OK application/json (2373 bytes) to ::1[0m
+[32m[2025-11-01 16:46:14] [INFO] New connection from ::1:33684[0m
+[32m[2025-11-01 16:46:14] [INFO] Request: GET /media/ekran-goruntusu-2023-10-29-095052.png from ::1[0m
+[33m[2025-11-01 16:46:14] [WARN] Requested file not found: /home/batuhantrkgl/Stuff/shower/data/media/ekran-goruntusu-2023-10-29-095052.png from ::1[0m
+[36m[2025-11-01 16:46:14] [DEBUG] Response: 404 Not Found text/plain (14 bytes) to ::1[0m
+[32m[2025-11-01 16:46:28] [INFO] Connection closed from ::1[0m
+[32m[2025-11-01 16:46:28] [INFO] Connection closed from ::1[0m
+[32m[2025-11-01 16:46:28] [INFO] Connection closed from ::1[0m
+[32m[2025-11-01 16:46:28] [INFO] Connection closed from ::1[0m

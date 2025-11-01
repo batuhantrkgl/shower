@@ -9,6 +9,7 @@
   CMakeFiles/VideoTimeline.dir/timelinewidget.cpp.o \
   CMakeFiles/VideoTimeline.dir/networkclient.cpp.o \
   CMakeFiles/VideoTimeline.dir/mediaplayer.cpp.o \
+  CMakeFiles/VideoTimeline.dir/statusbar.cpp.o \
   CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/EWIEGA46WW/qrc_icons.cpp.o \
   /usr/lib64/libQt6MultimediaWidgets.so.6.10.0 \
   /usr/lib64/libQt6Widgets.so.6.10.0 \
@@ -141,6 +142,8 @@ CMakeFiles/VideoTimeline.dir/timelinewidget.cpp.o:
 CMakeFiles/VideoTimeline.dir/networkclient.cpp.o:
 
 CMakeFiles/VideoTimeline.dir/mediaplayer.cpp.o:
+
+CMakeFiles/VideoTimeline.dir/statusbar.cpp.o:
 
 CMakeFiles/VideoTimeline.dir/VideoTimeline_autogen/EWIEGA46WW/qrc_icons.cpp.o:
 

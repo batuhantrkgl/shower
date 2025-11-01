@@ -347,6 +347,30 @@ networkclient.cpp.s:
 	cd /home/batuhantrkgl/Stuff/shower/build/cmake && $(MAKE) $(MAKESILENT) -f src/CMakeFiles/VideoTimeline.dir/build.make src/CMakeFiles/VideoTimeline.dir/networkclient.cpp.s
 .PHONY : networkclient.cpp.s
 
+statusbar.o: statusbar.cpp.o
+.PHONY : statusbar.o
+
+# target to build an object file
+statusbar.cpp.o:
+	cd /home/batuhantrkgl/Stuff/shower/build/cmake && $(MAKE) $(MAKESILENT) -f src/CMakeFiles/VideoTimeline.dir/build.make src/CMakeFiles/VideoTimeline.dir/statusbar.cpp.o
+.PHONY : statusbar.cpp.o
+
+statusbar.i: statusbar.cpp.i
+.PHONY : statusbar.i
+
+# target to preprocess a source file
+statusbar.cpp.i:
+	cd /home/batuhantrkgl/Stuff/shower/build/cmake && $(MAKE) $(MAKESILENT) -f src/CMakeFiles/VideoTimeline.dir/build.make src/CMakeFiles/VideoTimeline.dir/statusbar.cpp.i
+.PHONY : statusbar.cpp.i
+
+statusbar.s: statusbar.cpp.s
+.PHONY : statusbar.s
+
+# target to generate assembly for a file
+statusbar.cpp.s:
+	cd /home/batuhantrkgl/Stuff/shower/build/cmake && $(MAKE) $(MAKESILENT) -f src/CMakeFiles/VideoTimeline.dir/build.make src/CMakeFiles/VideoTimeline.dir/statusbar.cpp.s
+.PHONY : statusbar.cpp.s
+
 timelinewidget.o: timelinewidget.cpp.o
 .PHONY : timelinewidget.o
 
@@ -428,6 +452,9 @@ help:
 	@echo "... networkclient.o"
 	@echo "... networkclient.i"
 	@echo "... networkclient.s"
+	@echo "... statusbar.o"
+	@echo "... statusbar.i"
+	@echo "... statusbar.s"
 	@echo "... timelinewidget.o"
 	@echo "... timelinewidget.i"
 	@echo "... timelinewidget.s"

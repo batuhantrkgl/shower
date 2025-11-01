@@ -46,6 +46,12 @@
 			null
 		],
 		[
+			"/home/batuhantrkgl/Stuff/shower/src/statusbar.h",
+			"Mu",
+			"EWIEGA46WW/moc_statusbar.cpp",
+			null
+		],
+		[
 			"/home/batuhantrkgl/Stuff/shower/src/timelinewidget.h",
 			"Mu",
 			"EWIEGA46WW/moc_timelinewidget.cpp",
@@ -63,8 +69,8 @@
 	"MOC_COMPILATION_FILE" : "/home/batuhantrkgl/Stuff/shower/build/cmake/src/VideoTimeline_autogen/mocs_compilation.cpp",
 	"MOC_DEFINITIONS" : 
 	[
-		"APP_BUILD_ID=\"1762000238\"",
-		"APP_RELEASE_DATE=\"2025-11-01T12:30:38Z\"",
+		"APP_BUILD_ID=\"1762004697\"",
+		"APP_RELEASE_DATE=\"2025-11-01T13:44:57Z\"",
 		"APP_VERSION=\"1.1.0\"",
 		"QT_CORE_LIB",
 		"QT_GUI_LIB",
@@ -137,6 +143,7 @@
 		[ "/home/batuhantrkgl/Stuff/shower/src/mainwindow.cpp", "Mu", null ],
 		[ "/home/batuhantrkgl/Stuff/shower/src/mediaplayer.cpp", "Mu", null ],
 		[ "/home/batuhantrkgl/Stuff/shower/src/networkclient.cpp", "Mu", null ],
+		[ "/home/batuhantrkgl/Stuff/shower/src/statusbar.cpp", "Mu", null ],
 		[ "/home/batuhantrkgl/Stuff/shower/src/timelinewidget.cpp", "Mu", null ],
 		[ "/home/batuhantrkgl/Stuff/shower/src/videowidget.cpp", "Mu", null ]
 	],

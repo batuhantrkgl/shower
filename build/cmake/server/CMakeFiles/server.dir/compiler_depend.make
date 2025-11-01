@@ -948,10 +948,12 @@ server/CMakeFiles/server.dir/server.cpp.o: /home/batuhantrkgl/Stuff/shower/serve
   /usr/include/qt6/QtCore/qversiontagging.h \
   /usr/include/qt6/QtCore/qxptype_traits.h \
   /usr/include/qt6/QtCore/qyieldcpu.h \
+  /usr/include/qt6/QtNetwork/QHostInfo \
   /usr/include/qt6/QtNetwork/QTcpServer \
   /usr/include/qt6/QtNetwork/QTcpSocket \
   /usr/include/qt6/QtNetwork/qabstractsocket.h \
   /usr/include/qt6/QtNetwork/qhostaddress.h \
+  /usr/include/qt6/QtNetwork/qhostinfo.h \
   /usr/include/qt6/QtNetwork/qtcpserver.h \
   /usr/include/qt6/QtNetwork/qtcpsocket.h \
   /usr/include/qt6/QtNetwork/qtnetwork-config.h \
@@ -2307,6 +2309,8 @@ server/CMakeFiles/server.dir/server.cpp.o:
 
 /usr/include/qt6/QtCore/qtcoreglobal.h:
 
+/usr/include/qt6/QtNetwork/qhostinfo.h:
+
 /usr/include/locale.h:
 
 /usr/include/c++/15/bits/allocated_ptr.h:
@@ -2454,6 +2458,8 @@ server/CMakeFiles/server.dir/server.cpp.o:
 /usr/lib64/libicudata.so.77:
 
 /usr/lib64/libicui18n.so.77:
+
+/usr/include/qt6/QtNetwork/QHostInfo:
 
 /usr/include/qt6/QtCore/qobject_impl.h:
 

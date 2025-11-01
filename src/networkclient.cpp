@@ -10,6 +10,8 @@
 #include <QEventLoop>
 #include <QTimer>
 #include <QTime>
+#include <QElapsedTimer>
+#include <QDateTime>
 
 NetworkClient::NetworkClient(QObject *parent)
     : QObject(parent)
@@ -17,15 +19,34 @@ NetworkClient::NetworkClient(QObject *parent)
     , m_serverUrl("http://localhost:3232")  // Default fallback
     , m_fetchTimer(new QTimer(this))
     , m_discovered(false)
+    , m_connected(false)
+    , m_lastPingMs(-1)
+    , m_pingTimer(new QTimer(this))
+    , m_reconnectTimer(new QTimer(this))
 {
     // Set up periodic fetch timer (every 5 minutes)
     m_fetchTimer->setInterval(5 * 60 * 1000);
     connect(m_fetchTimer, &QTimer::timeout, this, &NetworkClient::periodicFetch);
+    
+    // Set up ping timer (every 30 seconds)
+    m_pingTimer->setInterval(30 * 1000);
+    connect(m_pingTimer, &QTimer::timeout, this, &NetworkClient::measurePing);
+    
+    // Set up reconnection timer (every 10 seconds when disconnected)
+    m_reconnectTimer->setInterval(10 * 1000);
+    connect(m_reconnectTimer, &QTimer::timeout, this, &NetworkClient::attemptReconnection);
 }
 
 void NetworkClient::setServerUrl(const QString &url)
 {
     m_serverUrl = url;
+    m_connected = false; // Reset connection status
+    m_hostname.clear(); // Clear hostname
+    emit connectionStatusChanged(false);
+    // Start reconnection attempts
+    if (!m_reconnectTimer->isActive()) {
+        m_reconnectTimer->start();
+    }
 }
 
 void NetworkClient::fetchSchedule()
@@ -58,11 +79,14 @@ void NetworkClient::startPeriodicFetch()
     
     // Start periodic updates
     m_fetchTimer->start();
+    m_pingTimer->start();
 }
 
 void NetworkClient::stopPeriodicFetch()
 {
     m_fetchTimer->stop();
+    m_pingTimer->stop();
+    m_reconnectTimer->stop();
 }
 
 void NetworkClient::onScheduleReplyFinished()
@@ -77,17 +101,38 @@ void NetworkClient::onScheduleReplyFinished()
         
         if (error.error == QJsonParseError::NoError && doc.isObject()) {
             parseScheduleJson(doc.object());
+            if (!m_connected) {
+                m_connected = true;
+                emit connectionStatusChanged(true, m_serverUrl, m_hostname);
+                m_reconnectTimer->stop(); // Stop reconnection attempts
+            }
         } else {
             qDebug() << "JSON parse error:" << error.errorString();
             emit networkError("Failed to parse schedule JSON");
             // Use default schedule as fallback
             emit scheduleReceived(QTime(8, 50), QTime(15, 55), createDefaultSchedule());
+            if (m_connected) {
+                m_connected = false;
+                emit connectionStatusChanged(false);
+                // Start reconnection attempts
+                if (!m_reconnectTimer->isActive()) {
+                    m_reconnectTimer->start();
+                }
+            }
         }
     } else {
         qDebug() << "Network error:" << reply->errorString();
         emit networkError("Failed to fetch schedule: " + reply->errorString());
         // Use default schedule as fallback
         emit scheduleReceived(QTime(8, 50), QTime(15, 55), createDefaultSchedule());
+        if (m_connected) {
+            m_connected = false;
+            emit connectionStatusChanged(false);
+            // Start reconnection attempts
+            if (!m_reconnectTimer->isActive()) {
+                m_reconnectTimer->start();
+            }
+        }
     }
     
     reply->deleteLater();
@@ -105,13 +150,34 @@ void NetworkClient::onMediaReplyFinished()
         
         if (error.error == QJsonParseError::NoError && doc.isObject()) {
             parsePlaylistJson(doc.object());
+            if (!m_connected) {
+                m_connected = true;
+                emit connectionStatusChanged(true, m_serverUrl, m_hostname);
+                m_reconnectTimer->stop(); // Stop reconnection attempts
+            }
         } else {
             qDebug() << "JSON parse error:" << error.errorString();
             emit networkError("Failed to parse playlist JSON");
+            if (m_connected) {
+                m_connected = false;
+                emit connectionStatusChanged(false);
+                // Start reconnection attempts
+                if (!m_reconnectTimer->isActive()) {
+                    m_reconnectTimer->start();
+                }
+            }
         }
     } else {
         qDebug() << "Network error:" << reply->errorString();
         emit networkError("Failed to fetch playlist: " + reply->errorString());
+        if (m_connected) {
+            m_connected = false;
+            emit connectionStatusChanged(false);
+            // Start reconnection attempts
+            if (!m_reconnectTimer->isActive()) {
+                m_reconnectTimer->start();
+            }
+        }
     }
     
     reply->deleteLater();
@@ -152,6 +218,9 @@ void NetworkClient::parseScheduleJson(const QJsonObject &json)
     QString schoolStartStr = json["school_start"].toString();
     QString schoolEndStr = json["school_end"].toString();
     QJsonArray blocksArray = json["blocks"].toArray();
+    
+    // Extract server information
+    m_hostname = json["server_hostname"].toString();
     
     QTime schoolStart = QTime::fromString(schoolStartStr, "HH:mm");
     QTime schoolEnd = QTime::fromString(schoolEndStr, "HH:mm");
@@ -420,4 +489,90 @@ bool NetworkClient::tryServerUrl(const QString &url)
     
     reply->deleteLater();
     return found;
+}
+
+void NetworkClient::measurePing()
+{
+    if (!m_connected) return;
+    
+    QNetworkRequest request(QUrl(m_serverUrl + "/api/schedule"));
+    request.setRawHeader("User-Agent", "VideoTimeline Client");
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    
+    // Store the actual timestamp when request starts
+    qint64 startTime = QDateTime::currentMSecsSinceEpoch();
+    
+    // Use HEAD request for faster ping measurement (no body download)
+    QNetworkReply *reply = m_networkManager->head(request);
+    reply->setProperty("ping_start", startTime);
+    connect(reply, &QNetworkReply::finished, this, &NetworkClient::onPingReplyFinished);
+}
+
+void NetworkClient::onPingReplyFinished()
+{
+    QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
+    if (!reply) return;
+    
+    qint64 startTime = reply->property("ping_start").toLongLong();
+    qint64 endTime = QDateTime::currentMSecsSinceEpoch();
+    qint64 pingTime = endTime - startTime;
+    
+    if (reply->error() == QNetworkReply::NoError) {
+        m_lastPingMs = static_cast<int>(pingTime);
+        emit pingUpdated(m_lastPingMs);
+    } else {
+        // Connection lost
+        if (m_connected) {
+            m_connected = false;
+            emit connectionStatusChanged(false);
+            // Start reconnection attempts
+            if (!m_reconnectTimer->isActive()) {
+                m_reconnectTimer->start();
+            }
+        }
+    }
+    
+    reply->deleteLater();
+}
+
+void NetworkClient::attemptReconnection()
+{
+    if (m_connected) {
+        // Already connected, stop reconnection attempts
+        m_reconnectTimer->stop();
+        return;
+    }
+    
+    qDebug() << "Attempting to reconnect to server:" << m_serverUrl;
+    
+    // Try to fetch schedule to test connection
+    QNetworkRequest request(QUrl(m_serverUrl + "/api/schedule"));
+    request.setRawHeader("User-Agent", "VideoTimeline Client");
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    
+    QNetworkReply *reply = m_networkManager->get(request);
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray data = reply->readAll();
+            QJsonParseError error;
+            QJsonDocument doc = QJsonDocument::fromJson(data, &error);
+            
+            if (error.error == QJsonParseError::NoError && doc.isObject()) {
+                // Successfully reconnected
+                parseScheduleJson(doc.object());
+                if (!m_connected) {
+                    m_connected = true;
+                    emit connectionStatusChanged(true, m_serverUrl, m_hostname);
+                    m_reconnectTimer->stop();
+                    qDebug() << "Successfully reconnected to server";
+                    
+                    // Restart normal operations
+                    fetchCurrentMedia();
+                    m_fetchTimer->start();
+                    m_pingTimer->start();
+                }
+            }
+        }
+        reply->deleteLater();
+    });
 }
