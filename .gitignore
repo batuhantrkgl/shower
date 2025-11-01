@@ -1,0 +1,110 @@
+# Build directories and artifacts
+build/
+cmake/
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.make
+
+# Qt Creator and Qt-specific files
+*.pro.user
+*.pro.user.*
+*.qbs.user
+*.qbs.user.*
+*.qws
+*.qwc
+*.qmlproject.user
+*.qmlproject.user.*
+*.moc
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+Makefile*
+*build-*
+
+# Qt Designer files
+*.ui~
+*.ui.bak
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+bin/
+*.exe~
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+*.orig
+*.rej
+
+# Log files
+*.log
+*.log.*
+
+# Cache directories
+.cache/
+__pycache__/
+*.pyc
+*.pyo
+
+# Node.js (if any)
+node_modules/
+npm-debug.log*
+
+# Media and data files (uncomment if you want to ignore these)
+# data/
+# media/
+
+# Server logs and temporary files
+server/logs/
+server/*.log
+server/tmp/
+
+# Backup files
+*.save
+*.save.*
