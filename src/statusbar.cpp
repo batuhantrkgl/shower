@@ -1,5 +1,6 @@
 #include "statusbar.h"
 #include "mainwindow.h"
+#include "qt6compat.h"
 #include <QDateTime>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -60,6 +61,12 @@ void StatusBar::setupUI()
     // Ping
     m_pingLabel = new QLabel("Ping: --");
 
+    // Version - show full version info
+    m_versionLabel = new QLabel(QString("Version %1 (%2) - Build ID: %3")
+                                    .arg(APP_VERSION)
+                                    .arg(APP_RELEASE_DATE)
+                                    .arg(APP_BUILD_ID));
+
     // Time (right-aligned)
     m_timeLabel = new QLabel();
     m_timeLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
@@ -69,6 +76,7 @@ void StatusBar::setupUI()
     layout->addWidget(m_connectionText);
     layout->addWidget(m_serverLabel);
     layout->addWidget(m_pingLabel);
+    layout->addWidget(m_versionLabel);
     layout->addStretch();
     layout->addWidget(m_timeLabel);
 

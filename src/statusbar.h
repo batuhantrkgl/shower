@@ -28,6 +28,7 @@ private:
     QLabel *m_connectionIcon;
     QLabel *m_connectionText;
     QLabel *m_pingLabel;
+    QLabel *m_versionLabel;
     QLabel *m_timeLabel;
     QLabel *m_serverLabel;
 
