@@ -1,19 +1,26 @@
 #include "statusbar.h"
 #include "mainwindow.h"
 #include "qt6compat.h"
+#include "logger.h"
 #include <QDateTime>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QFont>
 #include <QGuiApplication>
 #include <QScreen>
+#include <QMouseEvent>
+#include <QMenu>
+#include <QAction>
 
 StatusBar::StatusBar(QWidget *parent)
     : QWidget(parent)
     , m_connected(false)
     , m_pingMs(-1)
     , m_hostname(QString())
+    , m_hwDecode(false)
+    , m_offlineMode(false)
     , m_timeTimer(new QTimer(this))
+    , m_contextMenu(new QMenu(this))
 {
     setupUI();
 
@@ -41,8 +48,8 @@ void StatusBar::setupUI()
     int iconSize = qRound(12 * scaleFactor);
     int margin = qRound(12 * scaleFactor);
     int smallMargin = qRound(4 * scaleFactor);
-    int spacing = qRound(16 * scaleFactor);
-    int fontSize = qRound(12 * scaleFactor);
+    int spacing = qRound(12 * scaleFactor);
+    int fontSize = qRound(11 * scaleFactor);
     
     setFixedHeight(barHeight);
 
@@ -60,22 +67,41 @@ void StatusBar::setupUI()
 
     // Ping
     m_pingLabel = new QLabel("Ping: --");
+    
+    // Codec info
+    m_codecLabel = new QLabel("Codec: --");
+    
+    // Hardware decode indicator
+    m_hwDecodeIcon = new QLabel("");
+    m_hwDecodeIcon->setToolTip("Hardware decode status");
+    m_hwDecodeIcon->setFixedWidth(qRound(16 * scaleFactor)); // Fixed width for icon
+    
+    // Cache info
+    m_cacheLabel = new QLabel("Cache: --");
+    m_cacheLabel->setToolTip("Cache hit rate");
+    
+    // Offline mode indicator
+    m_offlineIcon = new QLabel("");
+    m_offlineIcon->setFixedWidth(qRound(16 * scaleFactor)); // Fixed width for icon
+    m_offlineIcon->setVisible(false); // Hidden by default
 
     // Version - show full version info
-    m_versionLabel = new QLabel(QString("Version %1 (%2) - Build ID: %3")
-                                    .arg(APP_VERSION)
-                                    .arg(APP_RELEASE_DATE)
-                                    .arg(APP_BUILD_ID));
+    m_versionLabel = new QLabel(QString("v%1").arg(APP_VERSION));
+    m_versionLabel->setToolTip(QString("Build: %1 (%2)").arg(APP_BUILD_ID).arg(APP_RELEASE_DATE));
 
     // Time (right-aligned)
     m_timeLabel = new QLabel();
     m_timeLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
 
-    // Add stretch to push time to the right
+    // Add widgets to layout
     layout->addWidget(m_connectionIcon);
     layout->addWidget(m_connectionText);
     layout->addWidget(m_serverLabel);
     layout->addWidget(m_pingLabel);
+    layout->addWidget(m_codecLabel);
+    layout->addWidget(m_hwDecodeIcon);
+    layout->addWidget(m_cacheLabel);
+    layout->addWidget(m_offlineIcon);
     layout->addWidget(m_versionLabel);
     layout->addStretch();
     layout->addWidget(m_timeLabel);
@@ -92,6 +118,23 @@ void StatusBar::setupUI()
 
     setStyleSheet(style);
     updateConnectionIcon();
+    
+    // Setup context menu
+    QAction *diagAction = m_contextMenu->addAction("Toggle Diagnostics (F12)");
+    connect(diagAction, &QAction::triggered, this, &StatusBar::toggleDiagnostics);
+    
+    m_contextMenu->addSeparator();
+    
+    QMenu *logMenu = m_contextMenu->addMenu("Log Level");
+    QAction *errorAction = logMenu->addAction("Error");
+    QAction *warnAction = logMenu->addAction("Warning");
+    QAction *infoAction = logMenu->addAction("Info");
+    QAction *debugAction = logMenu->addAction("Debug");
+    
+    connect(errorAction, &QAction::triggered, this, [this]() { emit logLevelChangeRequested("error"); });
+    connect(warnAction, &QAction::triggered, this, [this]() { emit logLevelChangeRequested("warning"); });
+    connect(infoAction, &QAction::triggered, this, [this]() { emit logLevelChangeRequested("info"); });
+    connect(debugAction, &QAction::triggered, this, [this]() { emit logLevelChangeRequested("debug"); });
 }
 
 void StatusBar::setConnectionStatus(bool connected, const QString &serverUrl, const QString &hostname)
@@ -154,4 +197,92 @@ void StatusBar::updatePingDisplay()
         m_pingLabel->setText("Ping: --");
         m_pingLabel->setStyleSheet("color: #666666;");
     }
+}
+
+void StatusBar::setCodecInfo(const QString &codec, bool hwDecode)
+{
+    m_codec = codec;
+    m_hwDecode = hwDecode;
+    updateCodecDisplay();
+}
+
+void StatusBar::updateCodecDisplay()
+{
+    if (!m_codec.isEmpty() && m_codec != "unknown") {
+        m_codecLabel->setText(QString("Codec: %1").arg(m_codec));
+    } else {
+        m_codecLabel->setText("Codec: --");
+    }
+    
+    if (m_hwDecode) {
+        m_hwDecodeIcon->setText("⚡");
+        m_hwDecodeIcon->setStyleSheet("color: #4CAF50;");
+        m_hwDecodeIcon->setToolTip("Hardware decode: ON");
+    } else {
+        m_hwDecodeIcon->setText("🐌");
+        m_hwDecodeIcon->setStyleSheet("color: #FF9800;");
+        m_hwDecodeIcon->setToolTip("Hardware decode: OFF (Software)");
+    }
+}
+
+void StatusBar::setCacheStats(const CacheStats &stats)
+{
+    m_cacheStats = stats;
+    updateCacheDisplay();
+}
+
+void StatusBar::updateCacheDisplay()
+{
+    if (m_cacheStats.hits + m_cacheStats.misses > 0) {
+        double hitRate = m_cacheStats.hitRate();
+        QString color;
+        if (hitRate >= 70.0) {
+            color = "#4CAF50"; // Green
+        } else if (hitRate >= 40.0) {
+            color = "#FF9800"; // Orange
+        } else {
+            color = "#F44336"; // Red
+        }
+        
+        m_cacheLabel->setText(QString("Cache: %1%").arg(hitRate, 0, 'f', 0));
+        m_cacheLabel->setStyleSheet(QString("color: %1;").arg(color));
+        m_cacheLabel->setToolTip(QString("Cache: %1 hits, %2 misses\nSize: %3 / %4 items")
+            .arg(m_cacheStats.hits)
+            .arg(m_cacheStats.misses)
+            .arg(m_cacheStats.totalSize / (1024 * 1024))
+            .arg(m_cacheStats.itemCount));
+    } else {
+        m_cacheLabel->setText("Cache: --");
+        m_cacheLabel->setStyleSheet("");
+        m_cacheLabel->setToolTip("Cache statistics");
+    }
+}
+
+void StatusBar::setOfflineMode(bool offline)
+{
+    m_offlineMode = offline;
+    
+    if (offline) {
+        m_offlineIcon->setText("📡");
+        m_offlineIcon->setStyleSheet("color: #FF9800;");
+        m_offlineIcon->setToolTip("Offline mode: Playing cached content");
+        m_offlineIcon->setVisible(true);
+    } else {
+        m_offlineIcon->setText("");
+        m_offlineIcon->setToolTip("");
+        m_offlineIcon->setVisible(false);
+    }
+}
+
+void StatusBar::mousePressEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::RightButton) {
+        showContextMenu(event->pos());
+    }
+    QWidget::mousePressEvent(event);
+}
+
+void StatusBar::showContextMenu(const QPoint &pos)
+{
+    m_contextMenu->exec(mapToGlobal(pos));
 }

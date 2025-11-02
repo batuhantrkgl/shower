@@ -1,5 +1,7 @@
 #include "videowidget.h"
 #include "mediaplayer.h"
+#include "mediacache.h"
+#include "logger.h"
 #include <QtMultimedia>
 #include <QtMultimediaWidgets>
 #include <QLabel>
@@ -7,8 +9,9 @@
 #include <QPixmap>
 #include <QDebug>
 
-VideoWidget::VideoWidget(QWidget *parent)
+VideoWidget::VideoWidget(MediaCache *cache, QWidget *parent)
     : QWidget(parent)
+    , m_mediaCache(cache)
 {
     // Use a black background, no borders or rounded corners
     setAutoFillBackground(true);
@@ -26,7 +29,7 @@ VideoWidget::VideoWidget(QWidget *parent)
     m_fallbackLabel->setScaledContents(false); // Don't stretch - we'll handle scaling manually
     // QPixmap fallbackPixmap("media/default.jpeg");
     // if(fallbackPixmap.isNull()) {
-        qDebug() << "ERROR: Could not load fallback image";
+        LOG_DEBUG_CAT("No fallback image loaded", "VideoWidget");
         m_fallbackLabel->setText("Fallback image not found!");
     // } else {
     //     m_fallbackLabel->setPixmap(fallbackPixmap);
@@ -44,7 +47,10 @@ VideoWidget::VideoWidget(QWidget *parent)
 
     // --- Initialize Media Player ---
     m_mediaPlayer = new MediaPlayer(m_videoOutput, m_fallbackLabel, m_mainLayout, this);
+    m_mediaPlayer->setMediaCache(m_mediaCache); // Set the cache
     connect(m_mediaPlayer, &MediaPlayer::mediaChanged, this, &VideoWidget::onMediaChanged);
+    
+    LOG_INFO_CAT("VideoWidget initialized", "VideoWidget");
 }
 
 void VideoWidget::resizeEvent(QResizeEvent *event)

@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "logger.h"
 #include <QApplication>
 #include <QStyleFactory>
 #include <QFont>
@@ -59,6 +60,15 @@ int main(int argc, char *argv[])
     
     QCommandLineOption testTimeOption(QStringList() << "test-time", "Force a specific time for testing time-based UI states (e.g., '06:00' for off-hours, '09:00' for school hours).", "time_value");
     parser.addOption(testTimeOption);
+    
+    QCommandLineOption logLevelOption(QStringList() << "log-level", "Set logging level: error, warn, info, debug (default: info).", "level");
+    parser.addOption(logLevelOption);
+    
+    QCommandLineOption logFileOption(QStringList() << "log-file", "Enable logging to file with rotation.");
+    parser.addOption(logFileOption);
+    
+    QCommandLineOption cacheSizeOption(QStringList() << "cache-size", "Set media cache size in GB (2-8, default: 4).", "size");
+    parser.addOption(cacheSizeOption);
 
     parser.process(a);
     
@@ -112,11 +122,43 @@ int main(int argc, char *argv[])
         << " at " << TTY::Green << appFont.pointSize() << "pt" << TTY::Reset << "\n";
     out.flush();
 
+    // Initialize logger
+    if (parser.isSet(logLevelOption)) {
+        QString level = parser.value(logLevelOption).toLower();
+        Logger::instance().setLogLevel(Logger::levelFromString(level));
+        out << TTY::Cyan << "[LOG] " << TTY::Reset 
+            << "Log level set to: " << TTY::Yellow << level << TTY::Reset << "\n";
+    }
+    
+    if (parser.isSet(logFileOption)) {
+        Logger::instance().enableFileLogging(true);
+        out << TTY::Cyan << "[LOG] " << TTY::Reset 
+            << "File logging enabled\n";
+    }
+    out.flush();
+    
+    // Parse cache size
+    qint64 cacheSize = 4LL * 1024 * 1024 * 1024; // Default 4GB
+    if (parser.isSet(cacheSizeOption)) {
+        int sizeGB = parser.value(cacheSizeOption).toInt();
+        if (sizeGB >= 2 && sizeGB <= 8) {
+            cacheSize = static_cast<qint64>(sizeGB) * 1024 * 1024 * 1024;
+            out << TTY::Cyan << "[CACHE] " << TTY::Reset 
+                << "Cache size set to: " << TTY::Green << sizeGB << "GB" << TTY::Reset << "\n";
+        } else {
+            out << TTY::Yellow << "[CACHE] " << TTY::Reset 
+                << "Invalid cache size (must be 2-8 GB), using default 4GB\n";
+        }
+        out.flush();
+    }
+
     QString networkRange = parser.value(networkOption);
     qreal forcedDpi = parser.value(dpiOption).toDouble();
     QString testTimeStr = parser.value(testTimeOption);
     
-    MainWindow w(parser.isSet(autoOption), networkRange, forcedDpi, testTimeStr);
+    LOG_INFO(QString("Starting VideoTimeline v%1 (Build: %2)").arg(appVersion).arg(appBuildId));
+    
+    MainWindow w(parser.isSet(autoOption), networkRange, forcedDpi, testTimeStr, cacheSize);
     w.showFullScreen();
 
     return a.exec();

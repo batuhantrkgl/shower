@@ -11,13 +11,16 @@ class VideoWidget;
 class TimelineWidget;
 class StatusBar;
 class ActivityOverlay;
+class DiagnosticsOverlay;
+class MediaCache;
+class MediaPlayer;
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    MainWindow(bool autoDiscover = false, const QString &networkRange = QString(), qreal forcedDpi = 0.0, const QString &testTimeStr = QString(), QWidget *parent = nullptr);
+    MainWindow(bool autoDiscover = false, const QString &networkRange = QString(), qreal forcedDpi = 0.0, const QString &testTimeStr = QString(), qint64 cacheSize = 4LL * 1024 * 1024 * 1024, QWidget *parent = nullptr);
     ~MainWindow();
     
     static qreal getDpiForScreen(QWidget *widget = nullptr);
@@ -27,18 +30,25 @@ private slots:
     void updateUIState();
     void positionActivityOverlay();
     void onMediaChanged(const MediaItem &item);
+    void toggleDiagnostics();
+    void updateDiagnostics();
+    void onLogLevelChanged(const QString &level);
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
 
 private:
     VideoWidget *m_videoWidget;
     TimelineWidget *m_timelineWidget;
     StatusBar *m_statusBar;
     ActivityOverlay *m_activityOverlay;
+    DiagnosticsOverlay *m_diagnosticsOverlay;
     NetworkClient *m_networkClient;
+    MediaCache *m_mediaCache;
     QTimer *m_updateTimer;
+    QTimer *m_diagnosticsTimer;
     QTime m_schoolStartTime;
     QTime m_schoolEndTime;
     bool m_scheduleLoaded = false;

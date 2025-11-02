@@ -95,10 +95,18 @@ private:
     QString m_hostname;
     QTimer *m_pingTimer;
     QTimer *m_reconnectTimer;
+    int m_reconnectAttempts = 0;
+    int m_currentBackoffMs = 1000; // Start with 1 second
+    static const int MAX_BACKOFF_MS = 60000; // Max 60 seconds
+    static const int BACKOFF_MULTIPLIER = 2;
     
     // Server discovery helpers
     QString getLocalNetworkPrefix();  // Get local network prefix (e.g., "192.168.1" from "192.168.1.42")
     bool tryServerUrl(const QString &url);  // Test if a URL hosts our server
+    
+    // Reconnection helpers
+    void resetBackoff();
+    void increaseBackoff();
     
     // Schedule/playlist helpers
     QList<ScheduleBlock> createDefaultSchedule();

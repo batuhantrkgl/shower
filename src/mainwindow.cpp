@@ -3,6 +3,10 @@
 #include "timelinewidget.h"
 #include "statusbar.h"
 #include "activityoverlay.h"
+#include "diagnosticsoverlay.h"
+#include "mediacache.h"
+#include "mediaplayer.h"
+#include "logger.h"
 #include "md3colors.h"
 #include <QVBoxLayout>
 #include <QWidget>
@@ -10,11 +14,12 @@
 #include <QScreen>
 #include <QResizeEvent>
 #include <QEvent>
+#include <QKeyEvent>
 #include <iostream>
 
 static qreal s_forcedDpi = 0.0;
 
-MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal forcedDpi, const QString &testTimeStr, QWidget *parent)
+MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal forcedDpi, const QString &testTimeStr, qint64 cacheSize, QWidget *parent)
     : QMainWindow(parent), m_forcedDpi(forcedDpi)
 {
     // Set the global forced DPI for all widgets to use
@@ -24,9 +29,9 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal for
     if (!testTimeStr.isEmpty()) {
         m_testTime = QTime::fromString(testTimeStr, "HH:mm");
         if (m_testTime.isValid()) {
-            qDebug() << "[TIME TEST] Using forced test time:" << m_testTime.toString("HH:mm");
+            LOG_INFO_CAT(QString("Using forced test time: %1").arg(m_testTime.toString("HH:mm")), "Main");
         } else {
-            qWarning() << "[TIME TEST] Invalid test time format:" << testTimeStr << "(expected HH:mm format)";
+            LOG_WARNING_CAT(QString("Invalid test time format: %1").arg(testTimeStr), "Main");
         }
     }
 
@@ -47,6 +52,11 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal for
     mainLayout->setSpacing(0);
     mainLayout->setContentsMargins(0, 0, 0, 0);
 
+    // Initialize media cache
+    m_mediaCache = new MediaCache(this);
+    m_mediaCache->setMaxSize(cacheSize);
+    LOG_INFO_CAT(QString("Media cache initialized with max size: %1 GB").arg(cacheSize / (1024.0 * 1024.0 * 1024.0)), "Main");
+    
     // Initialize network client and discover server if requested
     m_networkClient = new NetworkClient(this);
     if (!networkRange.isEmpty()) {
@@ -65,21 +75,22 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal for
     
     // Create UI widgets
     m_statusBar = new StatusBar(this);
-    m_videoWidget = new VideoWidget(this);
+    m_videoWidget = new VideoWidget(m_mediaCache, this);
     m_timelineWidget = new TimelineWidget(m_networkClient, this);
     
     // Create activity overlay as child of MainWindow (not centralWidget!)
     // Widgets must be children of the main window to float above layout-managed widgets
     m_activityOverlay = new ActivityOverlay(this);
     
-    // Don't install event filter on centralWidget anymore
+    // Create diagnostics overlay
+    m_diagnosticsOverlay = new DiagnosticsOverlay(this);
     
     m_activityOverlay->raise();
     m_activityOverlay->show();
     
-    std::cout << "ActivityOverlay created and initialized" << std::endl;
+    LOG_INFO_CAT("UI components initialized", "Main");
 
-    // Add widgets to layout (activity overlay not in layout - it's floating)
+    // Add widgets to layout (activity overlay and diagnostics overlay not in layout - they're floating)
     mainLayout->addWidget(m_statusBar, 0);
     mainLayout->addWidget(m_videoWidget, 1);
     mainLayout->addWidget(m_timelineWidget, 0);
@@ -98,6 +109,18 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal for
     connect(m_timelineWidget, &TimelineWidget::currentActivityChanged,
             m_activityOverlay, &ActivityOverlay::updateCurrentActivity);
     
+    // Connect MediaPlayer codec detection to status bar
+    if (m_videoWidget->getMediaPlayer()) {
+        connect(m_videoWidget->getMediaPlayer(), &MediaPlayer::codecDetected,
+                m_statusBar, &StatusBar::setCodecInfo);
+    }
+    
+    // Connect status bar signals
+    connect(m_statusBar, &StatusBar::toggleDiagnostics,
+            this, &MainWindow::toggleDiagnostics);
+    connect(m_statusBar, &StatusBar::logLevelChangeRequested,
+            this, &MainWindow::onLogLevelChanged);
+    
     // Reposition overlay when its content changes (and thus its size)
     connect(m_activityOverlay, &QWidget::destroyed, this, [this]() { m_activityOverlay = nullptr; });
     
@@ -109,6 +132,11 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal for
     m_updateTimer = new QTimer(this);
     connect(m_updateTimer, &QTimer::timeout, this, &MainWindow::updateUIState);
     m_updateTimer->start(1000);
+    
+    // Setup diagnostics update timer
+    m_diagnosticsTimer = new QTimer(this);
+    connect(m_diagnosticsTimer, &QTimer::timeout, this, &MainWindow::updateDiagnostics);
+    m_diagnosticsTimer->start(1000); // Update diagnostics every second
 
     // Start network polling
     m_networkClient->startPeriodicFetch();
@@ -123,6 +151,8 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal for
         // Position the activity overlay over the video widget
         QTimer::singleShot(100, this, &MainWindow::positionActivityOverlay);
     }
+    
+    LOG_INFO_CAT("MainWindow initialization complete", "Main");
 }
 
 MainWindow::~MainWindow()
@@ -151,6 +181,11 @@ void MainWindow::updateUIState()
         m_timelineWidget->updateCurrentTime(QTime());
     } else {
         m_timelineWidget->updateCurrentTime(currentTime);
+    }
+    
+    // Update cache stats in status bar
+    if (m_mediaCache && m_statusBar) {
+        m_statusBar->setCacheStats(m_mediaCache->getStats());
     }
     
     // Ensure overlay stays positioned correctly
@@ -244,5 +279,55 @@ void MainWindow::onMediaChanged(const MediaItem &item)
                 m_activityOverlay->show();
             }
         });
+    }
+}
+
+void MainWindow::toggleDiagnostics()
+{
+    if (m_diagnosticsOverlay) {
+        m_diagnosticsOverlay->setVisible(!m_diagnosticsOverlay->isVisible());
+        if (m_diagnosticsOverlay->isVisible()) {
+            updateDiagnostics(); // Immediate update when shown
+        }
+    }
+}
+
+void MainWindow::updateDiagnostics()
+{
+    if (!m_diagnosticsOverlay || !m_diagnosticsOverlay->isVisible()) {
+        return;
+    }
+    
+    // Update diagnostics with current info
+    m_diagnosticsOverlay->setServerInfo(
+        m_networkClient->getServerUrl(),
+        m_networkClient->getHostname(),
+        m_networkClient->getLastPing(),
+        m_networkClient->isConnected()
+    );
+    
+    // Update cache stats
+    if (m_mediaCache) {
+        m_diagnosticsOverlay->setCacheStats(m_mediaCache->getStats());
+    }
+    
+    // Update media info from video widget
+    // Note: VideoWidget would need to expose these methods
+    // For now, we'll leave them as defaults in diagnostics
+}
+
+void MainWindow::onLogLevelChanged(const QString &level)
+{
+    Logger::instance().setLogLevel(Logger::levelFromString(level));
+    LOG_INFO_CAT(QString("Log level changed to: %1").arg(level), "Main");
+}
+
+void MainWindow::keyPressEvent(QKeyEvent *event)
+{
+    if (event->key() == Qt::Key_F12) {
+        toggleDiagnostics();
+        event->accept();
+    } else {
+        QMainWindow::keyPressEvent(event);
     }
 }

@@ -7,6 +7,9 @@ set(SOURCES
     networkclient.cpp
     mediaplayer.cpp
     statusbar.cpp
+    mediacache.cpp
+    logger.cpp
+    diagnosticsoverlay.cpp
 )
 
 set(HEADERS
@@ -19,6 +22,9 @@ set(HEADERS
     mediaplayer.h
     qt6compat.h
     statusbar.h
+    mediacache.h
+    logger.h
+    diagnosticsoverlay.h
 )
 
 set(RESOURCES

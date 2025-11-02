@@ -1,4 +1,5 @@
 #include "networkclient.h"
+#include "logger.h"
 #include <QNetworkRequest>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -23,6 +24,8 @@ NetworkClient::NetworkClient(QObject *parent)
     , m_lastPingMs(-1)
     , m_pingTimer(new QTimer(this))
     , m_reconnectTimer(new QTimer(this))
+    , m_reconnectAttempts(0)
+    , m_currentBackoffMs(1000)
 {
     // Set up periodic fetch timer (every 5 minutes)
     m_fetchTimer->setInterval(5 * 60 * 1000);
@@ -32,9 +35,11 @@ NetworkClient::NetworkClient(QObject *parent)
     m_pingTimer->setInterval(30 * 1000);
     connect(m_pingTimer, &QTimer::timeout, this, &NetworkClient::measurePing);
     
-    // Set up reconnection timer (every 10 seconds when disconnected)
-    m_reconnectTimer->setInterval(10 * 1000);
+    // Set up reconnection timer with exponential backoff
+    m_reconnectTimer->setSingleShot(true);
     connect(m_reconnectTimer, &QTimer::timeout, this, &NetworkClient::attemptReconnection);
+    
+    LOG_INFO_CAT("NetworkClient initialized", "Network");
 }
 
 void NetworkClient::setServerUrl(const QString &url)
@@ -42,10 +47,12 @@ void NetworkClient::setServerUrl(const QString &url)
     m_serverUrl = url;
     m_connected = false; // Reset connection status
     m_hostname.clear(); // Clear hostname
+    resetBackoff(); // Reset backoff on manual server change
     emit connectionStatusChanged(false);
+    LOG_INFO_CAT(QString("Server URL set to: %1").arg(url), "Network");
     // Start reconnection attempts
     if (!m_reconnectTimer->isActive()) {
-        m_reconnectTimer->start();
+        m_reconnectTimer->start(m_currentBackoffMs);
     }
 }
 
@@ -103,34 +110,36 @@ void NetworkClient::onScheduleReplyFinished()
             parseScheduleJson(doc.object());
             if (!m_connected) {
                 m_connected = true;
+                resetBackoff(); // Reset backoff on successful connection
                 emit connectionStatusChanged(true, m_serverUrl, m_hostname);
                 m_reconnectTimer->stop(); // Stop reconnection attempts
+                LOG_INFO_CAT("Connected to server successfully", "Network");
             }
         } else {
-            qDebug() << "JSON parse error:" << error.errorString();
+            LOG_ERROR_CAT(QString("JSON parse error: %1").arg(error.errorString()), "Network");
             emit networkError("Failed to parse schedule JSON");
             // Use default schedule as fallback
             emit scheduleReceived(QTime(8, 50), QTime(15, 55), createDefaultSchedule());
             if (m_connected) {
                 m_connected = false;
                 emit connectionStatusChanged(false);
-                // Start reconnection attempts
+                // Start reconnection attempts with backoff
                 if (!m_reconnectTimer->isActive()) {
-                    m_reconnectTimer->start();
+                    m_reconnectTimer->start(m_currentBackoffMs);
                 }
             }
         }
     } else {
-        qDebug() << "Network error:" << reply->errorString();
+        LOG_ERROR_CAT(QString("Network error: %1").arg(reply->errorString()), "Network");
         emit networkError("Failed to fetch schedule: " + reply->errorString());
         // Use default schedule as fallback
         emit scheduleReceived(QTime(8, 50), QTime(15, 55), createDefaultSchedule());
         if (m_connected) {
             m_connected = false;
             emit connectionStatusChanged(false);
-            // Start reconnection attempts
+            // Start reconnection attempts with backoff
             if (!m_reconnectTimer->isActive()) {
-                m_reconnectTimer->start();
+                m_reconnectTimer->start(m_currentBackoffMs);
             }
         }
     }
@@ -538,12 +547,17 @@ void NetworkClient::onPingReplyFinished()
 void NetworkClient::attemptReconnection()
 {
     if (m_connected) {
-        // Already connected, stop reconnection attempts
+        // Already connected, stop reconnection attempts and reset backoff
         m_reconnectTimer->stop();
+        resetBackoff();
         return;
     }
     
-    qDebug() << "Attempting to reconnect to server:" << m_serverUrl;
+    m_reconnectAttempts++;
+    LOG_INFO_CAT(QString("Reconnection attempt #%1 to server: %2 (backoff: %3ms)")
+        .arg(m_reconnectAttempts)
+        .arg(m_serverUrl)
+        .arg(m_currentBackoffMs), "Network");
     
     // Try to fetch schedule to test connection
     QNetworkRequest request(QUrl(m_serverUrl + "/api/schedule"));
@@ -564,15 +578,38 @@ void NetworkClient::attemptReconnection()
                     m_connected = true;
                     emit connectionStatusChanged(true, m_serverUrl, m_hostname);
                     m_reconnectTimer->stop();
-                    qDebug() << "Successfully reconnected to server";
+                    resetBackoff();
+                    LOG_INFO_CAT(QString("Successfully reconnected after %1 attempts").arg(m_reconnectAttempts), "Network");
                     
                     // Restart normal operations
                     fetchCurrentMedia();
                     m_fetchTimer->start();
                     m_pingTimer->start();
                 }
+            } else {
+                // Failed to reconnect, increase backoff
+                increaseBackoff();
+                m_reconnectTimer->start(m_currentBackoffMs);
             }
+        } else {
+            // Failed to reconnect, increase backoff
+            LOG_WARNING_CAT(QString("Reconnection failed: %1").arg(reply->errorString()), "Network");
+            increaseBackoff();
+            m_reconnectTimer->start(m_currentBackoffMs);
         }
         reply->deleteLater();
     });
+}
+
+void NetworkClient::resetBackoff()
+{
+    m_reconnectAttempts = 0;
+    m_currentBackoffMs = 1000; // Reset to 1 second
+    LOG_DEBUG_CAT("Backoff reset", "Network");
+}
+
+void NetworkClient::increaseBackoff()
+{
+    m_currentBackoffMs = qMin(m_currentBackoffMs * BACKOFF_MULTIPLIER, MAX_BACKOFF_MS);
+    LOG_DEBUG_CAT(QString("Backoff increased to %1ms").arg(m_currentBackoffMs), "Network");
 }

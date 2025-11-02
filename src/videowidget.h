@@ -10,13 +10,17 @@ class QVideoWidget;
 class QLabel;
 class QStackedLayout;
 class MediaPlayer;
+class MediaCache;
 
 class VideoWidget : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit VideoWidget(QWidget *parent = nullptr);
+    explicit VideoWidget(MediaCache *cache, QWidget *parent = nullptr);
+    
+    // Expose MediaPlayer for signal connections
+    MediaPlayer* getMediaPlayer() const { return m_mediaPlayer; }
 
 signals:
     void mediaChanged(const MediaItem &item);
@@ -37,6 +41,7 @@ private:
     QLabel *m_fallbackLabel;
     QStackedLayout *m_mainLayout;
     MediaPlayer *m_mediaPlayer;
+    MediaCache *m_mediaCache;
 };
 
 #endif // VIDEOWIDGET_H
