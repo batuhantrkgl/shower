@@ -27,49 +27,63 @@ apt-get install -y \
     qt6-multimedia-dev \
     libqt6multimedia6 \
     libqt6multimediawidgets6 \
-    python3 \
-    python3-pip \
+    libqt6network6 \
     xorg \
     openbox \
-    lightdm
+    lightdm \
+    unclutter \
+    gstreamer1.0-tools \
+    gstreamer1.0-plugins-base \
+    gstreamer1.0-plugins-good \
+    gstreamer1.0-plugins-bad \
+    gstreamer1.0-plugins-ugly \
+    gstreamer1.0-libav \
+    gstreamer1.0-alsa \
+    gstreamer1.0-gl \
+    gstreamer1.0-omx \
+    libgstreamer1.0-0 \
+    libgstreamer-plugins-base1.0-0 \
+    ffmpeg \
+    libavcodec-extra
 
 # Create application directory
 APP_DIR="$USER_HOME/VideoTimeline"
 echo "Creating application directory: $APP_DIR"
 mkdir -p "$APP_DIR"
+mkdir -p "$APP_DIR/data/media"
 
-# Copy application files (assuming they're in current directory)
-if [ -f "VideoTimeline" ]; then
+# Copy application files from build directory
+if [ -f "build/bin/VideoTimeline" ]; then
     echo "Copying VideoTimeline executable..."
-    cp out/VideoTimeline "$APP_DIR/"
+    cp build/bin/VideoTimeline "$APP_DIR/"
     chmod +x "$APP_DIR/VideoTimeline"
 else
-    echo "Warning: VideoTimeline executable not found in current directory"
+    echo "Error: VideoTimeline executable not found in build/bin/"
+    echo "Please run ./scripts/build.sh first"
+    exit 1
 fi
 
-# Copy server files
-if [ -d "server" ]; then
-    echo "Copying server files..."
-    cp -r server "$APP_DIR/"
-    chmod +x "$APP_DIR/server/server.py"
+# Copy server executable
+if [ -f "build/bin/server" ]; then
+    echo "Copying server executable..."
+    cp build/bin/server "$APP_DIR/"
+    chmod +x "$APP_DIR/server"
 else
-    echo "Warning: server directory not found"
+    echo "Error: server executable not found in build/bin/"
+    echo "Please run ./scripts/build.sh first"
+    exit 1
+fi
+
+# Copy data files
+if [ -d "data" ]; then
+    echo "Copying data files..."
+    cp -r data/* "$APP_DIR/data/"
+else
+    echo "Warning: data directory not found"
 fi
 
 # Set ownership
 chown -R $SUDO_USER:$SUDO_USER "$APP_DIR"
-
-# Install systemd service for client
-echo "Installing systemd service for VideoTimeline client..."
-cp videotimeline.service /etc/systemd/system/
-# Update paths in service file
-sed -i "s|/home/pi|$USER_HOME|g" /etc/systemd/system/videotimeline.service
-sed -i "s|User=pi|User=$SUDO_USER|g" /etc/systemd/system/videotimeline.service
-sed -i "s|Group=pi|Group=$SUDO_USER|g" /etc/systemd/system/videotimeline.service
-
-# Enable the service
-systemctl daemon-reload
-systemctl enable videotimeline.service
 
 # Configure auto-login for display
 echo "Configuring auto-login..."
@@ -92,21 +106,15 @@ xset s off
 xset -dpms
 xset s noblank
 
-# Start VideoTimeline
+# Wait for system to be ready
+sleep 3
+
+# Start VideoTimeline in fullscreen
 $APP_DIR/VideoTimeline &
 EOF
 
+chmod +x "$USER_HOME/.config/openbox/autostart"
 chown -R $SUDO_USER:$SUDO_USER "$USER_HOME/.config"
-
-# Create server start script
-cat > "$APP_DIR/start_server.sh" << 'EOF'
-#!/bin/bash
-cd "$(dirname "$0")/server"
-python3 server.py
-EOF
-
-chmod +x "$APP_DIR/start_server.sh"
-chown $SUDO_USER:$SUDO_USER "$APP_DIR/start_server.sh"
 
 # Create server systemd service
 cat > /etc/systemd/system/videotimeline-server.service << EOF
@@ -119,8 +127,8 @@ Wants=network-online.target
 Type=simple
 User=$SUDO_USER
 Group=$SUDO_USER
-WorkingDirectory=$APP_DIR/server
-ExecStart=/usr/bin/python3 server.py
+WorkingDirectory=$APP_DIR
+ExecStart=$APP_DIR/server
 Restart=always
 RestartSec=5
 
@@ -135,13 +143,16 @@ echo ""
 echo "Installation complete!"
 echo "===================="
 echo ""
+echo "The VideoTimeline client will start automatically when the system boots"
+echo "and logs in to the graphical session."
+echo ""
 echo "To start the server manually:"
 echo "  sudo systemctl start videotimeline-server"
 echo ""
-echo "To start the client manually:"
-echo "  sudo systemctl start videotimeline"
+echo "To check server status:"
+echo "  sudo systemctl status videotimeline-server"
 echo ""
-echo "The system will automatically start both services on boot."
+echo "The server will automatically start on boot."
 echo ""
 echo "Server will be available at: http://$(hostname -I | awk '{print $1}'):8080"
 echo ""
