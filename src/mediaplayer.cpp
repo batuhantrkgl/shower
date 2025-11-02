@@ -121,6 +121,21 @@ void MediaPlayer::playCurrentItem()
     
     if (currentItem.type == "video") {
         showVideo();
+        
+        // Properly reset the media player to avoid "partial file" errors on replay
+        m_player->stop();
+        
+        // Clear the current source completely before setting a new one
+        #ifdef QT6_OR_LATER
+            m_player->setSource(QUrl());  // Clear source in Qt6
+        #else
+            m_player->setMedia(QMediaContent());  // Clear media in Qt5
+        #endif
+        
+        // Reset position
+        m_player->setPosition(0);
+        
+        // Now set the new source
         SET_MEDIA_SOURCE(m_player, createUrl(currentItem.url));
         
         // Set mute state
@@ -283,7 +298,7 @@ void MediaPlayer::captureScreen()
         placeholder.fill(Qt::black);
         QPainter painter(&placeholder);
         painter.setPen(Qt::white);
-        painter.setFont(QFont("Arial", 24));
+        painter.setFont(QFont("SF Pro Display", 24));
         painter.drawText(placeholder.rect(), Qt::AlignCenter, "Screen Capture\nNot Available");
         m_screenLabel->setPixmap(placeholder.scaled(m_screenLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
         return;
@@ -306,7 +321,7 @@ void MediaPlayer::captureScreen()
         placeholder.fill(Qt::darkBlue);
         QPainter painter(&placeholder);
         painter.setPen(Qt::white);
-        painter.setFont(QFont("Arial", 16));
+        painter.setFont(QFont("SF Pro Display", 16));
 
         QString waylandMessage =
             "Screen Mirroring Unavailable\n\n"
@@ -334,7 +349,7 @@ void MediaPlayer::captureScreen()
         placeholder.fill(Qt::darkRed);
         QPainter painter(&placeholder);
         painter.setPen(Qt::white);
-        painter.setFont(QFont("Arial", 16));
+        painter.setFont(QFont("SF Pro Display", 16));
 
         QString x11Message =
             "Screen Capture Failed\n\n"

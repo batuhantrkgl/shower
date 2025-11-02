@@ -202,18 +202,10 @@ void MainWindow::positionActivityOverlay()
     int overlayX = videoGlobalPos.x() + (videoSize.width() - overlayWidth) / 2;
     // Position 20px above the timeline widget (at bottom of video area)
     int overlayY = videoGlobalPos.y() + videoSize.height() - overlayHeight - 20;
-
-    std::cout << "Positioning overlay at global " << overlayX << "," << overlayY 
-              << " size: " << overlayWidth << "x" << overlayHeight 
-              << " visible: " << m_activityOverlay->isVisible() << std::endl;
     
     m_activityOverlay->move(overlayX, overlayY);
     m_activityOverlay->raise(); // Bring to front
     m_activityOverlay->show();
-    
-    std::cout << "After show - visible: " << m_activityOverlay->isVisible() 
-              << " geometry: " << m_activityOverlay->geometry().x() << "," 
-              << m_activityOverlay->geometry().y() << std::endl;
 }
 
 void MainWindow::resizeEvent(QResizeEvent *event)
@@ -247,7 +239,6 @@ void MainWindow::onMediaChanged(const MediaItem &item)
         // Reposition after a short delay to ensure layout is updated
         QTimer::singleShot(50, this, [this]() {
             if (m_activityOverlay) {
-                std::cout << "Timer callback - repositioning overlay" << std::endl;
                 positionActivityOverlay();
                 m_activityOverlay->raise();
                 m_activityOverlay->show();

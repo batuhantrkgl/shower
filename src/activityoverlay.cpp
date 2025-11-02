@@ -104,10 +104,6 @@ void ActivityOverlay::updateCurrentActivity(const QString &activityName)
 {
     QString currentText = m_activityLabel->text();
     
-    std::cout << "ActivityOverlay::updateCurrentActivity called with: " 
-              << activityName.toStdString() << " current: " 
-              << currentText.toStdString() << std::endl;
-    
     // Only update if the activity actually changed
     if (currentText != activityName) {
         m_activityLabel->setText(activityName);
@@ -124,9 +120,6 @@ void ActivityOverlay::updateCurrentActivity(const QString &activityName)
         // Resize the widget to fit the new text
         adjustSize();
         updateGeometry();
-
-        std::cout << "ActivityOverlay updated, new size: " << width() << "x" << height() 
-                  << " visible: " << isVisible() << std::endl;
 
         // Always show the overlay with activity information
         show();

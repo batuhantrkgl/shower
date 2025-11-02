@@ -85,17 +85,32 @@ int main(int argc, char *argv[])
 
     QFontDatabase fontDb;
     QFont appFont;
+    QString selectedFontName;
 
-    if (fontDb.families().contains("Inter")) {
+    // Try SF Pro Display first (Apple font)
+    if (fontDb.families().contains("SF Pro Display")) {
+        appFont = QFont("SF Pro Display", 16, QFont::Normal);
+        selectedFontName = "SF Pro Display";
+    } else if (fontDb.families().contains("Inter")) {
         appFont = QFont("Inter", 14, QFont::Normal);
+        selectedFontName = "Inter";
     } else if (fontDb.families().contains("Roboto")) {
         appFont = QFont("Roboto", 14, QFont::Normal);
+        selectedFontName = "Roboto";
     } else {
         appFont = a.font();
         appFont.setPointSize(14);
+        selectedFontName = appFont.family() + " (system default)";
     }
 
     a.setFont(appFont);
+    
+    // Log font selection with TTY colors for visibility
+    QTextStream out(stdout);
+    out << TTY::Cyan << "[FONT] " << TTY::Reset 
+        << "Using font: " << TTY::Yellow << selectedFontName << TTY::Reset 
+        << " at " << TTY::Green << appFont.pointSize() << "pt" << TTY::Reset << "\n";
+    out.flush();
 
     QString networkRange = parser.value(networkOption);
     qreal forcedDpi = parser.value(dpiOption).toDouble();

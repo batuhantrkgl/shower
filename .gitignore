@@ -118,5 +118,11 @@ server/*.log
 server/tmp/
 
 # Backup files
+# Backup files
 *.save
-*.save.*
+*.save
+.VSCodeCounter
+
+# Font repositories - ignore the git metadata but keep the fonts
+SFProDisplayFonts/.git/
+SFProDisplayFonts/.gitignore
