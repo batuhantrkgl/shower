@@ -93,6 +93,7 @@ private:
     int m_fadeDuration;
     bool m_transitionsEnabled;
     bool m_isFading;
+    bool m_waitingForVideoToLoad;  // Flag to delay showing video during fade
     
     // Diagnostics
     QString m_currentCodec;

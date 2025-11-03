@@ -26,6 +26,7 @@ MediaPlayer::MediaPlayer(QVideoWidget *videoOutput, QLabel *imageLabel, QStacked
     , m_fadeDuration(300)
     , m_transitionsEnabled(true)
     , m_isFading(false)
+    , m_waitingForVideoToLoad(false)
     , m_hwDecodeEnabled(false)
     , m_currentFps(0.0)
 {
@@ -47,6 +48,16 @@ MediaPlayer::MediaPlayer(QVideoWidget *videoOutput, QLabel *imageLabel, QStacked
                 } else if (status == QMediaPlayer::LoadedMedia || status == QMediaPlayer::BufferedMedia) {
                     // Detect codec properties when media is loaded
                     detectMediaProperties();
+                    
+                    // If we were waiting for video to load during a fade transition, show it now
+                    if (m_waitingForVideoToLoad) {
+                        m_waitingForVideoToLoad = false;
+                        showVideo();
+                        // Now start the fade-in animation
+                        if (m_transitionsEnabled && m_isFading) {
+                            fadeIn();
+                        }
+                    }
                 }
             });
     
@@ -139,25 +150,16 @@ void MediaPlayer::next()
         return;
     }
     
-    // Check if next item is a video - skip transitions for videos
-    int nextIndex = (m_playlist.currentIndex + 1) % m_playlist.items.size();
-    const MediaItem &currentItem = m_playlist.getCurrentItem();
-    const MediaItem &nextItem = m_playlist.items[nextIndex];
-    bool skipTransition = (currentItem.type == "video" || nextItem.type == "video");
-    
-    // Start fade out before switching (only for image-to-image transitions)
-    if (m_transitionsEnabled && !m_isFading && !skipTransition) {
+    // Start fade out before switching if transitions are enabled
+    if (m_transitionsEnabled && !m_isFading) {
         fadeOut();
         // The actual transition will happen in onFadeOutFinished()
         return;
     }
     
-    // For instant transitions (involving videos), reset all opacities to 1.0 FIRST
-    if (skipTransition) {
-        m_videoOpacity->setOpacity(1.0);
-        m_imageOpacity->setOpacity(1.0);
-        m_screenOpacity->setOpacity(1.0);
-    }
+    // For instant transitions (no fade), just switch immediately
+    int nextIndex = (m_playlist.currentIndex + 1) % m_playlist.items.size();
+    const MediaItem &nextItem = m_playlist.items[nextIndex];
     
     // Only stop if NOT transitioning to a video (to avoid blank screen)
     if (nextItem.type != "video") {
@@ -220,10 +222,17 @@ void MediaPlayer::playCurrentItem()
         SET_AUDIO_MUTED(m_player, currentItem.muted);
         COMPAT_DEBUG("Video muted:" << currentItem.muted);
         
-        // Show video widget AFTER loading source, BEFORE playing
-        showVideo();
-        
+        // Start playing
         m_player->play();
+        
+        // If we're in a fade transition, wait for video to load before showing widget
+        // Otherwise show immediately
+        if (m_isFading && m_transitionsEnabled) {
+            m_waitingForVideoToLoad = true;
+            // Widget will be shown when media status becomes LoadedMedia
+        } else {
+            showVideo();
+        }
         
         // Note: detectMediaProperties() is called when media status changes to LoadedMedia
         
@@ -576,22 +585,24 @@ void MediaPlayer::onFadeOutFinished()
 {
     LOG_DEBUG_CAT("Fade out finished", "MediaPlayer");
     
-    // Stop current playback
-    m_player->stop();
-    m_imageTimer->stop();
-    m_screenTimer->stop();
-    
-    // Move to next item
+    // Move to next item to check what type it is
     m_playlist.moveToNext();
     
     // Prefetch the next item after this one
     prefetchNextItem();
     
     if (m_isPlaying) {
+        const MediaItem &nextItem = m_playlist.getCurrentItem();
+        
+        // Only stop player if NOT transitioning to a video (to avoid blank screen)
+        if (nextItem.type != "video") {
+            m_player->stop();
+        }
+        m_imageTimer->stop();
+        m_screenTimer->stop();
+        
         // Pre-set the NEXT widget's opacity to 0 before switching
-        // Don't touch the current widget to avoid flicker
         if (m_transitionsEnabled) {
-            const MediaItem &nextItem = m_playlist.getCurrentItem();
             if (nextItem.type == "video") {
                 m_videoOpacity->setOpacity(0.0);
             } else if (nextItem.type == "image") {
@@ -603,9 +614,12 @@ void MediaPlayer::onFadeOutFinished()
         
         playCurrentItem();
         
-        // Start fade in
+        // Start fade in (unless it's a video - video will fade in when loaded)
         if (m_transitionsEnabled) {
-            fadeIn();
+            if (nextItem.type != "video") {
+                fadeIn();
+            }
+            // For videos, fadeIn() will be called from mediaStatusChanged when LoadedMedia
         } else {
             m_isFading = false;
         }
