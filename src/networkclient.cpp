@@ -29,6 +29,8 @@ NetworkClient::NetworkClient(QObject *parent)
     , m_reconnectTimer(new QTimer(this))
     , m_reconnectAttempts(0)
     , m_currentBackoffMs(1000)
+    , m_timeSynced(false)
+    , m_timeOffsetMs(0)
 {
     // Set up cache directory
     QString defaultCacheDir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
@@ -46,6 +48,11 @@ NetworkClient::NetworkClient(QObject *parent)
     // Set up reconnection timer with exponential backoff
     m_reconnectTimer->setSingleShot(true);
     connect(m_reconnectTimer, &QTimer::timeout, this, &NetworkClient::attemptReconnection);
+    
+    // Set up time sync timer (every 10 minutes)
+    m_timeSyncTimer = new QTimer(this);
+    m_timeSyncTimer->setInterval(10 * 60 * 1000); // 10 minutes
+    connect(m_timeSyncTimer, &QTimer::timeout, this, &NetworkClient::fetchServerTime);
     
     LOG_INFO_CAT("NetworkClient initialized", "Network");
 }
@@ -99,10 +106,12 @@ void NetworkClient::startPeriodicFetch()
     // Initial fetch (will override cached data if server is reachable)
     fetchSchedule();
     fetchCurrentMedia();
+    fetchServerTime(); // Initial time sync
     
     // Start periodic updates
     m_fetchTimer->start();
     m_pingTimer->start();
+    m_timeSyncTimer->start();
 }
 
 void NetworkClient::stopPeriodicFetch()
@@ -110,6 +119,7 @@ void NetworkClient::stopPeriodicFetch()
     m_fetchTimer->stop();
     m_pingTimer->stop();
     m_reconnectTimer->stop();
+    m_timeSyncTimer->stop();
 }
 
 void NetworkClient::onScheduleReplyFinished()
@@ -301,6 +311,20 @@ void NetworkClient::parseScheduleJson(const QJsonObject &json)
 void NetworkClient::parsePlaylistJson(const QJsonObject &json)
 {
     MediaPlaylist playlist;
+    // Mark playlist as special if indicated in JSON
+    if (json.contains("special") && json["special"].isBool()) {
+        playlist.isSpecial = json["special"].toBool();
+    }
+    // Parse optional title and date
+    if (json.contains("title") && json["title"].isString()) {
+        playlist.title = json["title"].toString();
+    }
+    if (json.contains("date") && json["date"].isString()) {
+        // Expecting YYYY-MM-DD
+        QString dateStr = json["date"].toString();
+        QDate d = QDate::fromString(dateStr, "yyyy-MM-dd");
+        if (d.isValid()) playlist.specialDate = d;
+    }
     QJsonArray itemsArray = json["items"].toArray();
     
     for (const QJsonValue &itemValue : itemsArray) {
@@ -311,6 +335,17 @@ void NetworkClient::parsePlaylistJson(const QJsonObject &json)
         item.url = itemObj["url"].toString();
         item.duration = itemObj["duration"].toInt();
         item.muted = itemObj["muted"].toBool();
+        // Parse optional custom_time per item (HH:MM) or "NA"
+        if (itemObj.contains("custom_time") && itemObj["custom_time"].isString()) {
+            QString ct = itemObj["custom_time"].toString();
+            if (!ct.isEmpty() && ct != "NA") {
+                QTime t = QTime::fromString(ct, "HH:mm");
+                if (t.isValid()) {
+                    item.customTime = t;
+                    item.hasCustomTime = true;
+                }
+            }
+        }
         
         if (!item.type.isEmpty() && !item.url.isEmpty()) {
             // Convert relative URL to absolute
@@ -742,4 +777,178 @@ bool NetworkClient::loadCachedPlaylist()
     LOG_INFO_CAT("Loaded playlist from persistent cache", "Network");
     parsePlaylistJson(doc.object());
     return true;
+}
+
+void NetworkClient::fetchServerTime()
+{
+    if (!m_connected) {
+        LOG_DEBUG_CAT("Not connected to server, attempting internet time sync", "Network");
+        syncTimeFromInternet();
+        return;
+    }
+    
+    QNetworkRequest request(QUrl(m_serverUrl + "/api/time"));
+    request.setRawHeader("User-Agent", "VideoTimeline Client");
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    
+    // Record when we send the request (for round-trip compensation)
+    qint64 requestTime = QDateTime::currentMSecsSinceEpoch();
+    
+    QNetworkReply *reply = m_networkManager->get(request);
+    reply->setProperty("request_time", requestTime);
+    connect(reply, &QNetworkReply::finished, this, &NetworkClient::onTimeReplyFinished);
+    
+    LOG_DEBUG_CAT("Requesting server time sync", "Network");
+}
+
+void NetworkClient::onTimeReplyFinished()
+{
+    QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
+    if (!reply) return;
+    
+    qint64 requestTime = reply->property("request_time").toLongLong();
+    qint64 responseTime = QDateTime::currentMSecsSinceEpoch();
+    qint64 roundTripMs = responseTime - requestTime;
+    
+    if (reply->error() == QNetworkReply::NoError) {
+        QByteArray data = reply->readAll();
+        QJsonParseError error;
+        QJsonDocument doc = QJsonDocument::fromJson(data, &error);
+        
+        if (error.error == QJsonParseError::NoError && doc.isObject()) {
+            QJsonObject timeObj = doc.object();
+            
+            // Server should return Unix timestamp in milliseconds or ISO string
+            qint64 serverTimeMs = 0;
+            if (timeObj.contains("timestamp")) {
+                serverTimeMs = timeObj["timestamp"].toVariant().toLongLong();
+            } else if (timeObj.contains("datetime")) {
+                QString isoString = timeObj["datetime"].toString();
+                QDateTime serverDateTime = QDateTime::fromString(isoString, Qt::ISODate);
+                if (serverDateTime.isValid()) {
+                    serverTimeMs = serverDateTime.toMSecsSinceEpoch();
+                }
+            }
+            
+            if (serverTimeMs > 0) {
+                // Compensate for network latency (assume half round-trip time)
+                serverTimeMs += roundTripMs / 2;
+                
+                // Calculate offset
+                qint64 localTimeMs = QDateTime::currentMSecsSinceEpoch();
+                m_timeOffsetMs = serverTimeMs - localTimeMs;
+                m_timeSynced = true;
+                m_lastSyncTime = QDateTime::currentDateTime();
+                
+                LOG_INFO_CAT(QString("Time synced with server: offset=%1ms, RTT=%2ms")
+                    .arg(m_timeOffsetMs)
+                    .arg(roundTripMs), "Network");
+                
+                QDateTime syncedTime = QDateTime::fromMSecsSinceEpoch(serverTimeMs);
+                emit serverTimeReceived(syncedTime, m_timeOffsetMs);
+            } else {
+                LOG_WARNING_CAT("Invalid server time response", "Network");
+                emit timeSyncFailed("Invalid server time format");
+                // Fallback to internet time
+                syncTimeFromInternet();
+            }
+        } else {
+            LOG_ERROR_CAT(QString("Failed to parse time JSON: %1").arg(error.errorString()), "Network");
+            emit timeSyncFailed("Failed to parse server time response");
+            // Fallback to internet time
+            syncTimeFromInternet();
+        }
+    } else {
+        LOG_ERROR_CAT(QString("Time sync error: %1").arg(reply->errorString()), "Network");
+        emit timeSyncFailed(reply->errorString());
+        // Fallback to internet time
+        syncTimeFromInternet();
+    }
+    
+    reply->deleteLater();
+}
+
+void NetworkClient::syncTimeFromInternet()
+{
+    // Use worldtimeapi.org as a reliable free time source
+    QNetworkRequest request(QUrl("http://worldtimeapi.org/api/timezone/Europe/Istanbul"));
+    request.setRawHeader("User-Agent", "VideoTimeline Client");
+    
+    qint64 requestTime = QDateTime::currentMSecsSinceEpoch();
+    
+    QNetworkReply *reply = m_networkManager->get(request);
+    reply->setProperty("request_time", requestTime);
+    reply->setProperty("is_internet_sync", true);
+    
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        qint64 requestTime = reply->property("request_time").toLongLong();
+        qint64 responseTime = QDateTime::currentMSecsSinceEpoch();
+        qint64 roundTripMs = responseTime - requestTime;
+        
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray data = reply->readAll();
+            QJsonParseError error;
+            QJsonDocument doc = QJsonDocument::fromJson(data, &error);
+            
+            if (error.error == QJsonParseError::NoError && doc.isObject()) {
+                QJsonObject timeObj = doc.object();
+                
+                // WorldTimeAPI returns unixtime in seconds
+                qint64 internetTimeMs = 0;
+                if (timeObj.contains("unixtime")) {
+                    internetTimeMs = timeObj["unixtime"].toVariant().toLongLong() * 1000;
+                } else if (timeObj.contains("datetime")) {
+                    QString isoString = timeObj["datetime"].toString();
+                    QDateTime internetDateTime = QDateTime::fromString(isoString, Qt::ISODate);
+                    if (internetDateTime.isValid()) {
+                        internetTimeMs = internetDateTime.toMSecsSinceEpoch();
+                    }
+                }
+                
+                if (internetTimeMs > 0) {
+                    // Compensate for network latency
+                    internetTimeMs += roundTripMs / 2;
+                    
+                    // Calculate offset
+                    qint64 localTimeMs = QDateTime::currentMSecsSinceEpoch();
+                    m_timeOffsetMs = internetTimeMs - localTimeMs;
+                    m_timeSynced = true;
+                    m_lastSyncTime = QDateTime::currentDateTime();
+                    
+                    LOG_INFO_CAT(QString("Time synced with internet: offset=%1ms, RTT=%2ms")
+                        .arg(m_timeOffsetMs)
+                        .arg(roundTripMs), "Network");
+                    
+                    QDateTime syncedTime = QDateTime::fromMSecsSinceEpoch(internetTimeMs);
+                    emit serverTimeReceived(syncedTime, m_timeOffsetMs);
+                } else {
+                    LOG_WARNING_CAT("Invalid internet time response", "Network");
+                    emit timeSyncFailed("Invalid internet time format");
+                }
+            } else {
+                LOG_ERROR_CAT(QString("Failed to parse internet time JSON: %1").arg(error.errorString()), "Network");
+                emit timeSyncFailed("Failed to parse internet time response");
+            }
+        } else {
+            LOG_ERROR_CAT(QString("Internet time sync error: %1").arg(reply->errorString()), "Network");
+            emit timeSyncFailed("No internet connection for time sync");
+        }
+        
+        reply->deleteLater();
+    });
+    
+    LOG_INFO_CAT("Attempting time sync from internet (worldtimeapi.org)", "Network");
+}
+
+QDateTime NetworkClient::getCurrentDateTime() const
+{
+    if (m_timeSynced) {
+        // Return synchronized time with offset applied
+        qint64 localTimeMs = QDateTime::currentMSecsSinceEpoch();
+        qint64 syncedTimeMs = localTimeMs + m_timeOffsetMs;
+        return QDateTime::fromMSecsSinceEpoch(syncedTimeMs);
+    } else {
+        // Fallback to system time
+        return QDateTime::currentDateTime();
+    }
 }

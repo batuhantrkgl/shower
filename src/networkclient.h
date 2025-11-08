@@ -26,12 +26,21 @@ struct MediaItem {
     QString url;
     int duration; // in milliseconds (for images) or -1 for full video duration, ignored for screen
     bool muted; // for videos, ignored for images and screen
+    // Optional per-item custom trigger time (HH:MM). If set, this item should be
+    // played exactly at that time during special playlists. hasCustomTime indicates
+    // whether customTime is valid.
+    QTime customTime;
+    bool hasCustomTime = false;
 };
 
 struct MediaPlaylist {
     QList<MediaItem> items;
     int currentIndex;
-    
+    bool isSpecial = false; // if true, play once and notify when finished
+    // Optional special date for playlists loaded from JSON (YYYY-MM-DD)
+    QDate specialDate;
+    QString title;
+
     MediaPlaylist() : currentIndex(0) {}
     
     MediaItem getCurrentItem() const {
@@ -61,12 +70,14 @@ public:
     void setSpecificServer(const QString &serverUrl); // e.g., "10.1.1" to scan 10.1.1.*
     void fetchSchedule();
     void fetchCurrentMedia();
+    void fetchServerTime();
     void startPeriodicFetch();
     void stopPeriodicFetch();
     bool isConnected() const { return m_connected; }
     int getLastPing() const { return m_lastPingMs; }
     QString getServerUrl() const { return m_serverUrl; }
     QString getHostname() const { return m_hostname; }
+    QDateTime getCurrentDateTime() const; // Get synchronized time (server or system)
 
 signals:
     void scheduleReceived(const QTime &schoolStart, const QTime &schoolEnd, 
@@ -76,14 +87,18 @@ signals:
     void serverDiscovered(const QString &serverUrl);
     void connectionStatusChanged(bool connected, const QString &serverUrl = QString(), const QString &hostname = QString());
     void pingUpdated(int pingMs);
+    void serverTimeReceived(const QDateTime &serverTime, qint64 offsetMs);
+    void timeSyncFailed(const QString &reason);
 
 private slots:
     void onScheduleReplyFinished();
     void onMediaReplyFinished();
+    void onTimeReplyFinished();
     void periodicFetch();
     void measurePing();
     void onPingReplyFinished();
     void attemptReconnection();
+    void syncTimeFromInternet();
 
 private:
     QNetworkAccessManager *m_networkManager;
@@ -101,6 +116,12 @@ private:
     static const int BACKOFF_MULTIPLIER = 2;
     
     QString m_cacheDir; // Directory for persistent cache storage
+    
+    // Time synchronization
+    QDateTime m_lastSyncTime; // Last time we synced with server
+    qint64 m_timeOffsetMs = 0; // Offset between local and server time (ms)
+    bool m_timeSynced = false;
+    QTimer *m_timeSyncTimer; // Periodic time sync timer
     
     // Server discovery helpers
     QString getLocalNetworkPrefix();  // Get local network prefix (e.g., "192.168.1" from "192.168.1.42")

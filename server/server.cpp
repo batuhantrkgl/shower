@@ -136,6 +136,8 @@ void HttpServer::handleGetRequest(QTcpSocket *socket, const QString &path) {
             handleGetSchedule(socket);
         } else if (path == "/api/media/playlist") {
             handleGetPlaylist(socket);
+        } else if (path == "/api/time") {
+            handleGetTime(socket);
         } else if (path == "/api/media/regenerate") {
             generatePlaylist();
             sendResponse(socket, "200 OK", "application/json", "{\"status\":\"success\",\"message\":\"Playlist regenerated\"}");
@@ -295,6 +297,26 @@ void HttpServer::handleGetPlaylist(QTcpSocket *socket) {
             }
         }
         
+        sendResponse(socket, "200 OK", "application/json", json);
+    }
+
+void HttpServer::handleGetTime(QTcpSocket *socket) {
+        // Get current server time
+        QDateTime now = QDateTime::currentDateTime();
+        qint64 timestamp = now.toMSecsSinceEpoch();
+        QString isoString = now.toString(Qt::ISODate);
+        
+        // Create JSON response with both timestamp and ISO format
+        QJsonObject timeObj;
+        timeObj["timestamp"] = timestamp;
+        timeObj["datetime"] = isoString;
+        timeObj["timezone"] = now.timeZone().displayName(QTimeZone::GenericTime, QTimeZone::DefaultName);
+        timeObj["server_hostname"] = QHostInfo::localHostName();
+        
+        QJsonDocument doc(timeObj);
+        QString json = doc.toJson(QJsonDocument::Compact);
+        
+        log(DEBUG, QString("Time sync request: %1").arg(isoString));
         sendResponse(socket, "200 OK", "application/json", json);
     }
 

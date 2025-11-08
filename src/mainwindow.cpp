@@ -6,6 +6,7 @@
 #include "diagnosticsoverlay.h"
 #include "mediacache.h"
 #include "mediaplayer.h"
+#include "specialevents.h"
 #include "logger.h"
 #include "md3colors.h"
 #include <QVBoxLayout>
@@ -19,7 +20,10 @@
 
 static qreal s_forcedDpi = 0.0;
 
-MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal forcedDpi, const QString &testTimeStr, qint64 cacheSize, QWidget *parent)
+MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal forcedDpi, const QString &testTimeStr, qint64 cacheSize,
+                       const QString &specialEventDate, const QString &specialEventTime, 
+                       const QString &specialEventImage, const QString &specialEventTitle, 
+                       int specialEventDuration, QWidget *parent)
     : QMainWindow(parent), m_forcedDpi(forcedDpi)
 {
     // Set the global forced DPI for all widgets to use
@@ -73,6 +77,48 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal for
         m_networkClient->discoverAndSetServer();
     }
     
+    // Initialize special events system
+    m_specialEvents = new SpecialEvents(this);
+    
+    // Add custom event from command line if provided
+    if (!specialEventDate.isEmpty() && !specialEventTime.isEmpty() && !specialEventImage.isEmpty()) {
+        SpecialEvent customEvent;
+        
+        // Parse date (DD:MM:YYYY format)
+        QStringList dateParts = specialEventDate.split(':');
+        if (dateParts.size() == 3) {
+            customEvent.day = dateParts[0].toInt();
+            customEvent.month = dateParts[1].toInt();
+            customEvent.year = dateParts[2].toInt();
+        } else {
+            LOG_WARNING_CAT(QString("Invalid date format: %1 (expected DD:MM:YYYY)").arg(specialEventDate), "Main");
+            customEvent.day = 0;
+            customEvent.month = 0;
+            customEvent.year = 0;
+        }
+        
+        // Parse time (HH:MM format)
+        customEvent.triggerTime = QTime::fromString(specialEventTime, "HH:mm");
+        if (!customEvent.triggerTime.isValid()) {
+            LOG_WARNING_CAT(QString("Invalid time format: %1 (expected HH:MM)").arg(specialEventTime), "Main");
+            customEvent.triggerTime = QTime(0, 0);
+        }
+        
+        // Set other properties
+        customEvent.imageUrl = specialEventImage;
+        customEvent.title = specialEventTitle.isEmpty() ? "Custom Event" : specialEventTitle;
+        customEvent.durationSecs = specialEventDuration;
+        customEvent.muted = true;
+        
+        m_specialEvents->addCustomEvent(customEvent);
+        LOG_INFO_CAT(QString("Added custom special event: %1 at %2/%3/%4 %5")
+            .arg(customEvent.title)
+            .arg(customEvent.day)
+            .arg(customEvent.month)
+            .arg(customEvent.year == 0 ? "every year" : QString::number(customEvent.year))
+            .arg(customEvent.triggerTime.toString("HH:mm")), "Main");
+    }
+    
     // Create UI widgets
     m_statusBar = new StatusBar(this);
     m_videoWidget = new VideoWidget(m_mediaCache, this);
@@ -98,6 +144,9 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal for
     // Connect signals and slots
     connect(m_networkClient, &NetworkClient::playlistReceived,
             m_videoWidget, &VideoWidget::onPlaylistReceived);
+    // Also handle playlist events in the main window (for special playlists)
+    connect(m_networkClient, &NetworkClient::playlistReceived,
+        this, &MainWindow::onPlaylistReceived);
     connect(m_networkClient, &NetworkClient::scheduleReceived,
             this, &MainWindow::onScheduleReceived);
     connect(m_networkClient, &NetworkClient::networkError,
@@ -113,6 +162,9 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal for
     if (m_videoWidget->getMediaPlayer()) {
         connect(m_videoWidget->getMediaPlayer(), &MediaPlayer::codecDetected,
                 m_statusBar, &StatusBar::setCodecInfo);
+    // Listen for playlist finished events to restore UI after special playlists
+    connect(m_videoWidget->getMediaPlayer(), &MediaPlayer::playlistFinished,
+        this, &MainWindow::onPlaylistFinished);
     }
     
     // Connect status bar signals
@@ -120,6 +172,24 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal for
             this, &MainWindow::toggleDiagnostics);
     connect(m_statusBar, &StatusBar::logLevelChangeRequested,
             this, &MainWindow::onLogLevelChanged);
+    
+    // Connect time synchronization signals
+    connect(m_networkClient, &NetworkClient::serverTimeReceived,
+            this, [this](const QDateTime &serverTime, qint64 offsetMs) {
+                LOG_INFO_CAT(QString("Time synchronized: %1 (offset: %2ms)")
+                    .arg(serverTime.toString("yyyy-MM-dd HH:mm:ss"))
+                    .arg(offsetMs), "Main");
+            });
+    connect(m_networkClient, &NetworkClient::timeSyncFailed,
+            this, [this](const QString &reason) {
+                LOG_WARNING_CAT(QString("Time sync failed: %1 - using system time").arg(reason), "Main");
+            });
+    
+    // Connect special events
+    connect(m_specialEvents, &SpecialEvents::eventTriggered,
+            this, &MainWindow::onSpecialEventTriggered);
+    connect(m_specialEvents, &SpecialEvents::eventEnded,
+            this, &MainWindow::onSpecialEventEnded);
     
     // Reposition overlay when its content changes (and thus its size)
     connect(m_activityOverlay, &QWidget::destroyed, this, [this]() { m_activityOverlay = nullptr; });
@@ -170,6 +240,12 @@ void MainWindow::onScheduleReceived(const QTime &schoolStart, const QTime &schoo
 
 void MainWindow::updateUIState()
 {
+    // Check for special events using synchronized time from server/internet
+    QDateTime currentDateTime = m_networkClient->getCurrentDateTime();
+    if (m_specialEvents) {
+        m_specialEvents->checkForEvents(currentDateTime);
+    }
+    
     if (!m_scheduleLoaded) {
         m_timelineWidget->updateCurrentTime(QTime());
         return;
@@ -330,4 +406,67 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
     } else {
         QMainWindow::keyPressEvent(event);
     }
+}
+
+void MainWindow::onSpecialEventTriggered(const SpecialEvent &event)
+{
+    LOG_INFO_CAT(QString("Special event triggered: %1").arg(event.title), "Main");
+    
+    // Get the event playlist (could be multiple items or single image)
+    MediaPlaylist eventPlaylist = m_specialEvents->getEventPlaylist();
+    
+    // Mark as special so UI hides and playback doesn't loop
+    eventPlaylist.isSpecial = true;
+    eventPlaylist.currentIndex = 0;
+    
+    // Send to video widget to display
+    if (m_videoWidget) {
+        m_videoWidget->onPlaylistReceived(eventPlaylist);
+    }
+    // Notify main window (to hide UI) and send to video widget to display
+    onPlaylistReceived(eventPlaylist);
+    
+    // Update activity overlay to show the event
+    if (m_activityOverlay) {
+        m_activityOverlay->updateCurrentActivity(event.title);
+    }
+}
+
+void MainWindow::onSpecialEventEnded()
+{
+    LOG_INFO_CAT("Special event ended, resuming normal operation", "Main");
+    
+    // Request fresh playlist from network client
+    if (m_networkClient) {
+        m_networkClient->fetchCurrentMedia();
+    }
+    // Restore UI immediately
+    onPlaylistFinished();
+}
+
+void MainWindow::onPlaylistReceived(const MediaPlaylist &playlist)
+{
+    // If the playlist is marked special, hide certain UI elements
+    if (playlist.isSpecial) {
+        LOG_INFO_CAT("Special playlist received - hiding activity overlay and timeline (statusbar remains visible)", "Main");
+        // Keep status bar visible for special playlists
+        if (m_statusBar) m_statusBar->show();
+        if (m_activityOverlay) m_activityOverlay->hide();
+        if (m_timelineWidget) m_timelineWidget->hide();
+    } else {
+        // Ensure UI is visible for normal playlists
+        if (m_statusBar) m_statusBar->show();
+        if (m_activityOverlay) m_activityOverlay->show();
+        if (m_timelineWidget) m_timelineWidget->show();
+    }
+}
+
+void MainWindow::onPlaylistFinished()
+{
+    LOG_INFO_CAT("Playlist finished - restoring UI", "Main");
+    if (m_statusBar) m_statusBar->show();
+    if (m_activityOverlay) m_activityOverlay->show();
+    if (m_timelineWidget) m_timelineWidget->show();
+    // Reposition overlay after restoring
+    QTimer::singleShot(50, this, &MainWindow::positionActivityOverlay);
 }

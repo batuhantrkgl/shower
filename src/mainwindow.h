@@ -14,25 +14,33 @@ class ActivityOverlay;
 class DiagnosticsOverlay;
 class MediaCache;
 class MediaPlayer;
+class SpecialEvents;
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    MainWindow(bool autoDiscover = false, const QString &networkRange = QString(), qreal forcedDpi = 0.0, const QString &testTimeStr = QString(), qint64 cacheSize = 4LL * 1024 * 1024 * 1024, QWidget *parent = nullptr);
+    MainWindow(bool autoDiscover = false, const QString &networkRange = QString(), qreal forcedDpi = 0.0, const QString &testTimeStr = QString(), qint64 cacheSize = 4LL * 1024 * 1024 * 1024,
+               const QString &specialEventDate = QString(), const QString &specialEventTime = QString(), 
+               const QString &specialEventImage = QString(), const QString &specialEventTitle = QString(), 
+               int specialEventDuration = 180, QWidget *parent = nullptr);
     ~MainWindow();
     
     static qreal getDpiForScreen(QWidget *widget = nullptr);
 
 private slots:
     void onScheduleReceived(const QTime &schoolStart, const QTime &schoolEnd, const QList<ScheduleBlock> &schedule);
+    void onPlaylistReceived(const MediaPlaylist &playlist);
+    void onPlaylistFinished();
     void updateUIState();
     void positionActivityOverlay();
     void onMediaChanged(const MediaItem &item);
     void toggleDiagnostics();
     void updateDiagnostics();
     void onLogLevelChanged(const QString &level);
+    void onSpecialEventTriggered(const SpecialEvent &event);
+    void onSpecialEventEnded();
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
@@ -47,6 +55,7 @@ private:
     DiagnosticsOverlay *m_diagnosticsOverlay;
     NetworkClient *m_networkClient;
     MediaCache *m_mediaCache;
+    SpecialEvents *m_specialEvents;
     QTimer *m_updateTimer;
     QTimer *m_diagnosticsTimer;
     QTime m_schoolStartTime;

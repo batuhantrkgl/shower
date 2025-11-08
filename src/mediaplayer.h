@@ -49,6 +49,7 @@ signals:
 
 private slots:
     void onImageTimerFinished();
+    void checkScheduledItems();
     void onVideoFinished();
     void onVideoStateChanged(QMediaPlayer::PlaybackState state);
     void onScreenCaptureTimer();
@@ -81,9 +82,13 @@ private:
     MediaPlaylist m_playlist;
     QTimer *m_imageTimer;
     QTimer *m_screenTimer;
+    QTimer *m_clockTimer; // checks scheduled custom_time items
     QPixmap m_currentImage; // Store original image for rescaling
     
     bool m_isPlaying;
+    bool m_interruptedForCustom = false;
+    int m_resumeIndex = -1;
+    bool m_playingCustomItem = false;
     
     // Transition effects
     QGraphicsOpacityEffect *m_videoOpacity;

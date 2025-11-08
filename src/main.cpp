@@ -69,6 +69,21 @@ int main(int argc, char *argv[])
     
     QCommandLineOption cacheSizeOption(QStringList() << "cache-size", "Set media cache size in GB (2-8, default: 4).", "size");
     parser.addOption(cacheSizeOption);
+    
+    QCommandLineOption specialEventDateOption(QStringList() << "date", "Date for special event in DD:MM:YYYY format (e.g., 10:11:2025). Use 00:00:0000 to trigger every year.", "date");
+    parser.addOption(specialEventDateOption);
+    
+    QCommandLineOption specialEventTimeOption(QStringList() << "time", "Time for special event in HH:MM format (24-hour, e.g., 09:05).", "time");
+    parser.addOption(specialEventTimeOption);
+    
+    QCommandLineOption specialEventImageOption(QStringList() << "image", "Image URL or file path for special event (e.g., file:///path/to/image.jpg).", "url");
+    parser.addOption(specialEventImageOption);
+    
+    QCommandLineOption specialEventDurationOption(QStringList() << "duration", "Duration for special event in seconds (default: 180).", "seconds");
+    parser.addOption(specialEventDurationOption);
+    
+    QCommandLineOption specialEventTitleOption(QStringList() << "title", "Title for special event.", "text");
+    parser.addOption(specialEventTitleOption);
 
     parser.process(a);
     
@@ -156,9 +171,18 @@ int main(int argc, char *argv[])
     qreal forcedDpi = parser.value(dpiOption).toDouble();
     QString testTimeStr = parser.value(testTimeOption);
     
+    // Parse special event options
+    QString specialEventDate = parser.value(specialEventDateOption);
+    QString specialEventTime = parser.value(specialEventTimeOption);
+    QString specialEventImage = parser.value(specialEventImageOption);
+    QString specialEventTitle = parser.value(specialEventTitleOption);
+    int specialEventDuration = parser.value(specialEventDurationOption).toInt();
+    if (specialEventDuration == 0) specialEventDuration = 180; // Default 3 minutes
+    
     LOG_INFO(QString("Starting VideoTimeline v%1 (Build: %2)").arg(appVersion).arg(appBuildId));
     
-    MainWindow w(parser.isSet(autoOption), networkRange, forcedDpi, testTimeStr, cacheSize);
+    MainWindow w(parser.isSet(autoOption), networkRange, forcedDpi, testTimeStr, cacheSize,
+                 specialEventDate, specialEventTime, specialEventImage, specialEventTitle, specialEventDuration);
     w.showFullScreen();
 
     return a.exec();

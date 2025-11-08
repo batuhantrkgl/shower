@@ -10,6 +10,7 @@
 #include <QUrl>
 #include <QScreen>
 #include <QGuiApplication>
+#include <QTime>
 #include <QWidget>
 #include <QApplication>
 #include <QPainter>
@@ -79,6 +80,11 @@ MediaPlayer::MediaPlayer(QVideoWidget *videoOutput, QLabel *imageLabel, QStacked
     m_screenTimer = new QTimer(this);
     connect(m_screenTimer, &QTimer::timeout, this, &MediaPlayer::onScreenCaptureTimer);
 
+    // Clock timer for checking scheduled custom_time items (checks every second)
+    m_clockTimer = new QTimer(this);
+    m_clockTimer->setInterval(1000);
+    connect(m_clockTimer, &QTimer::timeout, this, &MediaPlayer::checkScheduledItems);
+
     // Initialize screen label
     m_screenLabel = new QLabel();
     m_screenLabel->setAlignment(Qt::AlignCenter);
@@ -133,6 +139,10 @@ void MediaPlayer::play()
     }
     
     m_isPlaying = true;
+    // If this is a special playlist, start the clock that looks for custom_time items
+    if (m_playlist.isSpecial) {
+        m_clockTimer->start();
+    }
     playCurrentItem();
 }
 
@@ -142,6 +152,7 @@ void MediaPlayer::stop()
     m_player->stop();
     m_imageTimer->stop();
     m_screenTimer->stop();
+    m_clockTimer->stop();
 }
 
 void MediaPlayer::next()
@@ -149,31 +160,57 @@ void MediaPlayer::next()
     if (!m_playlist.hasItems()) {
         return;
     }
-    
     // Start fade out before switching if transitions are enabled
     if (m_transitionsEnabled && !m_isFading) {
         fadeOut();
         // The actual transition will happen in onFadeOutFinished()
         return;
     }
-    
-    // For instant transitions (no fade), just switch immediately
-    int nextIndex = (m_playlist.currentIndex + 1) % m_playlist.items.size();
+
+    // For instant transitions (no fade), compute next index
+    int size = m_playlist.items.size();
+    // If we just finished playing a custom-timed item, resume where we left off
+    if (m_playingCustomItem) {
+        // finished playing custom item
+        m_playingCustomItem = false;
+        if (m_interruptedForCustom) {
+            // resumeIndex points to the index that was interrupted; continue from the next item
+            int resumeNext = (m_resumeIndex + 1) % size;
+            m_playlist.currentIndex = resumeNext;
+            m_interruptedForCustom = false;
+        }
+    }
+
+    int nextIndex = m_playlist.currentIndex + 1;
+
+    // If this is a special (one-shot) playlist and we've reached the end, finish
+    if (m_playlist.isSpecial && nextIndex >= size) {
+        LOG_INFO_CAT("Special playlist finished", "MediaPlayer");
+        m_isPlaying = false;
+        emit playlistFinished();
+        return;
+    }
+
+    // Wrap normally for looping playlists
+    if (size > 0) {
+        nextIndex = nextIndex % size;
+    }
+
     const MediaItem &nextItem = m_playlist.items[nextIndex];
-    
+
     // Only stop if NOT transitioning to a video (to avoid blank screen)
     if (nextItem.type != "video") {
         m_player->stop();
     }
     m_imageTimer->stop();
     m_screenTimer->stop();
-    
+
     // Move to next item
-    m_playlist.moveToNext();
-    
+    m_playlist.currentIndex = nextIndex;
+
     // Prefetch the next item after this one
     prefetchNextItem();
-    
+
     if (m_isPlaying) {
         playCurrentItem();
     }
@@ -350,6 +387,41 @@ void MediaPlayer::onImageTimerFinished()
 {
     COMPAT_DEBUG("Image timer finished, moving to next");
     next();
+}
+
+void MediaPlayer::checkScheduledItems()
+{
+    // Only active for special playlists
+    if (!m_playlist.isSpecial || !m_isPlaying) return;
+
+    QTime now = QTime::currentTime();
+    // Check each item for a matching customTime
+    for (int i = 0; i < m_playlist.items.size(); ++i) {
+        const MediaItem &mi = m_playlist.items.at(i);
+        if (!mi.hasCustomTime) continue;
+        if (mi.customTime.hour() == now.hour() && mi.customTime.minute() == now.minute()) {
+            // Found an item that should play now
+            // If we're already playing that item, ignore
+            if (m_playlist.currentIndex == i && !m_playingCustomItem) {
+                return;
+            }
+
+            // Interrupt current playback and play this item
+            LOG_INFO_CAT(QString("Interrupting for scheduled media at %1: %2").arg(mi.customTime.toString("HH:mm")).arg(mi.url), "MediaPlayer");
+            m_resumeIndex = m_playlist.currentIndex;
+            m_interruptedForCustom = true;
+            m_playingCustomItem = true;
+
+            m_playlist.currentIndex = i;
+
+            // Stop current playback and start the scheduled item
+            m_player->stop();
+            m_imageTimer->stop();
+            m_screenTimer->stop();
+            playCurrentItem();
+            return;
+        }
+    }
 }
 
 void MediaPlayer::scaleAndSetImage(const QPixmap &originalPixmap)
@@ -584,23 +656,40 @@ void MediaPlayer::fadeIn()
 void MediaPlayer::onFadeOutFinished()
 {
     LOG_DEBUG_CAT("Fade out finished", "MediaPlayer");
-    
-    // Move to next item to check what type it is
-    m_playlist.moveToNext();
-    
+    // Compute next index
+    int size = m_playlist.items.size();
+    int nextIndex = m_playlist.currentIndex + 1;
+
+    // If this is a special (one-shot) playlist and we've reached the end, finish
+    if (m_playlist.isSpecial && nextIndex >= size) {
+        LOG_INFO_CAT("Special playlist finished (during fade)", "MediaPlayer");
+        m_isFading = false;
+        m_isPlaying = false;
+        emit playlistFinished();
+        return;
+    }
+
+    // Wrap normally for looping playlists
+    if (size > 0) {
+        nextIndex = nextIndex % size;
+    }
+
+    // Move to next
+    m_playlist.currentIndex = nextIndex;
+
     // Prefetch the next item after this one
     prefetchNextItem();
-    
+
     if (m_isPlaying) {
         const MediaItem &nextItem = m_playlist.getCurrentItem();
-        
+
         // Only stop player if NOT transitioning to a video (to avoid blank screen)
         if (nextItem.type != "video") {
             m_player->stop();
         }
         m_imageTimer->stop();
         m_screenTimer->stop();
-        
+
         // Pre-set the NEXT widget's opacity to 0 before switching
         if (m_transitionsEnabled) {
             if (nextItem.type == "video") {
@@ -611,9 +700,9 @@ void MediaPlayer::onFadeOutFinished()
                 m_screenOpacity->setOpacity(0.0);
             }
         }
-        
+
         playCurrentItem();
-        
+
         // Start fade in (unless it's a video - video will fade in when loaded)
         if (m_transitionsEnabled) {
             if (nextItem.type != "video") {

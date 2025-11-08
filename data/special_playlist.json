@@ -1,0 +1,21 @@
+{
+  "special": true,
+  "title": "Ataturk Commemoration",
+  "date": "2025-11-10",
+  "items": [
+    {
+      "type": "image",
+      "custom_time": "09:05",
+      "url": "file:///data/special_events/ataturk_commemoration.jpg",
+      "duration": 180000,
+      "muted": true
+    },
+    {
+      "type": "video",
+      "custom_time": "NA",
+      "url": "file:///data/special_events/ataturk_speech.mp4",
+      "duration": 300000,
+      "muted": false
+    }
+  ]
+}

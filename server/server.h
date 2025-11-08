@@ -36,6 +36,7 @@ private:
     void handleHeadRequest(QTcpSocket *socket, const QString &path);
     void handleGetSchedule(QTcpSocket *socket);
     void handleGetPlaylist(QTcpSocket *socket);
+    void handleGetTime(QTcpSocket *socket);
     void handleGetMediaFile(QTcpSocket *socket, const QString &path);
     void handlePostSchedule(QTcpSocket *socket, const QByteArray &body);
     void handlePostPlaylist(QTcpSocket *socket, const QByteArray &body);

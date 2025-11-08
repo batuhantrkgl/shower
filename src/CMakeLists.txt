@@ -10,6 +10,7 @@ set(SOURCES
     mediacache.cpp
     logger.cpp
     diagnosticsoverlay.cpp
+    specialevents.cpp
 )
 
 set(HEADERS
@@ -25,6 +26,7 @@ set(HEADERS
     mediacache.h
     logger.h
     diagnosticsoverlay.h
+    specialevents.h
 )
 
 set(RESOURCES
