@@ -78,6 +78,7 @@ public:
     QString getServerUrl() const { return m_serverUrl; }
     QString getHostname() const { return m_hostname; }
     QDateTime getCurrentDateTime() const; // Get synchronized time (server or system)
+    void setTestDateTime(const QDateTime &testDateTime); // Set test date/time for simulation
 
 signals:
     void scheduleReceived(const QTime &schoolStart, const QTime &schoolEnd, 
@@ -122,6 +123,10 @@ private:
     qint64 m_timeOffsetMs = 0; // Offset between local and server time (ms)
     bool m_timeSynced = false;
     QTimer *m_timeSyncTimer; // Periodic time sync timer
+    
+    // Test date/time simulation
+    QDateTime m_testDateTime; // Test date/time for simulation (if valid)
+    bool m_useTestDateTime = false; // Whether to use test date/time
     
     // Server discovery helpers
     QString getLocalNetworkPrefix();  // Get local network prefix (e.g., "192.168.1" from "192.168.1.42")

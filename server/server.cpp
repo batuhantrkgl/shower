@@ -145,6 +145,8 @@ void HttpServer::handleGetRequest(QTcpSocket *socket, const QString &path) {
             toggleAutoRegenerate(socket);
         } else if (path == "/api/screen/toggle") {
             toggleScreenMirroring(socket);
+        } else if (path == "/api/special/check") {
+            handleCheckSpecialEvent(socket);
         } else if (path.startsWith("/media/")) {
             handleGetMediaFile(socket, path);
         } else {
@@ -269,6 +271,15 @@ void HttpServer::handleGetSchedule(QTcpSocket *socket) {
     }
 
 void HttpServer::handleGetPlaylist(QTcpSocket *socket) {
+        // First check if there's an active special event
+        QString specialPlaylist = checkForActiveSpecialEvent();
+        if (!specialPlaylist.isEmpty()) {
+            log(INFO, "Serving special event playlist");
+            sendResponse(socket, "200 OK", "application/json", specialPlaylist);
+            return;
+        }
+        
+        // Otherwise serve regular playlist
         QString filePath = dataDir + "/playlist.json";
         QString json = readFile(filePath);
         
@@ -783,6 +794,93 @@ void HttpServer::toggleScreenMirroring(QTcpSocket *socket) {
                          .arg(newState ? "enabled" : "disabled");
         
         sendResponse(socket, "200 OK", "application/json", message);
+    }
+
+QString HttpServer::checkForActiveSpecialEvent() {
+        // Scan for special playlists in data directory
+        QDir dir(dataDir);
+        QStringList filters;
+        filters << "*_playlist.json";
+        QFileInfoList files = dir.entryInfoList(filters, QDir::Files);
+        
+        QDateTime currentDateTime = QDateTime::currentDateTime();
+        QDate currentDate = currentDateTime.date();
+        QTime currentTime = currentDateTime.time();
+        
+        for (const QFileInfo &fileInfo : files) {
+            QString filePath = fileInfo.absoluteFilePath();
+            QString json = readFile(filePath);
+            
+            if (json.isEmpty()) {
+                continue;
+            }
+            
+            QJsonParseError error;
+            QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
+            
+            if (error.error != QJsonParseError::NoError || !doc.isObject()) {
+                continue;
+            }
+            
+            QJsonObject obj = doc.object();
+            
+            // Only process if marked as special
+            if (!obj["special"].toBool()) {
+                continue;
+            }
+            
+            // Parse date (YYYY-MM-DD format)
+            QString dateStr = obj["date"].toString();
+            QDate eventDate = QDate::fromString(dateStr, "yyyy-MM-dd");
+            
+            if (!eventDate.isValid() || eventDate != currentDate) {
+                continue; // Not today
+            }
+            
+            // Parse trigger time from first item with custom_time
+            QJsonArray items = obj["items"].toArray();
+            QTime triggerTime;
+            int totalDuration = 0;
+            
+            for (const QJsonValue &itemValue : items) {
+                QJsonObject itemObj = itemValue.toObject();
+                QString customTime = itemObj["custom_time"].toString();
+                if (!customTime.isEmpty() && customTime != "NA" && !triggerTime.isValid()) {
+                    triggerTime = QTime::fromString(customTime, "HH:mm");
+                }
+                totalDuration += itemObj["duration"].toInt();
+            }
+            
+            if (!triggerTime.isValid()) {
+                continue; // No valid trigger time
+            }
+            
+            // Check if current time is within event window
+            QDateTime eventStart = QDateTime(currentDate, triggerTime);
+            QDateTime eventEnd = eventStart.addMSecs(totalDuration);
+            
+            if (currentDateTime >= eventStart && currentDateTime < eventEnd) {
+                // This event is active!
+                QString title = obj["title"].toString();
+                log(INFO, QString("Active special event found: %1 (%2 to %3)")
+                    .arg(title)
+                    .arg(eventStart.toString("HH:mm"))
+                    .arg(eventEnd.toString("HH:mm")));
+                return json;
+            }
+        }
+        
+        return QString(); // No active special event
+    }
+
+void HttpServer::handleCheckSpecialEvent(QTcpSocket *socket) {
+        QString specialPlaylist = checkForActiveSpecialEvent();
+        
+        if (!specialPlaylist.isEmpty()) {
+            sendResponse(socket, "200 OK", "application/json", specialPlaylist);
+        } else {
+            sendResponse(socket, "200 OK", "application/json", "{\"special\":false,\"message\":\"No active special event\"}");
+        }
     }
 
 

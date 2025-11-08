@@ -8,12 +8,6 @@
             "url": "/media/default.png"
         },
         {
-            "duration": -1,
-            "muted": false,
-            "type": "video",
-            "url": "/media/ferrari.mp4"
-        },
-        {
             "duration": 5000,
             "muted": false,
             "type": "image",

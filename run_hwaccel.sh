@@ -44,6 +44,29 @@ echo "  VDPAU_DRIVER: $VDPAU_DRIVER"
 echo "  GST_VAAPI_ALL_DRIVERS: $GST_VAAPI_ALL_DRIVERS"
 echo ""
 
-# Run the application
+# Collect remaining arguments to pass to run.sh
+REMAINING_ARGS=()
+SKIP_NEXT=false
+
+for arg in "$@"; do
+    if [ "$SKIP_NEXT" = true ]; then
+        SKIP_NEXT=false
+        continue
+    fi
+    
+    # Skip GPU selection flags
+    if [ "$arg" == "--nvidia" ] || [ "$arg" == "--amd" ] || [ "$arg" == "--debug" ]; then
+        continue
+    fi
+    
+    REMAINING_ARGS+=("$arg")
+done
+
+# Run the application with remaining arguments
 echo "[INFO] Launching VideoTimeline..."
-./run.sh
+if [ ${#REMAINING_ARGS[@]} -gt 0 ]; then
+    echo "[INFO] Passing arguments: ${REMAINING_ARGS[@]}"
+    ./run.sh "${REMAINING_ARGS[@]}"
+else
+    ./run.sh
+fi

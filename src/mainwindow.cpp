@@ -20,7 +20,8 @@
 
 static qreal s_forcedDpi = 0.0;
 
-MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal forcedDpi, const QString &testTimeStr, qint64 cacheSize,
+MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal forcedDpi, 
+                       const QString &testDateStr, const QString &testTimeStr, qint64 cacheSize,
                        const QString &specialEventDate, const QString &specialEventTime, 
                        const QString &specialEventImage, const QString &specialEventTitle, 
                        int specialEventDuration, QWidget *parent)
@@ -29,6 +30,25 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal for
     // Set the global forced DPI for all widgets to use
     s_forcedDpi = forcedDpi;
 
+    // Parse test date if provided (DD:MM:YYYY format)
+    if (!testDateStr.isEmpty()) {
+        QStringList dateParts = testDateStr.split(':');
+        if (dateParts.size() == 3) {
+            int day = dateParts[0].toInt();
+            int month = dateParts[1].toInt();
+            int year = dateParts[2].toInt();
+            m_testDate = QDate(year, month, day);
+            if (m_testDate.isValid()) {
+                LOG_INFO_CAT(QString("Using forced test date: %1").arg(m_testDate.toString("yyyy-MM-dd")), "Main");
+            } else {
+                LOG_WARNING_CAT(QString("Invalid test date: %1").arg(testDateStr), "Main");
+                m_testDate = QDate(); // Reset to invalid
+            }
+        } else {
+            LOG_WARNING_CAT(QString("Invalid test date format: %1 (expected DD:MM:YYYY)").arg(testDateStr), "Main");
+        }
+    }
+    
     // Parse test time if provided
     if (!testTimeStr.isEmpty()) {
         m_testTime = QTime::fromString(testTimeStr, "HH:mm");
@@ -63,6 +83,17 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal for
     
     // Initialize network client and discover server if requested
     m_networkClient = new NetworkClient(this);
+    
+    // Set test date/time if both are provided
+    if (m_testDate.isValid() && m_testTime.isValid()) {
+        QDateTime testDateTime(m_testDate, m_testTime);
+        m_networkClient->setTestDateTime(testDateTime);
+        LOG_INFO_CAT(QString("Test date/time configured: %1")
+            .arg(testDateTime.toString("yyyy-MM-dd HH:mm:ss")), "Main");
+    } else if (m_testDate.isValid() || m_testTime.isValid()) {
+        LOG_WARNING_CAT("Test date/time partially set - both --date and --time required for simulation", "Main");
+    }
+    
     if (!networkRange.isEmpty()) {
         // Check if it's a specific server URL (contains port) or network range
         if (networkRange.contains(':')) {
@@ -142,9 +173,7 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal for
     mainLayout->addWidget(m_timelineWidget, 0);
 
     // Connect signals and slots
-    connect(m_networkClient, &NetworkClient::playlistReceived,
-            m_videoWidget, &VideoWidget::onPlaylistReceived);
-    // Also handle playlist events in the main window (for special playlists)
+    // Route playlists through MainWindow first to filter out regular playlists during special events
     connect(m_networkClient, &NetworkClient::playlistReceived,
         this, &MainWindow::onPlaylistReceived);
     connect(m_networkClient, &NetworkClient::scheduleReceived,
@@ -302,6 +331,11 @@ void MainWindow::positionActivityOverlay()
         return;
     }
 
+    // Don't show overlay if a special event is active
+    if (m_specialEvents && m_specialEvents->isEventActive()) {
+        return;
+    }
+
     // Overlay is now a top-level window, so we need global screen coordinates
     QPoint videoGlobalPos = m_videoWidget->mapToGlobal(QPoint(0, 0));
     QSize videoSize = m_videoWidget->size();
@@ -343,6 +377,13 @@ void MainWindow::onMediaChanged(const MediaItem &item)
 {
     Q_UNUSED(item);
     std::cout << "MainWindow: Media changed, re-raising activity overlay" << std::endl;
+    
+    // Don't show/raise overlay if a special event is active
+    if (m_specialEvents && m_specialEvents->isEventActive()) {
+        std::cout << "MainWindow: Special event active, keeping overlay hidden" << std::endl;
+        return;
+    }
+    
     // Ensure overlay stays visible and on top when media changes
     if (m_activityOverlay) {
         m_activityOverlay->raise();
@@ -446,6 +487,17 @@ void MainWindow::onSpecialEventEnded()
 
 void MainWindow::onPlaylistReceived(const MediaPlaylist &playlist)
 {
+    // If a special event is currently active, ignore regular playlists from the network
+    if (m_specialEvents && m_specialEvents->isEventActive() && !playlist.isSpecial) {
+        LOG_INFO_CAT("Ignoring regular playlist while special event is active", "Main");
+        return;
+    }
+    
+    // Forward playlist to video widget
+    if (m_videoWidget) {
+        m_videoWidget->onPlaylistReceived(playlist);
+    }
+    
     // If the playlist is marked special, hide certain UI elements
     if (playlist.isSpecial) {
         LOG_INFO_CAT("Special playlist received - hiding activity overlay and timeline (statusbar remains visible)", "Main");

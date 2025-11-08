@@ -31,6 +31,27 @@ namespace TTY {
 }
 // --- End of Color Edit ---
 
+// Global flag for quiet hardware acceleration
+static bool g_quietHwAccel = false;
+
+// Custom message handler to filter hardware acceleration warnings
+void customMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+{
+    // Filter out repetitive hardware acceleration fallback messages
+    if (g_quietHwAccel) {
+        if (msg.contains("Hardware is lacking required capabilities") ||
+            msg.contains("Failed setup for format") ||
+            msg.contains("Your platform doesn't support hardware accelerated") ||
+            msg.contains("Failed to get pixel format") ||
+            msg.contains("Get current frame error") ||
+            msg.contains("hwaccel initialisation returned error")) {
+            return; // Suppress these messages
+        }
+    }
+    
+    // Use default message handler for everything else
+    fprintf(stderr, "%s\n", msg.toLocal8Bit().constData());
+}
 
 int main(int argc, char *argv[])
 {
@@ -84,6 +105,12 @@ int main(int argc, char *argv[])
     
     QCommandLineOption specialEventTitleOption(QStringList() << "title", "Title for special event.", "text");
     parser.addOption(specialEventTitleOption);
+    
+    QCommandLineOption noHwAccelOption(QStringList() << "no-hwaccel", "Disable hardware acceleration attempts (use software decoding only).");
+    parser.addOption(noHwAccelOption);
+    
+    QCommandLineOption quietHwAccelOption(QStringList() << "quiet-hwaccel", "Suppress hardware acceleration fallback warnings.");
+    parser.addOption(quietHwAccelOption);
 
     parser.process(a);
     
@@ -167,11 +194,41 @@ int main(int argc, char *argv[])
         out.flush();
     }
 
+    // Configure hardware acceleration
+    if (parser.isSet(noHwAccelOption)) {
+        // Completely disable hardware acceleration by removing all hwaccel devices
+        qputenv("LIBVA_DRIVER_NAME", "");
+        qputenv("VDPAU_DRIVER", "");
+        qputenv("CUDA_VISIBLE_DEVICES", "");
+        qunsetenv("VK_ICD_FILENAMES");  // Disable Vulkan
+        qunsetenv("QT_MEDIA_BACKEND");
+        
+        // Set FFmpeg to use software decoding only (requires patched Qt or works with some builds)
+        qputenv("FFMPEG_HWACCEL", "none");
+        qputenv("FFMPEG_THREADS", "auto");
+        
+        out << TTY::Yellow << "[HWACCEL] " << TTY::Reset 
+            << "Hardware acceleration disabled - using software decoding\n";
+        out.flush();
+    } else {
+        if (parser.isSet(quietHwAccelOption)) {
+            g_quietHwAccel = true;
+            qInstallMessageHandler(customMessageHandler);
+            out << TTY::Cyan << "[HWACCEL] " << TTY::Reset 
+                << "Hardware acceleration enabled with quiet fallback to software\n";
+            out.flush();
+        } else {
+            out << TTY::Cyan << "[HWACCEL] " << TTY::Reset 
+                << "Hardware acceleration enabled (will fallback to software if needed)\n";
+            out.flush();
+        }
+    }
+
     QString networkRange = parser.value(networkOption);
     qreal forcedDpi = parser.value(dpiOption).toDouble();
     QString testTimeStr = parser.value(testTimeOption);
     
-    // Parse special event options
+    // Parse special event options (note: --date and --time are also used for test date/time simulation)
     QString specialEventDate = parser.value(specialEventDateOption);
     QString specialEventTime = parser.value(specialEventTimeOption);
     QString specialEventImage = parser.value(specialEventImageOption);
@@ -181,7 +238,13 @@ int main(int argc, char *argv[])
     
     LOG_INFO(QString("Starting VideoTimeline v%1 (Build: %2)").arg(appVersion).arg(appBuildId));
     
-    MainWindow w(parser.isSet(autoOption), networkRange, forcedDpi, testTimeStr, cacheSize,
+    // Note: --date and --time are dual-purpose parameters:
+    // 1. They simulate the current date/time for special event checking
+    // 2. When --image is also provided, they create a custom special event
+    // Use --time for both test time and special event time (specialEventTime takes precedence)
+    QString effectiveTestTime = !specialEventTime.isEmpty() ? specialEventTime : testTimeStr;
+    
+    MainWindow w(parser.isSet(autoOption), networkRange, forcedDpi, specialEventDate, effectiveTestTime, cacheSize,
                  specialEventDate, specialEventTime, specialEventImage, specialEventTitle, specialEventDuration);
     w.showFullScreen();
 

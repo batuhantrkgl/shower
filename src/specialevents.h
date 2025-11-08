@@ -19,12 +19,18 @@ struct SpecialEvent {
     bool muted;         // Whether to mute any playing audio
     
     // Check if this event should trigger on given date/time
+    // Returns true if we're within the event's time window (trigger time to trigger time + duration)
     bool shouldTrigger(const QDateTime &dateTime) const {
+        // Check date match
         if (year != 0 && dateTime.date().year() != year) return false;
         if (month != 0 && dateTime.date().month() != month) return false;
         if (day != 0 && dateTime.date().day() != day) return false;
-        return dateTime.time().hour() == triggerTime.hour() && 
-               dateTime.time().minute() == triggerTime.minute();
+        
+        // Check if current time is within event window
+        QDateTime eventStart = QDateTime(dateTime.date(), triggerTime);
+        QDateTime eventEnd = eventStart.addSecs(durationSecs);
+        
+        return dateTime >= eventStart && dateTime < eventEnd;
     }
 };
 

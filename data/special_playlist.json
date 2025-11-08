@@ -1,19 +1,75 @@
 {
   "special": true,
-  "title": "Ataturk Commemoration",
+  "title": "10 Kasım Atatürk'ü Anma Günü",
   "date": "2025-11-10",
   "items": [
     {
-      "type": "image",
+      "type": "video",
       "custom_time": "09:05",
-      "url": "file:///data/special_events/ataturk_commemoration.jpg",
-      "duration": 180000,
-      "muted": true
+      "url": "file:///home/batuhantrkgl/Stuff/shower/data/media/special/10 Kasım ｜ Milletin Seni Hep #yaşATAcak!.mp4",
+      "duration": 300000,
+      "muted": false
     },
     {
       "type": "video",
       "custom_time": "NA",
-      "url": "file:///data/special_events/ataturk_speech.mp4",
+      "url": "file:///home/batuhantrkgl/Stuff/shower/data/media/special/10 Kasım ｜ #SenHepBuradasın.mp4",
+      "duration": 300000,
+      "muted": false
+    },
+    {
+      "type": "video",
+      "custom_time": "NA",
+      "url": "file:///home/batuhantrkgl/Stuff/shower/data/media/special/82 yıldır her 10 Kasım’da bütün Türkiye yağmur yağmadan ıslanıyor. #DinmeyenYağmur.mp4",
+      "duration": 300000,
+      "muted": false
+    },
+    {
+      "type": "video",
+      "custom_time": "NA",
+      "url": "file:///home/batuhantrkgl/Stuff/shower/data/media/special/Atatürk’ü Gördüm.mp4",
+      "duration": 300000,
+      "muted": false
+    },
+    {
+      "type": "video",
+      "custom_time": "NA",
+      "url": "file:///home/batuhantrkgl/Stuff/shower/data/media/special/Hiç Ölmedin.mp4",
+      "duration": 300000,
+      "muted": false
+    },
+    {
+      "type": "video",
+      "custom_time": "NA",
+      "url": "file:///home/batuhantrkgl/Stuff/shower/data/media/special/İlelebet Saygıyla, 10 Kasım - FİLLİ BOYA Reklamı.mp4",
+      "duration": 300000,
+      "muted": false
+    },
+    {
+      "type": "video",
+      "custom_time": "NA",
+      "url": "file:///home/batuhantrkgl/Stuff/shower/data/media/special/Minnettarız.mp4",
+      "duration": 300000,
+      "muted": false
+    },
+    {
+      "type": "video",
+      "custom_time": "NA",
+      "url": "file:///home/batuhantrkgl/Stuff/shower/data/media/special/Şişecam ｜ 10 Kasım #HepBizimle.mp4",
+      "duration": 300000,
+      "muted": false
+    },
+    {
+      "type": "video",
+      "custom_time": "NA",
+      "url": "file:///home/batuhantrkgl/Stuff/shower/data/media/special/Şişecam ｜ 10 Kasım #Paramparça.mp4",
+      "duration": 300000,
+      "muted": false
+    },
+    {
+      "type": "video",
+      "custom_time": "NA",
+      "url": "file:///home/batuhantrkgl/Stuff/shower/data/media/special/Şişecam ｜  #TarifeSığmaz bir özlemle anıyoruz. #10Kasım.mp4",
       "duration": 300000,
       "muted": false
     }

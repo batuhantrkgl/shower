@@ -942,6 +942,11 @@ void NetworkClient::syncTimeFromInternet()
 
 QDateTime NetworkClient::getCurrentDateTime() const
 {
+    // If test date/time is set, use it for simulation
+    if (m_useTestDateTime && m_testDateTime.isValid()) {
+        return m_testDateTime;
+    }
+    
     if (m_timeSynced) {
         // Return synchronized time with offset applied
         qint64 localTimeMs = QDateTime::currentMSecsSinceEpoch();
@@ -950,5 +955,15 @@ QDateTime NetworkClient::getCurrentDateTime() const
     } else {
         // Fallback to system time
         return QDateTime::currentDateTime();
+    }
+}
+
+void NetworkClient::setTestDateTime(const QDateTime &testDateTime)
+{
+    m_testDateTime = testDateTime;
+    m_useTestDateTime = testDateTime.isValid();
+    if (m_useTestDateTime) {
+        LOG_INFO_CAT(QString("Test date/time set: %1")
+            .arg(testDateTime.toString("yyyy-MM-dd HH:mm:ss")), "Network");
     }
 }

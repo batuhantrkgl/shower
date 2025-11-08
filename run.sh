@@ -44,7 +44,17 @@ show_usage() {
     echo "  --network RANGE      Network range for scanning (e.g., 192.168.1)"
     echo "  --dpi VALUE          Force specific DPI scaling"
     echo "  --test-time TIME     Set test time (e.g., '14:30')"
+    echo "  --log-level LEVEL    Set log level: error, warn, info, debug"
+    echo "  --log-file           Enable file logging with rotation"
+    echo "  --cache-size SIZE    Set cache size in GB (2-8, default: 4)"
     echo "  --version            Show application version"
+    echo ""
+    echo "Special Event Options:"
+    echo "  --date DD:MM:YYYY    Date for special event (e.g., 10:11:2025)"
+    echo "  --time HH:MM         Time for special event (e.g., 09:05)"
+    echo "  --image URL          Image/video URL for event"
+    echo "  --title TEXT         Title for special event"
+    echo "  --duration SECS      Duration in seconds (default: 180)"
     echo ""
     echo "Examples:"
     echo "  $0                          # Run app connecting to default server"
@@ -52,6 +62,7 @@ show_usage() {
     echo "  $0 --auto-server           # Start server if needed"
     echo "  $0 --auto --test-time 14:30  # Auto-start with test time"
     echo "  $0 -a --auto --dpi 192     # Auto server + auto play + custom DPI"
+    echo "  $0 --date 10:11:2025 --time 09:05  # Test special event"
 }
 
 # Build if binary missing
