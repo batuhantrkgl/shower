@@ -100,6 +100,8 @@ private:
     static const int MAX_BACKOFF_MS = 60000; // Max 60 seconds
     static const int BACKOFF_MULTIPLIER = 2;
     
+    QString m_cacheDir; // Directory for persistent cache storage
+    
     // Server discovery helpers
     QString getLocalNetworkPrefix();  // Get local network prefix (e.g., "192.168.1" from "192.168.1.42")
     bool tryServerUrl(const QString &url);  // Test if a URL hosts our server
@@ -112,6 +114,13 @@ private:
     QList<ScheduleBlock> createDefaultSchedule();
     void parseScheduleJson(const QJsonObject &json);
     void parsePlaylistJson(const QJsonObject &json);
+    
+    // Persistent cache helpers
+    void saveCachedSchedule(const QJsonObject &json);
+    void saveCachedPlaylist(const QJsonObject &json);
+    bool loadCachedSchedule();
+    bool loadCachedPlaylist();
+    void ensureCacheDir();
 };
 
 #endif // NETWORKCLIENT_H

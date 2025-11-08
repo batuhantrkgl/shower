@@ -13,6 +13,9 @@
 #include <QTime>
 #include <QElapsedTimer>
 #include <QDateTime>
+#include <QStandardPaths>
+#include <QDir>
+#include <QFile>
 
 NetworkClient::NetworkClient(QObject *parent)
     : QObject(parent)
@@ -27,6 +30,11 @@ NetworkClient::NetworkClient(QObject *parent)
     , m_reconnectAttempts(0)
     , m_currentBackoffMs(1000)
 {
+    // Set up cache directory
+    QString defaultCacheDir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+    m_cacheDir = defaultCacheDir + "/VideoTimeline";
+    ensureCacheDir();
+    
     // Set up periodic fetch timer (every 5 minutes)
     m_fetchTimer->setInterval(5 * 60 * 1000);
     connect(m_fetchTimer, &QTimer::timeout, this, &NetworkClient::periodicFetch);
@@ -80,7 +88,15 @@ void NetworkClient::fetchCurrentMedia()
 
 void NetworkClient::startPeriodicFetch()
 {
-    // Initial fetch
+    // Try to load cached data first (will be used if server is unreachable)
+    bool hasScheduleCache = loadCachedSchedule();
+    bool hasPlaylistCache = loadCachedPlaylist();
+    
+    if (hasScheduleCache || hasPlaylistCache) {
+        LOG_INFO_CAT("Loaded cached data from previous session", "Network");
+    }
+    
+    // Initial fetch (will override cached data if server is reachable)
     fetchSchedule();
     fetchCurrentMedia();
     
@@ -107,7 +123,13 @@ void NetworkClient::onScheduleReplyFinished()
         QJsonDocument doc = QJsonDocument::fromJson(data, &error);
         
         if (error.error == QJsonParseError::NoError && doc.isObject()) {
-            parseScheduleJson(doc.object());
+            QJsonObject scheduleObj = doc.object();
+            
+            // Save to persistent cache
+            saveCachedSchedule(scheduleObj);
+            
+            // Parse and emit
+            parseScheduleJson(scheduleObj);
             if (!m_connected) {
                 m_connected = true;
                 resetBackoff(); // Reset backoff on successful connection
@@ -118,8 +140,10 @@ void NetworkClient::onScheduleReplyFinished()
         } else {
             LOG_ERROR_CAT(QString("JSON parse error: %1").arg(error.errorString()), "Network");
             emit networkError("Failed to parse schedule JSON");
-            // Use default schedule as fallback
-            emit scheduleReceived(QTime(8, 50), QTime(15, 55), createDefaultSchedule());
+            // Try to load cached schedule, otherwise use default
+            if (!loadCachedSchedule()) {
+                emit scheduleReceived(QTime(8, 50), QTime(15, 55), createDefaultSchedule());
+            }
             if (m_connected) {
                 m_connected = false;
                 emit connectionStatusChanged(false);
@@ -132,8 +156,10 @@ void NetworkClient::onScheduleReplyFinished()
     } else {
         LOG_ERROR_CAT(QString("Network error: %1").arg(reply->errorString()), "Network");
         emit networkError("Failed to fetch schedule: " + reply->errorString());
-        // Use default schedule as fallback
-        emit scheduleReceived(QTime(8, 50), QTime(15, 55), createDefaultSchedule());
+        // Try to load cached schedule, otherwise use default
+        if (!loadCachedSchedule()) {
+            emit scheduleReceived(QTime(8, 50), QTime(15, 55), createDefaultSchedule());
+        }
         if (m_connected) {
             m_connected = false;
             emit connectionStatusChanged(false);
@@ -158,7 +184,13 @@ void NetworkClient::onMediaReplyFinished()
         QJsonDocument doc = QJsonDocument::fromJson(data, &error);
         
         if (error.error == QJsonParseError::NoError && doc.isObject()) {
-            parsePlaylistJson(doc.object());
+            QJsonObject playlistObj = doc.object();
+            
+            // Save to persistent cache
+            saveCachedPlaylist(playlistObj);
+            
+            // Parse and emit
+            parsePlaylistJson(playlistObj);
             if (!m_connected) {
                 m_connected = true;
                 emit connectionStatusChanged(true, m_serverUrl, m_hostname);
@@ -167,6 +199,8 @@ void NetworkClient::onMediaReplyFinished()
         } else {
             qDebug() << "JSON parse error:" << error.errorString();
             emit networkError("Failed to parse playlist JSON");
+            // Try to load cached playlist
+            loadCachedPlaylist();
             if (m_connected) {
                 m_connected = false;
                 emit connectionStatusChanged(false);
@@ -179,6 +213,8 @@ void NetworkClient::onMediaReplyFinished()
     } else {
         qDebug() << "Network error:" << reply->errorString();
         emit networkError("Failed to fetch playlist: " + reply->errorString());
+        // Try to load cached playlist
+        loadCachedPlaylist();
         if (m_connected) {
             m_connected = false;
             emit connectionStatusChanged(false);
@@ -612,4 +648,98 @@ void NetworkClient::increaseBackoff()
 {
     m_currentBackoffMs = qMin(m_currentBackoffMs * BACKOFF_MULTIPLIER, MAX_BACKOFF_MS);
     LOG_DEBUG_CAT(QString("Backoff increased to %1ms").arg(m_currentBackoffMs), "Network");
+}
+
+void NetworkClient::ensureCacheDir()
+{
+    QDir dir;
+    if (!dir.exists(m_cacheDir)) {
+        if (dir.mkpath(m_cacheDir)) {
+            LOG_DEBUG_CAT(QString("Created cache directory: %1").arg(m_cacheDir), "Network");
+        } else {
+            LOG_ERROR_CAT(QString("Failed to create cache directory: %1").arg(m_cacheDir), "Network");
+        }
+    }
+}
+
+void NetworkClient::saveCachedSchedule(const QJsonObject &json)
+{
+    QString schedulePath = m_cacheDir + "/schedule_cache.json";
+    QFile file(schedulePath);
+    
+    if (file.open(QIODevice::WriteOnly)) {
+        QJsonDocument doc(json);
+        file.write(doc.toJson());
+        file.close();
+        LOG_DEBUG_CAT("Saved schedule to persistent cache", "Network");
+    } else {
+        LOG_ERROR_CAT(QString("Failed to save schedule cache: %1").arg(file.errorString()), "Network");
+    }
+}
+
+void NetworkClient::saveCachedPlaylist(const QJsonObject &json)
+{
+    QString playlistPath = m_cacheDir + "/playlist_cache.json";
+    QFile file(playlistPath);
+    
+    if (file.open(QIODevice::WriteOnly)) {
+        QJsonDocument doc(json);
+        file.write(doc.toJson());
+        file.close();
+        LOG_DEBUG_CAT("Saved playlist to persistent cache", "Network");
+    } else {
+        LOG_ERROR_CAT(QString("Failed to save playlist cache: %1").arg(file.errorString()), "Network");
+    }
+}
+
+bool NetworkClient::loadCachedSchedule()
+{
+    QString schedulePath = m_cacheDir + "/schedule_cache.json";
+    QFile file(schedulePath);
+    
+    if (!file.open(QIODevice::ReadOnly)) {
+        LOG_DEBUG_CAT("No cached schedule found", "Network");
+        return false;
+    }
+    
+    QByteArray data = file.readAll();
+    file.close();
+    
+    QJsonParseError error;
+    QJsonDocument doc = QJsonDocument::fromJson(data, &error);
+    
+    if (error.error != QJsonParseError::NoError || !doc.isObject()) {
+        LOG_ERROR_CAT(QString("Failed to parse cached schedule: %1").arg(error.errorString()), "Network");
+        return false;
+    }
+    
+    LOG_INFO_CAT("Loaded schedule from persistent cache", "Network");
+    parseScheduleJson(doc.object());
+    return true;
+}
+
+bool NetworkClient::loadCachedPlaylist()
+{
+    QString playlistPath = m_cacheDir + "/playlist_cache.json";
+    QFile file(playlistPath);
+    
+    if (!file.open(QIODevice::ReadOnly)) {
+        LOG_DEBUG_CAT("No cached playlist found", "Network");
+        return false;
+    }
+    
+    QByteArray data = file.readAll();
+    file.close();
+    
+    QJsonParseError error;
+    QJsonDocument doc = QJsonDocument::fromJson(data, &error);
+    
+    if (error.error != QJsonParseError::NoError || !doc.isObject()) {
+        LOG_ERROR_CAT(QString("Failed to parse cached playlist: %1").arg(error.errorString()), "Network");
+        return false;
+    }
+    
+    LOG_INFO_CAT("Loaded playlist from persistent cache", "Network");
+    parsePlaylistJson(doc.object());
+    return true;
 }
