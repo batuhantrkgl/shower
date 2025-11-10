@@ -19,18 +19,17 @@ struct SpecialEvent {
     bool muted;         // Whether to mute any playing audio
     
     // Check if this event should trigger on given date/time
-    // Returns true if we're within the event's time window (trigger time to trigger time + duration)
+    // Special playlists are active for the entire day matching the date
+    // Individual items with custom_time will play at their scheduled times
     bool shouldTrigger(const QDateTime &dateTime) const {
-        // Check date match
+        // Check date match - event is active for the entire day
         if (year != 0 && dateTime.date().year() != year) return false;
         if (month != 0 && dateTime.date().month() != month) return false;
         if (day != 0 && dateTime.date().day() != day) return false;
         
-        // Check if current time is within event window
-        QDateTime eventStart = QDateTime(dateTime.date(), triggerTime);
-        QDateTime eventEnd = eventStart.addSecs(durationSecs);
-        
-        return dateTime >= eventStart && dateTime < eventEnd;
+        // If date matches, the event is active for the entire day
+        // (Individual items with custom_time are handled by the playlist logic)
+        return true;
     }
 };
 

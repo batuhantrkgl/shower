@@ -29,13 +29,22 @@ void SpecialEvents::initializeEvents()
 
 void SpecialEvents::checkForEvents(const QDateTime &currentDateTime)
 {
-    // If an event is already active, don't check for new ones
+    // Check if the currently active event is still valid for this date
     if (m_activeEvent) {
-        return;
+        // If the active event's date no longer matches, deactivate it
+        if (!m_activeEvent->shouldTrigger(currentDateTime)) {
+            LOG_INFO_CAT(QString("Active event %1 is no longer valid for current date, deactivating")
+                .arg(m_activeEvent->title), "SpecialEvents");
+            deactivateEvent();
+        } else {
+            // Event is still active for this date, no need to check for new ones
+            return;
+        }
     }
     
+    // Check for new events
     for (const SpecialEvent &event : m_events) {
-        // Use the shouldTrigger method which handles year/month/day/time matching
+        // Use the shouldTrigger method which handles year/month/day matching
         if (event.shouldTrigger(currentDateTime)) {
             LOG_INFO_CAT(QString("Triggering special event: %1 (Date: %2-%3-%4, Time: %5)")
                 .arg(event.title)
@@ -63,11 +72,17 @@ void SpecialEvents::activateEvent(const SpecialEvent &event)
             for (const MediaItem &item : m_activePlaylist.items) {
                 totalDuration += item.duration;
             }
-            // Start timer to end the event based on playlist duration
-            m_eventTimer->start(totalDuration);
-            LOG_INFO_CAT(QString("Event activated: %1 with playlist (duration: %2ms)")
+            // Special playlists are active for the entire day, not just for the duration
+            // The event will automatically deactivate at midnight when the date no longer matches
+            LOG_INFO_CAT(QString("Event activated: %1 with playlist for the entire day (playlist duration: %2ms)")
                 .arg(event.title)
                 .arg(totalDuration), "SpecialEvents");
+            
+            // Calculate time until midnight to set a timer
+            QDateTime now = QDateTime::currentDateTime();
+            QDateTime midnight = QDateTime(now.date().addDays(1), QTime(0, 0));
+            qint64 msUntilMidnight = now.msecsTo(midnight);
+            m_eventTimer->start(msUntilMidnight);
         } else {
             // Fallback to duration if playlist loading failed
             m_eventTimer->start(event.durationSecs * 1000);
