@@ -68,7 +68,6 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal for
     setWindowTitle("Video Timeline");
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
     QWidget *centralWidget = new QWidget(this);
-    centralWidget->installEventFilter(this);
     QString mainStyle = QString(
         "QWidget {"
             "background-color: %1;"
@@ -247,6 +246,7 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal for
     
     // Configure window
     setCentralWidget(centralWidget);
+    centralWidget->installEventFilter(this);
     QScreen *primaryScreen = QApplication::primaryScreen();
     if (primaryScreen) {
         setGeometry(primaryScreen->geometry());

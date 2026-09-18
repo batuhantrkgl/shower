@@ -50,16 +50,16 @@ protected:
     void keyPressEvent(QKeyEvent *event) override;
 
 private:
-    VideoWidget *m_videoWidget;
-    TimelineWidget *m_timelineWidget;
-    StatusBar *m_statusBar;
-    ActivityOverlay *m_activityOverlay;
-    DiagnosticsOverlay *m_diagnosticsOverlay;
-    NetworkClient *m_networkClient;
-    MediaCache *m_mediaCache;
-    SpecialEvents *m_specialEvents;
-    QTimer *m_updateTimer;
-    QTimer *m_diagnosticsTimer;
+    VideoWidget *m_videoWidget = nullptr;
+    TimelineWidget *m_timelineWidget = nullptr;
+    StatusBar *m_statusBar = nullptr;
+    ActivityOverlay *m_activityOverlay = nullptr;
+    DiagnosticsOverlay *m_diagnosticsOverlay = nullptr;
+    NetworkClient *m_networkClient = nullptr;
+    MediaCache *m_mediaCache = nullptr;
+    SpecialEvents *m_specialEvents = nullptr;
+    QTimer *m_updateTimer = nullptr;
+    QTimer *m_diagnosticsTimer = nullptr;
     QTime m_schoolStartTime;
     QTime m_schoolEndTime;
     bool m_scheduleLoaded = false;
