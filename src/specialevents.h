@@ -41,8 +41,8 @@ public:
     explicit SpecialEvents(QObject *parent = nullptr);
     
     void checkForEvents(const QDateTime &currentDateTime);
-    bool isEventActive() const { return m_activeEvent != nullptr; }
-    const SpecialEvent* getActiveEvent() const { return m_activeEvent; }
+    bool isEventActive() const { return m_hasActiveEvent; }
+    const SpecialEvent* getActiveEvent() const { return m_hasActiveEvent ? &m_activeEvent : nullptr; }
     MediaItem getEventMediaItem() const;
     MediaPlaylist getEventPlaylist() const;
     void addCustomEvent(const SpecialEvent &event);
@@ -59,7 +59,8 @@ private:
     MediaPlaylist loadPlaylistFromFile(const QString &filePath) const;
     
     QList<SpecialEvent> m_events;
-    const SpecialEvent *m_activeEvent = nullptr;
+    SpecialEvent m_activeEvent;
+    bool m_hasActiveEvent = false;
     QTimer *m_eventTimer = nullptr;
     QDateTime m_eventStartTime;
     MediaPlaylist m_activePlaylist;

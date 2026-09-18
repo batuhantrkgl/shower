@@ -37,7 +37,12 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal for
             int day = dateParts[0].toInt();
             int month = dateParts[1].toInt();
             int year = dateParts[2].toInt();
-            m_testDate = QDate(year, month, day);
+            if (year == 0) {
+                // Year 0 signifies "every year" - use current year for date validity check
+                m_testDate = QDate(QDate::currentDate().year(), month, day);
+            } else {
+                m_testDate = QDate(year, month, day);
+            }
             if (m_testDate.isValid()) {
                 LOG_INFO_CAT(QString("Using forced test date: %1").arg(m_testDate.toString("yyyy-MM-dd")), "Main");
             } else {
@@ -61,8 +66,8 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal for
 
     setWindowTitle("Video Timeline");
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
-    setAttribute(Qt::WA_DeleteOnClose);
     QWidget *centralWidget = new QWidget(this);
+    centralWidget->installEventFilter(this);
     QString mainStyle = QString(
         "QWidget {"
             "background-color: %1;"
@@ -280,7 +285,7 @@ void MainWindow::updateUIState()
         return;
     }
 
-    QTime currentTime = m_testTime.isValid() ? m_testTime : QTime::currentTime();
+    QTime currentTime = m_testTime.isValid() ? m_testTime : (m_networkClient ? m_networkClient->getCurrentDateTime().time() : QTime::currentTime());
 
     if (currentTime < m_schoolStartTime || currentTime > m_schoolEndTime) {
         m_timelineWidget->updateCurrentTime(QTime());
@@ -460,10 +465,6 @@ void MainWindow::onSpecialEventTriggered(const SpecialEvent &event)
     eventPlaylist.isSpecial = true;
     eventPlaylist.currentIndex = 0;
     
-    // Send to video widget to display
-    if (m_videoWidget) {
-        m_videoWidget->onPlaylistReceived(eventPlaylist);
-    }
     // Notify main window (to hide UI) and send to video widget to display
     onPlaylistReceived(eventPlaylist);
     

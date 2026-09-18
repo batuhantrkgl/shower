@@ -123,10 +123,13 @@ while IFS= read -r FILE; do
     }"
 done < <(find "$MEDIA_FOLDER" -maxdepth 1 -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.gif" -o -iname "*.bmp" -o -iname "*.webp" -o -iname "*.mp4" -o -iname "*.avi" -o -iname "*.mkv" -o -iname "*.mov" -o -iname "*.webm" -o -iname "*.flv" -o -iname "*.wmv" \) | sort)
 
+# Escape quotes in title
+ESCAPED_TITLE=$(echo "$EVENT_TITLE" | sed 's/"/\\"/g')
+
 # Build complete JSON
 JSON_OUTPUT="{
   \"special\": true,
-  \"title\": \"$EVENT_TITLE\",
+  \"title\": \"$ESCAPED_TITLE\",
   \"date\": \"$EVENT_DATE\",
   \"items\": [$ITEMS
   ]
@@ -167,5 +170,5 @@ echo ""
 echo -e "${GREEN}✓ Successfully created: ${OUTPUT_FILE}${NC}"
 echo ""
 echo -e "${CYAN}To test this special event, run:${NC}"
-DATE_FORMATTED=$(echo "$EVENT_DATE" | sed 's/-/:/g')
+DATE_FORMATTED=$(echo "$EVENT_DATE" | awk -F'-' '{print $3":"$2":"$1}')
 echo -e "  ${YELLOW}./run.sh --date $DATE_FORMATTED --time $EVENT_TIME${NC}"

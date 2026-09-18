@@ -4,7 +4,7 @@ TARGET = VideoTimeline
 TEMPLATE = app
 
 # The C++ standard to use.
-CONFIG += c++11
+CONFIG += c++17
 
 # --- Build Output Directory ---
 DESTDIR = out
@@ -16,7 +16,7 @@ UI_DIR = out/ui
 # --- Start of Versioning Edit ---
 
 # Base version number
-VERSION = 1.1.0
+VERSION = 3.0.0
 
 # --- FIX: Use space-free ISO 8601 format to avoid shell parsing errors ---
 # This command is much more reliable across different shells.
@@ -40,14 +40,29 @@ SOURCES += \
     mainwindow.cpp \
     videowidget.cpp \
     timelinewidget.cpp \
+    activityoverlay.cpp \
     networkclient.cpp \
-    mediaplayer.cpp
+    mediaplayer.cpp \
+    statusbar.cpp \
+    mediacache.cpp \
+    logger.cpp \
+    diagnosticsoverlay.cpp \
+    specialevents.cpp
 
 HEADERS += \
     mainwindow.h \
     videowidget.h \
     timelinewidget.h \
+    activityoverlay.h \
     networkclient.h \
     md3colors.h \
     mediaplayer.h \
-    qt6compat.h
+    qt6compat.h \
+    statusbar.h \
+    mediacache.h \
+    logger.h \
+    diagnosticsoverlay.h \
+    specialevents.h
+
+RESOURCES += \
+    icons.qrc

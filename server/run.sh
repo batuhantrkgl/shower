@@ -13,10 +13,13 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 # Configuration
 DEFAULT_PORT=3232
-SERVER_BINARY="./build/server/server"
-BUILD_SCRIPT="../scripts/server-build.sh"
+SERVER_BINARY="$REPO_ROOT/build/server/server"
+BUILD_SCRIPT="$REPO_ROOT/scripts/server-build.sh"
 
 # Function to print colored output
 print_info() {
@@ -159,9 +162,9 @@ check_status() {
 
 # Function to kill running servers
 kill_servers() {
-    print_info "Looking for running server processes..."
+    print_info "Looking for running VideoTimeline server processes..."
 
-    local pids=$(pgrep -f "server" 2>/dev/null || true)
+    local pids=$(pgrep -f "$SERVER_BINARY" 2>/dev/null || pgrep -f "build/server/server" 2>/dev/null || true)
 
     if [ -z "$pids" ]; then
         print_info "No running server processes found"
@@ -174,7 +177,7 @@ kill_servers() {
 
     # Wait a moment and check again
     sleep 1
-    pids=$(pgrep -f "server" 2>/dev/null || true)
+    pids=$(pgrep -f "$SERVER_BINARY" 2>/dev/null || pgrep -f "build/server/server" 2>/dev/null || true)
     if [ -z "$pids" ]; then
         print_success "All server processes killed"
     else

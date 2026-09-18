@@ -7,6 +7,7 @@
 #include <QDebug>
 #include <QNetworkRequest>
 #include <QUrl>
+#include <QSaveFile>
 
 MediaCache::MediaCache(QObject *parent)
     : QObject(parent)
@@ -74,7 +75,9 @@ QString MediaCache::getCachedPath(const QString &url)
         } else {
             // File was deleted, remove from cache
             m_cache.remove(key);
+            m_stats.totalSize = calculateCurrentSize();
             m_stats.itemCount = m_cache.size();
+            emit cacheUpdated();
         }
     }
     
@@ -107,6 +110,10 @@ void MediaCache::cacheFile(const QString &url, const QByteArray &data)
     
     // Evict items if needed to make room
     qint64 dataSize = data.size();
+    if (dataSize <= 0 || dataSize > m_maxSize) {
+        qWarning() << "Cache: File size exceeds max cache size or is invalid:" << dataSize;
+        return;
+    }
     while (calculateCurrentSize() + dataSize > m_maxSize && !m_cache.isEmpty()) {
         evictLRU();
     }
@@ -161,7 +168,7 @@ void MediaCache::prefetchUrl(const QString &url)
 
 bool MediaCache::isCached(const QString &url) const
 {
-    QMutexLocker locker(const_cast<QMutex*>(&m_mutex));
+    QMutexLocker locker(&m_mutex);
     QString key = generateCacheKey(url);
     
     if (m_cache.contains(key)) {
@@ -336,12 +343,14 @@ void MediaCache::saveCacheIndex()
     
     QJsonDocument doc(root);
     
-    QFile file(indexPath);
+    QSaveFile file(indexPath);
     if (file.open(QIODevice::WriteOnly)) {
         file.write(doc.toJson());
-        file.close();
+        if (!file.commit()) {
+            qWarning() << "Cache: Failed to commit index file";
+        }
     } else {
-        qWarning() << "Cache: Failed to save index file";
+        qWarning() << "Cache: Failed to save index file:" << file.errorString();
     }
 }
 

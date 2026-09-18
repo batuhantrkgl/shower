@@ -126,6 +126,7 @@ private:
     
     // Test date/time simulation
     QDateTime m_testDateTime; // Test date/time for simulation (if valid)
+    QDateTime m_testTimeSetAt; // When test date/time was configured
     bool m_useTestDateTime = false; // Whether to use test date/time
     
     // Server discovery helpers

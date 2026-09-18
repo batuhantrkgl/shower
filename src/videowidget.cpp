@@ -27,13 +27,34 @@ VideoWidget::VideoWidget(MediaCache *cache, QWidget *parent)
     m_fallbackLabel = new QLabel(this);
     m_fallbackLabel->setAlignment(Qt::AlignCenter);
     m_fallbackLabel->setScaledContents(false); // Don't stretch - we'll handle scaling manually
-    // QPixmap fallbackPixmap("media/default.jpeg");
-    // if(fallbackPixmap.isNull()) {
+    
+    QStringList possibleFallbackPaths = {
+        "data/media/default.png",
+        QCoreApplication::applicationDirPath() + "/../data/media/default.png",
+        QCoreApplication::applicationDirPath() + "/data/media/default.png",
+        QCoreApplication::applicationDirPath() + "/media/default.png",
+        "media/default.png",
+        "media/default.jpeg"
+    };
+    
+    QPixmap fallbackPixmap;
+    for (const QString &path : possibleFallbackPaths) {
+        if (QFile::exists(path)) {
+            fallbackPixmap.load(path);
+            if (!fallbackPixmap.isNull()) {
+                LOG_INFO_CAT(QString("Loaded fallback image from %1").arg(path), "VideoWidget");
+                break;
+            }
+        }
+    }
+    
+    if (!fallbackPixmap.isNull()) {
+        m_fallbackLabel->setPixmap(fallbackPixmap);
+    } else {
         LOG_DEBUG_CAT("No fallback image loaded", "VideoWidget");
-        m_fallbackLabel->setText("Fallback image not found!");
-    // } else {
-    //     m_fallbackLabel->setPixmap(fallbackPixmap);
-    // }
+        m_fallbackLabel->setStyleSheet("color: #666666; font-size: 16px; background-color: #000000;");
+        m_fallbackLabel->setText("VideoTimeline");
+    }
 
     // --- Layout to Switch Between Video and Image ---
     m_mainLayout = new QStackedLayout(this);
@@ -80,7 +101,10 @@ void VideoWidget::onMediaChanged(const MediaItem &item)
 
 void VideoWidget::onNetworkError(const QString &error)
 {
-    qDebug() << "VideoWidget received network error:" << error;
-    m_mediaPlayer->stop();
-    m_mainLayout->setCurrentWidget(m_fallbackLabel); // Show the fallback image on any error
+    LOG_WARNING_CAT(QString("VideoWidget received network error: %1").arg(error), "VideoWidget");
+    // Transient network issues (e.g. ping timeout or periodic fetch retry) should not disrupt ongoing media playback.
+    // If no media is currently playing, keep the fallback screen visible.
+    if (!m_mediaPlayer) {
+        m_mainLayout->setCurrentWidget(m_fallbackLabel);
+    }
 }

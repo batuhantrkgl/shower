@@ -6,6 +6,7 @@
 #include <QJsonArray>
 #include <QDir>
 #include <QFileInfo>
+#include <QCoreApplication>
 
 SpecialEvents::SpecialEvents(QObject *parent)
     : QObject(parent)
@@ -16,8 +17,23 @@ SpecialEvents::SpecialEvents(QObject *parent)
     
     initializeEvents();
     
-    // Try to load special playlists from data directory
-    loadSpecialPlaylistsFromDirectory("data");
+    // Try to load special playlists from data directory with robust fallbacks
+    QStringList searchDirs = {
+        "data",
+        QCoreApplication::applicationDirPath() + "/../data",
+        QCoreApplication::applicationDirPath() + "/data"
+    };
+    bool loaded = false;
+    for (const QString &dirPath : searchDirs) {
+        if (QDir(dirPath).exists()) {
+            loadSpecialPlaylistsFromDirectory(dirPath);
+            loaded = true;
+            break;
+        }
+    }
+    if (!loaded) {
+        LOG_WARNING_CAT("Special playlists directory not found in any standard location", "SpecialEvents");
+    }
 }
 
 void SpecialEvents::initializeEvents()
@@ -30,11 +46,11 @@ void SpecialEvents::initializeEvents()
 void SpecialEvents::checkForEvents(const QDateTime &currentDateTime)
 {
     // Check if the currently active event is still valid for this date
-    if (m_activeEvent) {
+    if (m_hasActiveEvent) {
         // If the active event's date no longer matches, deactivate it
-        if (!m_activeEvent->shouldTrigger(currentDateTime)) {
+        if (!m_activeEvent.shouldTrigger(currentDateTime)) {
             LOG_INFO_CAT(QString("Active event %1 is no longer valid for current date, deactivating")
-                .arg(m_activeEvent->title), "SpecialEvents");
+                .arg(m_activeEvent.title), "SpecialEvents");
             deactivateEvent();
         } else {
             // Event is still active for this date, no need to check for new ones
@@ -60,7 +76,8 @@ void SpecialEvents::checkForEvents(const QDateTime &currentDateTime)
 
 void SpecialEvents::activateEvent(const SpecialEvent &event)
 {
-    m_activeEvent = &event;
+    m_activeEvent = event;
+    m_hasActiveEvent = true;
     m_eventStartTime = QDateTime::currentDateTime();
     
     // Load playlist if available
@@ -102,13 +119,13 @@ void SpecialEvents::activateEvent(const SpecialEvent &event)
 
 void SpecialEvents::deactivateEvent()
 {
-    if (!m_activeEvent) {
+    if (!m_hasActiveEvent) {
         return;
     }
     
-    LOG_INFO_CAT(QString("Event ended: %1").arg(m_activeEvent->title), "SpecialEvents");
+    LOG_INFO_CAT(QString("Event ended: %1").arg(m_activeEvent.title), "SpecialEvents");
     
-    m_activeEvent = nullptr;
+    m_hasActiveEvent = false;
     m_eventStartTime = QDateTime();
     m_activePlaylist = MediaPlaylist(); // Clear playlist
     
@@ -117,15 +134,15 @@ void SpecialEvents::deactivateEvent()
 
 MediaItem SpecialEvents::getEventMediaItem() const
 {
-    if (!m_activeEvent) {
+    if (!m_hasActiveEvent) {
         return MediaItem();
     }
     
     MediaItem item;
     item.type = "image";
-    item.url = m_activeEvent->imageUrl;
-    item.duration = m_activeEvent->durationSecs * 1000;  // Convert to milliseconds
-    item.muted = m_activeEvent->muted;
+    item.url = m_activeEvent.imageUrl;
+    item.duration = m_activeEvent.durationSecs * 1000;  // Convert to milliseconds
+    item.muted = m_activeEvent.muted;
     
     return item;
 }
@@ -143,7 +160,7 @@ void SpecialEvents::addCustomEvent(const SpecialEvent &event)
 
 MediaPlaylist SpecialEvents::getEventPlaylist() const
 {
-    if (!m_activeEvent) {
+    if (!m_hasActiveEvent) {
         return MediaPlaylist();
     }
     
@@ -156,9 +173,9 @@ MediaPlaylist SpecialEvents::getEventPlaylist() const
     MediaPlaylist playlist;
     MediaItem item;
     item.type = "image";
-    item.url = m_activeEvent->imageUrl;
-    item.duration = m_activeEvent->durationSecs * 1000;
-    item.muted = m_activeEvent->muted;
+    item.url = m_activeEvent.imageUrl;
+    item.duration = m_activeEvent.durationSecs * 1000;
+    item.muted = m_activeEvent.muted;
     playlist.items.append(item);
     return playlist;
 }
@@ -237,7 +254,8 @@ void SpecialEvents::loadSpecialPlaylistsFromDirectory(const QString &dirPath)
         event.durationSecs = 0;
         for (const QJsonValue &itemValue : items) {
             QJsonObject itemObj = itemValue.toObject();
-            event.durationSecs += itemObj["duration"].toInt() / 1000; // Convert ms to seconds
+            int dur = itemObj["duration"].toInt();
+            event.durationSecs += (dur > 0) ? (dur / 1000) : 180;
         }
         
         if (event.triggerTime.isValid() && event.month > 0 && event.day > 0) {

@@ -13,7 +13,9 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-BUILD_DIR="build"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+BUILD_DIR="$REPO_ROOT/build"
 CMAKE_BUILD_DIR="$BUILD_DIR/cmake"
 
 # Function to print colored output
@@ -86,14 +88,16 @@ build_project() {
 
     # Configure project
     print_info "Configuring project with CMake..."
-    cmake ../.. -DCMAKE_BUILD_TYPE=Release
+    cmake "$REPO_ROOT" -DCMAKE_BUILD_TYPE=Release
 
     # Build project
     print_info "Compiling project..."
     cmake --build . --config Release -j$(nproc 2>/dev/null || echo 4)
 
     # Go back to project root
-    cd ../..
+    cd "$REPO_ROOT"
+
+    mkdir -p "$BUILD_DIR/server"
 
     # Copy binaries to build directory
     if [ -f "$CMAKE_BUILD_DIR/bin/VideoTimeline" ]; then

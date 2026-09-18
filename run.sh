@@ -13,11 +13,11 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# Configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEFAULT_SERVER_HOST="localhost"
 DEFAULT_SERVER_PORT=3232
-APP_BINARY="./build/VideoTimeline"
-SERVER_RUN_SCRIPT="./server/run.sh"
+APP_BINARY="$SCRIPT_DIR/build/VideoTimeline"
+SERVER_RUN_SCRIPT="$SCRIPT_DIR/server/run.sh"
 
 # Printer helpers
 print_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
@@ -173,6 +173,17 @@ main() {
 
     export VIDEOTIMELINE_SERVER_HOST="$server_host"
     export VIDEOTIMELINE_SERVER_PORT="$server_port"
+
+    local has_network=false
+    for arg in "${app_args[@]}"; do
+        if [[ "$arg" == "--network" ]]; then
+            has_network=true
+            break
+        fi
+    done
+    if [ "$has_network" = false ] && [ -n "$server_host" ]; then
+        app_args+=("--network" "$server_host:$server_port")
+    fi
 
     print_info "Starting VideoTimeline Application..."
     print_info "Connecting to server at $server_host:$server_port"

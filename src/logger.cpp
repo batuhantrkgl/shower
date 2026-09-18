@@ -157,14 +157,14 @@ void Logger::log(LogLevel level, const QString &message, const QString &category
         case LogLevel::Debug:
             qDebug().noquote() << formattedMessage;
             break;
-    }
-    
     // Write to file if enabled
     if (m_fileLoggingEnabled) {
         writeToFile(formattedMessage);
     }
     
-    // Emit signal for UI consumption
+    locker.unlock();
+    
+    // Emit signal for UI consumption outside the mutex
     emit logMessageEmitted(level, formattedMessage);
 }
 
@@ -211,12 +211,12 @@ QString Logger::levelToString(LogLevel level)
 
 void Logger::writeToFile(const QString &formattedMessage)
 {
-    if (!m_logStream || !m_logFile) {
-        return;
-    }
-    
     // Check if rotation is needed
     rotateLogIfNeeded();
+    
+    if (!m_logStream || !m_logFile || !m_logFile->isOpen()) {
+        return;
+    }
     
     // Write message
     *m_logStream << formattedMessage << "\n";
@@ -262,6 +262,11 @@ void Logger::rotateLogIfNeeded()
         m_logFile = new QFile(baseName + ".log");
         if (m_logFile->open(QIODevice::Append | QIODevice::Text)) {
             m_logStream = new QTextStream(m_logFile);
+        } else {
+            qWarning() << "Logger: Failed to open new rotated log file:" << m_logFile->errorString();
+            delete m_logFile;
+            m_logFile = nullptr;
+            m_fileLoggingEnabled = false;
         }
         
         cleanupOldLogs();

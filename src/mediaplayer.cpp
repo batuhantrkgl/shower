@@ -30,6 +30,9 @@ MediaPlayer::MediaPlayer(QVideoWidget *videoOutput, QLabel *imageLabel, QStacked
     , m_waitingForVideoToLoad(false)
     , m_hwDecodeEnabled(false)
     , m_currentFps(0.0)
+    , m_imageNetworkManager(new QNetworkAccessManager(this))
+    , m_lastTriggeredMinuteKey(-1)
+    , m_lastTriggeredIndex(-1)
 {
     // Initialize media player
     m_player = new QMediaPlayer(this);
@@ -118,6 +121,8 @@ void MediaPlayer::setPlaylist(const MediaPlaylist &playlist)
     stop();
     m_playlist = playlist;
     m_playlist.currentIndex = 0;
+    m_lastTriggeredMinuteKey = -1;
+    m_lastTriggeredIndex = -1;
     LOG_INFO_CAT(QString("Playlist set with %1 items").arg(m_playlist.items.size()), "MediaPlayer");
 }
 
@@ -153,6 +158,11 @@ void MediaPlayer::stop()
     m_imageTimer->stop();
     m_screenTimer->stop();
     m_clockTimer->stop();
+    if (m_fadeAnimation) {
+        m_fadeAnimation->stop();
+    }
+    m_isFading = false;
+    m_waitingForVideoToLoad = false;
 }
 
 void MediaPlayer::next()
@@ -187,6 +197,10 @@ void MediaPlayer::next()
     if (m_playlist.isSpecial && nextIndex >= size) {
         LOG_INFO_CAT("Special playlist finished", "MediaPlayer");
         m_isPlaying = false;
+        m_clockTimer->stop();
+        m_imageTimer->stop();
+        m_screenTimer->stop();
+        m_player->stop();
         emit playlistFinished();
         return;
     }
@@ -324,9 +338,8 @@ void MediaPlayer::loadImage(const QString &url)
     
     // If it's a network URL, download the image
     if (url.startsWith("http://") || url.startsWith("https://")) {
-        QNetworkAccessManager *manager = new QNetworkAccessManager(this);
         QNetworkRequest request = createNetworkRequest(url);
-        QNetworkReply *reply = manager->get(request);
+        QNetworkReply *reply = m_imageNetworkManager->get(request);
         
         connect(reply, &QNetworkReply::finished, this, [this, reply, url]() {
             if (reply->error() == QNetworkReply::NoError) {
@@ -395,16 +408,26 @@ void MediaPlayer::checkScheduledItems()
     if (!m_playlist.isSpecial || !m_isPlaying) return;
 
     QTime now = QTime::currentTime();
+    int currentMinuteKey = now.hour() * 60 + now.minute();
+
     // Check each item for a matching customTime
     for (int i = 0; i < m_playlist.items.size(); ++i) {
         const MediaItem &mi = m_playlist.items.at(i);
         if (!mi.hasCustomTime) continue;
         if (mi.customTime.hour() == now.hour() && mi.customTime.minute() == now.minute()) {
+            // Check if this item has already triggered in this minute
+            if (m_lastTriggeredMinuteKey == currentMinuteKey && m_lastTriggeredIndex == i) {
+                return;
+            }
+
             // Found an item that should play now
             // If we're already playing that item, ignore
             if (m_playlist.currentIndex == i && !m_playingCustomItem) {
                 return;
             }
+
+            m_lastTriggeredMinuteKey = currentMinuteKey;
+            m_lastTriggeredIndex = i;
 
             // Interrupt current playback and play this item
             LOG_INFO_CAT(QString("Interrupting for scheduled media at %1: %2").arg(mi.customTime.toString("HH:mm")).arg(mi.url), "MediaPlayer");
@@ -573,7 +596,7 @@ void MediaPlayer::captureScreen()
 
     QPixmap scaledScreenshot = screenshot.scaled(labelSize,
                                                Qt::KeepAspectRatio,
-                                               Qt::SmoothTransformation);
+                                               Qt::FastTransformation);
 
     m_screenLabel->setPixmap(scaledScreenshot);
     qDebug() << "Screen displayed on label, scaled to:" << scaledScreenshot.size();
@@ -665,6 +688,10 @@ void MediaPlayer::onFadeOutFinished()
         LOG_INFO_CAT("Special playlist finished (during fade)", "MediaPlayer");
         m_isFading = false;
         m_isPlaying = false;
+        m_clockTimer->stop();
+        m_imageTimer->stop();
+        m_screenTimer->stop();
+        m_player->stop();
         emit playlistFinished();
         return;
     }

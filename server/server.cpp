@@ -4,6 +4,7 @@
 #include <QTcpSocket>
 #include <QDir>
 #include <QFile>
+#include <QSaveFile>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -48,25 +49,46 @@ QString HttpServer::getCurrentTimestamp() {
 }
 
 HttpServer::HttpServer(QObject *parent) : QObject(parent), port(3232) {
-        dataDir = DATA_DIR;
-        mediaDir = MEDIA_DIR;
-        server = new QTcpServer(this);
-        connect(server, &QTcpServer::newConnection, this, &HttpServer::handleNewConnection);
-        
-        // Setup directories
-        QDir().mkpath(dataDir);
-        QDir().mkpath(mediaDir);
-        
-        log(INFO, "Server initialized");
-        log(INFO, QString("Media directory: %1").arg(mediaDir));
-        log(INFO, QString("Data directory: %1").arg(dataDir));
-        
-        // Create default schedule if needed
-        ensureDefaultSchedule();
-        
-        // Generate playlist from media folder only if needed
-        ensurePlaylist();
+    cachedHostname = QHostInfo::localHostName();
+    
+    // Check if compile-time DATA_DIR exists, else fallback to application relative path
+    QString candidateData = DATA_DIR;
+    if (!QDir(candidateData).exists()) {
+        QString appDir = QCoreApplication::applicationDirPath();
+        if (QDir(appDir + "/../data").exists()) {
+            candidateData = appDir + "/../data";
+        } else if (QDir(appDir + "/data").exists()) {
+            candidateData = appDir + "/data";
+        }
     }
+    dataDir = QDir(candidateData).canonicalPath();
+    if (dataDir.isEmpty()) {
+        dataDir = candidateData;
+    }
+
+    QString candidateMedia = dataDir + "/media";
+    mediaDir = QDir(candidateMedia).canonicalPath();
+    if (mediaDir.isEmpty()) {
+        mediaDir = candidateMedia;
+    }
+
+    server = new QTcpServer(this);
+    connect(server, &QTcpServer::newConnection, this, &HttpServer::handleNewConnection);
+    
+    // Setup directories
+    QDir().mkpath(dataDir);
+    QDir().mkpath(mediaDir);
+    
+    log(INFO, "Server initialized");
+    log(INFO, QString("Media directory: %1").arg(mediaDir));
+    log(INFO, QString("Data directory: %1").arg(dataDir));
+    
+    // Create default schedule if needed
+    ensureDefaultSchedule();
+    
+    // Generate playlist from media folder only if needed
+    ensurePlaylist();
+}
 
 HttpServer::~HttpServer() {
     // QTcpServer is a child object and will be deleted automatically
@@ -84,165 +106,125 @@ bool HttpServer::listen(quint16 p) {
     }
 
 void HttpServer::handleNewConnection() {
-        QTcpSocket *socket = server->nextPendingConnection();
-        QString clientIP = socket->peerAddress().toString();
-        log(INFO, QString("New connection from %1:%2").arg(clientIP).arg(socket->peerPort()));
-        
-        connect(socket, &QTcpSocket::readyRead, [this, socket]() {
-            handleRequest(socket);
-        });
-        connect(socket, &QTcpSocket::disconnected, [this, socket, clientIP]() {
-            log(INFO, QString("Connection closed from %1").arg(clientIP));
-            socket->deleteLater();
-        });
+    QTcpSocket *socket = server->nextPendingConnection();
+    if (!socket) {
+        return;
     }
+    QString clientIP = socket->peerAddress().toString();
+    log(INFO, QString("New connection from %1:%2").arg(clientIP).arg(socket->peerPort()));
+    
+    connect(socket, &QTcpSocket::readyRead, [this, socket]() {
+        handleRequest(socket);
+    });
+    connect(socket, &QTcpSocket::disconnected, [this, socket, clientIP]() {
+        log(INFO, QString("Connection closed from %1").arg(clientIP));
+        clientBuffers.remove(socket);
+        socket->deleteLater();
+    });
+}
 
 void HttpServer::handleRequest(QTcpSocket *socket) {
-        QByteArray request = socket->readAll();
-        
-        // Parse request line
-        int firstSpace = request.indexOf(' ');
-        int secondSpace = request.indexOf(' ', firstSpace + 1);
-        if (firstSpace == -1 || secondSpace == -1) {
-            log(WARN, QString("Invalid request from %1 - malformed request line").arg(socket->peerAddress().toString()));
-            sendResponse(socket, "400 Bad Request", "text/plain", "Bad Request");
-            return;
-        }
-        
-        QString method = request.left(firstSpace);
-        QString path = request.mid(firstSpace + 1, secondSpace - firstSpace - 1);
-        
-        // Parse URL
-        QUrl url("http://localhost" + path);
-        QString pathStr = url.path();
-        
-        QString clientIP = socket->peerAddress().toString();
-        log(INFO, QString("Request: %1 %2 from %3").arg(method).arg(pathStr).arg(clientIP));
-        
-        if (method == "GET") {
-            handleGetRequest(socket, pathStr);
-        } else if (method == "POST") {
-            handlePostRequest(socket, pathStr, request);
-        } else if (method == "HEAD") {
-            handleHeadRequest(socket, pathStr);
-        } else {
-            log(WARN, QString("Unsupported method %1 from %2").arg(method).arg(clientIP));
-            sendResponse(socket, "405 Method Not Allowed", "text/plain", "Method Not Allowed");
+    if (!socket) return;
+    
+    QByteArray &buffer = clientBuffers[socket];
+    buffer.append(socket->readAll());
+    
+    // Check if full HTTP header has arrived
+    int headerEnd = buffer.indexOf("\r\n\r\n");
+    if (headerEnd == -1) {
+        return; // Wait for complete headers
+    }
+    
+    QByteArray headerBytes = buffer.left(headerEnd);
+    int firstSpace = headerBytes.indexOf(' ');
+    int secondSpace = headerBytes.indexOf(' ', firstSpace + 1);
+    if (firstSpace == -1 || secondSpace == -1) {
+        log(WARN, QString("Invalid request from %1 - malformed request line").arg(socket->peerAddress().toString()));
+        sendResponse(socket, "400 Bad Request", "text/plain", "Bad Request");
+        buffer.clear();
+        return;
+    }
+    
+    QString method = QString::fromLatin1(headerBytes.left(firstSpace));
+    QString path = QString::fromLatin1(headerBytes.mid(firstSpace + 1, secondSpace - firstSpace - 1));
+    
+    // Parse Content-Length for body inspection
+    int contentLength = 0;
+    int clIndex = headerBytes.indexOf("Content-Length:");
+    if (clIndex == -1) {
+        clIndex = headerBytes.indexOf("content-length:");
+    }
+    if (clIndex != -1) {
+        int clEnd = headerBytes.indexOf("\r\n", clIndex);
+        if (clEnd != -1) {
+            QByteArray clVal = headerBytes.mid(clIndex + 15, clEnd - (clIndex + 15)).trimmed();
+            contentLength = clVal.toInt();
         }
     }
+    
+    // Check if complete body has arrived
+    int totalExpected = headerEnd + 4 + contentLength;
+    if (buffer.size() < totalExpected) {
+        return; // Wait for full body
+    }
+    
+    QByteArray body = buffer.mid(headerEnd + 4, contentLength);
+    buffer.remove(0, totalExpected);
+    
+    // Parse URL
+    QUrl url("http://localhost" + path);
+    QString pathStr = url.path();
+    
+    QString clientIP = socket->peerAddress().toString();
+    log(INFO, QString("Request: %1 %2 from %3").arg(method).arg(pathStr).arg(clientIP));
+    
+    if (method == "GET") {
+        handleGetRequest(socket, pathStr);
+    } else if (method == "POST") {
+        handlePostRequest(socket, pathStr, body);
+    } else if (method == "HEAD") {
+        handleHeadRequest(socket, pathStr);
+    } else {
+        log(WARN, QString("Unsupported method %1 from %2").arg(method).arg(clientIP));
+        sendResponse(socket, "405 Method Not Allowed", "text/plain", "Method Not Allowed");
+    }
+}
 
 void HttpServer::handleGetRequest(QTcpSocket *socket, const QString &path) {
-        if (path == "/api/schedule") {
-            handleGetSchedule(socket);
-        } else if (path == "/api/media/playlist") {
-            handleGetPlaylist(socket);
-        } else if (path == "/api/time") {
-            handleGetTime(socket);
-        } else if (path == "/api/media/regenerate") {
-            generatePlaylist();
-            sendResponse(socket, "200 OK", "application/json", "{\"status\":\"success\",\"message\":\"Playlist regenerated\"}");
-        } else if (path == "/api/media/toggle-auto-regenerate") {
-            toggleAutoRegenerate(socket);
-        } else if (path == "/api/screen/toggle") {
-            toggleScreenMirroring(socket);
-        } else if (path == "/api/special/check") {
-            handleCheckSpecialEvent(socket);
-        } else if (path.startsWith("/media/")) {
-            handleGetMediaFile(socket, path);
-        } else {
-            sendResponse(socket, "404 Not Found", "text/plain", "Not Found");
-        }
+    if (path == "/api/schedule") {
+        handleGetSchedule(socket);
+    } else if (path == "/api/media/playlist") {
+        handleGetPlaylist(socket);
+    } else if (path == "/api/time") {
+        handleGetTime(socket);
+    } else if (path == "/api/media/regenerate") {
+        generatePlaylist();
+        sendResponse(socket, "200 OK", "application/json", "{\"status\":\"success\",\"message\":\"Playlist regenerated\"}");
+    } else if (path == "/api/media/toggle-auto-regenerate") {
+        toggleAutoRegenerate(socket);
+    } else if (path == "/api/screen/toggle") {
+        toggleScreenMirroring(socket);
+    } else if (path == "/api/special/check") {
+        handleCheckSpecialEvent(socket);
+    } else if (path.startsWith("/media/")) {
+        handleGetMediaFile(socket, path);
+    } else {
+        sendResponse(socket, "404 Not Found", "text/plain", "Not Found");
     }
+}
 
-void HttpServer::handlePostRequest(QTcpSocket *socket, const QString &path, const QByteArray &request) {
-        // Extract JSON body (basic implementation)
-        QByteArray body = request;
-        int bodyStart = request.indexOf("\r\n\r\n");
-        if (bodyStart != -1) {
-            body = request.mid(bodyStart + 4);
-        }
-        
-        if (path == "/api/schedule") {
-            handlePostSchedule(socket, body);
-        } else if (path == "/api/media/playlist") {
-            handlePostPlaylist(socket, body);
-        } else {
-            sendResponse(socket, "404 Not Found", "text/plain", "Not Found");
-        }
+void HttpServer::handlePostRequest(QTcpSocket *socket, const QString &path, const QByteArray &body) {
+    if (path == "/api/schedule") {
+        handlePostSchedule(socket, body);
+    } else if (path == "/api/media/playlist") {
+        handlePostPlaylist(socket, body);
+    } else {
+        sendResponse(socket, "404 Not Found", "text/plain", "Not Found");
     }
+}
 
 void HttpServer::handleHeadRequest(QTcpSocket *socket, const QString &path) {
-        if (path == "/api/schedule") {
-            // For HEAD requests, just send headers without body
-            QString filePath = dataDir + "/schedule.json";
-            QString json = readFile(filePath);
-            
-            if (json.isEmpty()) {
-                json = getDefaultSchedule();
-            }
-            
-            // Parse the JSON to add server information
-            QJsonParseError error;
-            QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
-            
-            if (error.error == QJsonParseError::NoError && doc.isObject()) {
-                QJsonObject scheduleObj = doc.object();
-                
-                // Add server information
-                QString hostname = QHostInfo::localHostName();
-                scheduleObj["server_hostname"] = hostname;
-                scheduleObj["server_ip"] = socket->localAddress().toString();
-                
-                // Re-create the document with server info
-                doc = QJsonDocument(scheduleObj);
-                json = doc.toJson(QJsonDocument::Indented);
-            }
-            
-            sendHeadResponse(socket, "200 OK", "application/json", json.size());
-        } else if (path == "/api/media/playlist") {
-            // For HEAD requests, just send headers without body
-            QString filePath = dataDir + "/playlist.json";
-            QString json = readFile(filePath);
-            
-            if (json.isEmpty()) {
-                log(WARN, "Playlist file not found for HEAD request");
-                sendHeadResponse(socket, "404 Not Found", "text/plain", 0);
-                return;
-            }
-            
-            sendHeadResponse(socket, "200 OK", "application/json", json.size());
-        } else if (path.startsWith("/media/")) {
-            QString fileName = path.mid(7); // Remove "/media/"
-            
-            // Security: prevent directory traversal
-            if (fileName.contains("..") || fileName.contains("/")) {
-                log(WARN, QString("Directory traversal attempt blocked: %1 from %2").arg(fileName).arg(socket->peerAddress().toString()));
-                sendHeadResponse(socket, "403 Forbidden", "text/plain", 0);
-                return;
-            }
-            
-            QString filePath = mediaDir + "/" + fileName;
-            
-            if (!QFile::exists(filePath)) {
-                log(WARN, QString("Requested file not found: %1 from %2").arg(filePath).arg(socket->peerAddress().toString()));
-                sendHeadResponse(socket, "404 Not Found", "text/plain", 0);
-                return;
-            }
-            
-            QFile file(filePath);
-            if (file.open(QIODevice::ReadOnly)) {
-                QString contentType = getContentType(fileName);
-                sendHeadResponse(socket, "200 OK", contentType, file.size());
-            } else {
-                log(ERROR, QString("Failed to read media file: %1").arg(filePath));
-                sendHeadResponse(socket, "500 Internal Server Error", "text/plain", 0);
-            }
-        } else {
-            sendHeadResponse(socket, "404 Not Found", "text/plain", 0);
-        }
-    }
-
-void HttpServer::handleGetSchedule(QTcpSocket *socket) {
+    if (path == "/api/schedule") {
         QString filePath = dataDir + "/schedule.json";
         QString json = readFile(filePath);
         
@@ -250,194 +232,263 @@ void HttpServer::handleGetSchedule(QTcpSocket *socket) {
             json = getDefaultSchedule();
         }
         
-        // Parse the JSON to add server information
         QJsonParseError error;
         QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
         
         if (error.error == QJsonParseError::NoError && doc.isObject()) {
             QJsonObject scheduleObj = doc.object();
-            
-            // Add server information
-            QString hostname = QHostInfo::localHostName();
-            scheduleObj["server_hostname"] = hostname;
+            scheduleObj["server_hostname"] = cachedHostname;
             scheduleObj["server_ip"] = socket->localAddress().toString();
-            
-            // Re-create the document with server info
             doc = QJsonDocument(scheduleObj);
             json = doc.toJson(QJsonDocument::Indented);
         }
         
-        sendResponse(socket, "200 OK", "application/json", json);
-    }
-
-void HttpServer::handleGetPlaylist(QTcpSocket *socket) {
-        // First check if there's an active special event
-        QString specialPlaylist = checkForActiveSpecialEvent();
-        if (!specialPlaylist.isEmpty()) {
-            log(INFO, "Serving special event playlist");
-            sendResponse(socket, "200 OK", "application/json", specialPlaylist);
-            return;
-        }
-        
-        // Otherwise serve regular playlist
+        sendHeadResponse(socket, "200 OK", "application/json", json.size());
+    } else if (path == "/api/media/playlist") {
         QString filePath = dataDir + "/playlist.json";
         QString json = readFile(filePath);
         
         if (json.isEmpty()) {
-            log(WARN, "Playlist file not found, generating new playlist");
-            generatePlaylist();
-            json = readFile(filePath);
-        } else {
-            // Check if we should auto-regenerate based on media folder changes
-            QJsonParseError error;
-            QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
-            
-            if (error.error == QJsonParseError::NoError && doc.isObject()) {
-                QJsonObject playlist = doc.object();
-                bool autoRegenerate = playlist.value("auto_regenerate").toBool(true); // Default to true for backward compatibility
-                
-                if (autoRegenerate && shouldRegeneratePlaylist()) {
-                    log(INFO, "Auto-regenerating playlist due to media folder changes");
-                    generatePlaylist();
-                    json = readFile(filePath);
-                }
-            } else {
-                log(ERROR, QString("Invalid playlist JSON, regenerating: %1").arg(error.errorString()));
-                generatePlaylist();
-                json = readFile(filePath);
-            }
+            log(WARN, "Playlist file not found for HEAD request");
+            sendHeadResponse(socket, "404 Not Found", "text/plain", 0);
+            return;
         }
         
-        sendResponse(socket, "200 OK", "application/json", json);
-    }
-
-void HttpServer::handleGetTime(QTcpSocket *socket) {
-        // Get current server time
-        QDateTime now = QDateTime::currentDateTime();
-        qint64 timestamp = now.toMSecsSinceEpoch();
-        QString isoString = now.toString(Qt::ISODate);
+        sendHeadResponse(socket, "200 OK", "application/json", json.size());
+    } else if (path.startsWith("/media/")) {
+        QString fileName = path.mid(7);
         
-        // Create JSON response with both timestamp and ISO format
-        QJsonObject timeObj;
-        timeObj["timestamp"] = timestamp;
-        timeObj["datetime"] = isoString;
-        timeObj["timezone"] = now.timeZone().displayName(QTimeZone::GenericTime, QTimeZone::DefaultName);
-        timeObj["server_hostname"] = QHostInfo::localHostName();
+        // Canonical traversal prevention
+        QFileInfo reqInfo(mediaDir + "/" + fileName);
+        QString canonicalReq = reqInfo.canonicalFilePath();
+        QString canonicalMedia = QDir(mediaDir).canonicalPath();
         
-        QJsonDocument doc(timeObj);
-        QString json = doc.toJson(QJsonDocument::Compact);
-        
-        log(DEBUG, QString("Time sync request: %1").arg(isoString));
-        sendResponse(socket, "200 OK", "application/json", json);
-    }
-
-void HttpServer::handleGetMediaFile(QTcpSocket *socket, const QString &path) {
-        QString fileName = path.mid(7); // Remove "/media/"
-        
-        // Security: prevent directory traversal
-        if (fileName.contains("..") || fileName.contains("/")) {
+        if (canonicalReq.isEmpty() || !canonicalReq.startsWith(canonicalMedia)) {
             log(WARN, QString("Directory traversal attempt blocked: %1 from %2").arg(fileName).arg(socket->peerAddress().toString()));
-            sendResponse(socket, "403 Forbidden", "text/plain", "Forbidden");
+            sendHeadResponse(socket, "403 Forbidden", "text/plain", 0);
             return;
         }
         
-        QString filePath = mediaDir + "/" + fileName;
-        
-        if (!QFile::exists(filePath)) {
-            log(WARN, QString("Requested file not found: %1 from %2").arg(filePath).arg(socket->peerAddress().toString()));
-            sendResponse(socket, "404 Not Found", "text/plain", "File Not Found");
+        if (!reqInfo.exists() || !reqInfo.isFile()) {
+            log(WARN, QString("Requested file not found: %1 from %2").arg(canonicalReq).arg(socket->peerAddress().toString()));
+            sendHeadResponse(socket, "404 Not Found", "text/plain", 0);
             return;
         }
         
-        QFile file(filePath);
-        if (file.open(QIODevice::ReadOnly)) {
-            QByteArray content = file.readAll();
-            QString contentType = getContentType(fileName);
-            log(DEBUG, QString("Serving file: %1 (%2 bytes, %3) to %4").arg(fileName).arg(content.size()).arg(contentType).arg(socket->peerAddress().toString()));
-            sendResponse(socket, "200 OK", contentType, content);
-        } else {
-            log(ERROR, QString("Failed to read media file: %1").arg(filePath));
-            sendResponse(socket, "500 Internal Server Error", "text/plain", "Could not read file");
-        }
+        QString contentType = getContentType(fileName);
+        sendHeadResponse(socket, "200 OK", contentType, reqInfo.size());
+    } else {
+        sendHeadResponse(socket, "404 Not Found", "text/plain", 0);
     }
+}
 
-void HttpServer::handlePostSchedule(QTcpSocket *socket, const QByteArray &body) {
-        QJsonParseError error;
-        QJsonDocument doc = QJsonDocument::fromJson(body, &error);
-        
-        if (error.error == QJsonParseError::NoError && doc.isObject()) {
-            QString filePath = dataDir + "/schedule.json";
-            writeFile(filePath, body);
-            log(INFO, "Schedule updated successfully");
-            sendResponse(socket, "200 OK", "application/json", "{\"status\":\"success\"}");
-        } else {
-            log(ERROR, QString("Invalid JSON in schedule update: %1").arg(error.errorString()));
-            sendResponse(socket, "400 Bad Request", "text/plain", "Invalid JSON");
-        }
+void HttpServer::handleGetSchedule(QTcpSocket *socket) {
+    QString filePath = dataDir + "/schedule.json";
+    QString json = readFile(filePath);
+    
+    if (json.isEmpty()) {
+        json = getDefaultSchedule();
     }
+    
+    QJsonParseError error;
+    QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
+    
+    if (error.error == QJsonParseError::NoError && doc.isObject()) {
+        QJsonObject scheduleObj = doc.object();
+        scheduleObj["server_hostname"] = cachedHostname;
+        scheduleObj["server_ip"] = socket->localAddress().toString();
+        doc = QJsonDocument(scheduleObj);
+        json = doc.toJson(QJsonDocument::Indented);
+    }
+    
+    sendResponse(socket, "200 OK", "application/json", json);
+}
 
-void HttpServer::handlePostPlaylist(QTcpSocket *socket, const QByteArray &body) {
+void HttpServer::handleGetPlaylist(QTcpSocket *socket) {
+    QString specialPlaylist = checkForActiveSpecialEvent();
+    if (!specialPlaylist.isEmpty()) {
+        log(INFO, "Serving special event playlist");
+        sendResponse(socket, "200 OK", "application/json", specialPlaylist);
+        return;
+    }
+    
+    QString filePath = dataDir + "/playlist.json";
+    QString json = readFile(filePath);
+    
+    if (json.isEmpty()) {
+        log(WARN, "Playlist file not found, generating new playlist");
+        generatePlaylist();
+        json = readFile(filePath);
+    } else {
         QJsonParseError error;
-        QJsonDocument doc = QJsonDocument::fromJson(body, &error);
+        QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
         
         if (error.error == QJsonParseError::NoError && doc.isObject()) {
             QJsonObject playlist = doc.object();
+            bool autoRegenerate = playlist.value("auto_regenerate").toBool(true);
             
-            // Ensure auto_regenerate field exists (default to true if not specified)
-            if (!playlist.contains("auto_regenerate")) {
-                playlist["auto_regenerate"] = true;
+            if (autoRegenerate && shouldRegeneratePlaylist()) {
+                log(INFO, "Auto-regenerating playlist due to media folder changes");
+                generatePlaylist();
+                json = readFile(filePath);
             }
-            
-            // Write the updated playlist
-            QJsonDocument updatedDoc(playlist);
-            QString filePath = dataDir + "/playlist.json";
-            writeFile(filePath, updatedDoc.toJson(QJsonDocument::Indented));
-            
-            bool autoRegenerate = playlist["auto_regenerate"].toBool();
-            QString message = QString("{\"status\":\"success\",\"auto_regenerate\":%1}").arg(autoRegenerate ? "true" : "false");
-            log(INFO, QString("Playlist updated successfully (auto_regenerate: %1)").arg(autoRegenerate ? "true" : "false"));
-            sendResponse(socket, "200 OK", "application/json", message);
         } else {
-            log(ERROR, QString("Invalid JSON in playlist update: %1").arg(error.errorString()));
-            sendResponse(socket, "400 Bad Request", "text/plain", "Invalid JSON");
+            log(ERROR, QString("Invalid playlist JSON, regenerating: %1").arg(error.errorString()));
+            generatePlaylist();
+            json = readFile(filePath);
         }
     }
+    
+    sendResponse(socket, "200 OK", "application/json", json);
+}
+
+void HttpServer::handleGetTime(QTcpSocket *socket) {
+    QDateTime now = QDateTime::currentDateTime();
+    qint64 timestamp = now.toMSecsSinceEpoch();
+    QString isoString = now.toString(Qt::ISODate);
+    
+    QJsonObject timeObj;
+    timeObj["timestamp"] = timestamp;
+    timeObj["datetime"] = isoString;
+    timeObj["timezone"] = now.timeZone().displayName(QTimeZone::GenericTime, QTimeZone::DefaultName);
+    timeObj["server_hostname"] = cachedHostname;
+    
+    QJsonDocument doc(timeObj);
+    QString json = doc.toJson(QJsonDocument::Compact);
+    
+    log(DEBUG, QString("Time sync request: %1").arg(isoString));
+    sendResponse(socket, "200 OK", "application/json", json);
+}
+
+void HttpServer::handleGetMediaFile(QTcpSocket *socket, const QString &path) {
+    QString fileName = path.mid(7);
+    
+    QFileInfo reqInfo(mediaDir + "/" + fileName);
+    QString canonicalReq = reqInfo.canonicalFilePath();
+    QString canonicalMedia = QDir(mediaDir).canonicalPath();
+    
+    if (canonicalReq.isEmpty() || !canonicalReq.startsWith(canonicalMedia)) {
+        log(WARN, QString("Directory traversal attempt blocked: %1 from %2").arg(fileName).arg(socket->peerAddress().toString()));
+        sendResponse(socket, "403 Forbidden", "text/plain", "Forbidden");
+        return;
+    }
+    
+    if (!reqInfo.exists() || !reqInfo.isFile()) {
+        log(WARN, QString("Requested file not found: %1 from %2").arg(canonicalReq).arg(socket->peerAddress().toString()));
+        sendResponse(socket, "404 Not Found", "text/plain", "File Not Found");
+        return;
+    }
+    
+    QFile file(canonicalReq);
+    if (file.open(QIODevice::ReadOnly)) {
+        QString contentType = getContentType(fileName);
+        qint64 fileSize = file.size();
+        log(DEBUG, QString("Streaming file: %1 (%2 bytes, %3) to %4").arg(fileName).arg(fileSize).arg(contentType).arg(socket->peerAddress().toString()));
+        
+        QString headers = QString("HTTP/1.1 200 OK\r\n"
+                                  "Content-Type: %1\r\n"
+                                  "Content-Length: %2\r\n"
+                                  "Connection: close\r\n"
+                                  "Access-Control-Allow-Origin: *\r\n"
+                                  "\r\n")
+                          .arg(contentType)
+                          .arg(fileSize);
+        socket->write(headers.toUtf8());
+        
+        char chunk[65536];
+        while (!file.atEnd() && socket->state() == QAbstractSocket::ConnectedState) {
+            qint64 bytesRead = file.read(chunk, sizeof(chunk));
+            if (bytesRead > 0) {
+                socket->write(chunk, bytesRead);
+                socket->waitForBytesWritten(100);
+            }
+        }
+        socket->flush();
+        socket->disconnectFromHost();
+    } else {
+        log(ERROR, QString("Failed to read media file: %1").arg(canonicalReq));
+        sendResponse(socket, "500 Internal Server Error", "text/plain", "Could not read file");
+    }
+}
+
+void HttpServer::handlePostSchedule(QTcpSocket *socket, const QByteArray &body) {
+    QJsonParseError error;
+    QJsonDocument doc = QJsonDocument::fromJson(body, &error);
+    
+    if (error.error == QJsonParseError::NoError && doc.isObject()) {
+        QString filePath = dataDir + "/schedule.json";
+        writeFile(filePath, body);
+        log(INFO, "Schedule updated successfully");
+        sendResponse(socket, "200 OK", "application/json", "{\"status\":\"success\"}");
+    } else {
+        log(ERROR, QString("Invalid JSON in schedule update: %1").arg(error.errorString()));
+        sendResponse(socket, "400 Bad Request", "text/plain", "Invalid JSON");
+    }
+}
+
+void HttpServer::handlePostPlaylist(QTcpSocket *socket, const QByteArray &body) {
+    QJsonParseError error;
+    QJsonDocument doc = QJsonDocument::fromJson(body, &error);
+    
+    if (error.error == QJsonParseError::NoError && doc.isObject()) {
+        QJsonObject playlist = doc.object();
+        
+        if (!playlist.contains("auto_regenerate")) {
+            playlist["auto_regenerate"] = true;
+        }
+        
+        QJsonDocument updatedDoc(playlist);
+        QString filePath = dataDir + "/playlist.json";
+        writeFile(filePath, updatedDoc.toJson(QJsonDocument::Indented));
+        
+        bool autoRegenerate = playlist["auto_regenerate"].toBool();
+        QString message = QString("{\"status\":\"success\",\"auto_regenerate\":%1}").arg(autoRegenerate ? "true" : "false");
+        log(INFO, QString("Playlist updated successfully (auto_regenerate: %1)").arg(autoRegenerate ? "true" : "false"));
+        sendResponse(socket, "200 OK", "application/json", message);
+    } else {
+        log(ERROR, QString("Invalid JSON in playlist update: %1").arg(error.errorString()));
+        sendResponse(socket, "400 Bad Request", "text/plain", "Invalid JSON");
+    }
+}
 
 void HttpServer::sendResponse(QTcpSocket *socket, const QString &status, const QString &contentType, const QByteArray &body) {
-        QString response = QString("HTTP/1.1 %1\r\n"
-                                  "Content-Type: %2\r\n"
-                                  "Content-Length: %3\r\n"
-                                  "Access-Control-Allow-Origin: *\r\n"
-                                  "\r\n")
-                          .arg(status)
-                          .arg(contentType)
-                          .arg(body.size());
-        
-        socket->write(response.toUtf8() + body);
-        socket->flush();
-        
-        QString clientIP = socket->peerAddress().toString();
-        log(DEBUG, QString("Response: %1 %2 (%3 bytes) to %4").arg(status).arg(contentType).arg(body.size()).arg(clientIP));
-    }
+    QString response = QString("HTTP/1.1 %1\r\n"
+                              "Content-Type: %2\r\n"
+                              "Content-Length: %3\r\n"
+                              "Connection: close\r\n"
+                              "Access-Control-Allow-Origin: *\r\n"
+                              "\r\n")
+                      .arg(status)
+                      .arg(contentType)
+                      .arg(body.size());
     
+    socket->write(response.toUtf8() + body);
+    socket->flush();
+    socket->disconnectFromHost();
+    
+    QString clientIP = socket->peerAddress().toString();
+    log(DEBUG, QString("Response: %1 %2 (%3 bytes) to %4").arg(status).arg(contentType).arg(body.size()).arg(clientIP));
+}
+
 void HttpServer::sendHeadResponse(QTcpSocket *socket, const QString &status, const QString &contentType, qint64 contentLength) {
-        QString response = QString("HTTP/1.1 %1\r\n"
-                                  "Content-Type: %2\r\n"
-                                  "Content-Length: %3\r\n"
-                                  "Access-Control-Allow-Origin: *\r\n"
-                                  "\r\n")
-                          .arg(status)
-                          .arg(contentType)
-                          .arg(contentLength);
-        
-        socket->write(response.toUtf8());
-        socket->flush();
-        
-        QString clientIP = socket->peerAddress().toString();
-        log(DEBUG, QString("HEAD Response: %1 %2 (%3 bytes) to %4").arg(status).arg(contentType).arg(contentLength).arg(clientIP));
-    }
+    QString response = QString("HTTP/1.1 %1\r\n"
+                              "Content-Type: %2\r\n"
+                              "Content-Length: %3\r\n"
+                              "Connection: close\r\n"
+                              "Access-Control-Allow-Origin: *\r\n"
+                              "\r\n")
+                      .arg(status)
+                      .arg(contentType)
+                      .arg(contentLength);
     
-// Helper overloads to avoid ambiguity
+    socket->write(response.toUtf8());
+    socket->flush();
+    socket->disconnectFromHost();
+    
+    QString clientIP = socket->peerAddress().toString();
+    log(DEBUG, QString("HEAD Response: %1 %2 (%3 bytes) to %4").arg(status).arg(contentType).arg(contentLength).arg(clientIP));
+}
+
 void HttpServer::sendResponse(QTcpSocket *socket, const QString &status, const QString &contentType, const QString &body) {
     sendResponse(socket, status, contentType, body.toUtf8());
 }
@@ -447,26 +498,30 @@ void HttpServer::sendResponse(QTcpSocket *socket, const QString &status, const Q
 }
 
 QString HttpServer::readFile(const QString &filePath) {
-        QFile file(filePath);
-        if (file.open(QIODevice::ReadOnly)) {
-            QString content = file.readAll();
-            log(DEBUG, QString("Read %1 bytes from file: %2").arg(content.size()).arg(filePath));
-            return content;
-        } else {
-            log(ERROR, QString("Failed to read file: %1").arg(filePath));
-            return QString();
-        }
+    QFile file(filePath);
+    if (file.open(QIODevice::ReadOnly)) {
+        QString content = file.readAll();
+        log(DEBUG, QString("Read %1 bytes from file: %2").arg(content.size()).arg(filePath));
+        return content;
+    } else {
+        log(ERROR, QString("Failed to read file: %1").arg(filePath));
+        return QString();
     }
+}
 
 void HttpServer::writeFile(const QString &filePath, const QByteArray &data) {
-        QFile file(filePath);
-        if (file.open(QIODevice::WriteOnly)) {
-            qint64 bytesWritten = file.write(data);
-            log(DEBUG, QString("Wrote %1 bytes to file: %2").arg(bytesWritten).arg(filePath));
+    QSaveFile file(filePath);
+    if (file.open(QIODevice::WriteOnly)) {
+        file.write(data);
+        if (file.commit()) {
+            log(DEBUG, QString("Atomically wrote %1 bytes to file: %2").arg(data.size()).arg(filePath));
         } else {
-            log(ERROR, QString("Failed to write file: %1").arg(filePath));
+            log(ERROR, QString("Failed to commit atomic save file: %1").arg(filePath));
         }
+    } else {
+        log(ERROR, QString("Failed to open save file: %1").arg(filePath));
     }
+}
 
 QString HttpServer::getContentType(const QString &fileName) {
         QString ext = fileName.mid(fileName.lastIndexOf('.') + 1).toLower();
@@ -686,192 +741,202 @@ void HttpServer::generatePlaylist() {
     }
 
 bool HttpServer::shouldRegeneratePlaylist() {
-        QString filePath = dataDir + "/playlist.json";
-        QFileInfo playlistInfo(filePath);
-        
-        if (!playlistInfo.exists()) {
-            return true;
-        }
-        
-        // Check if any media files are newer than the playlist
-        QDir dir(mediaDir);
-        QStringList filters = {"*.jpg", "*.jpeg", "*.png", "*.gif", "*.webp", "*.mp4", "*.avi", "*.mov", "*.webm"};
-        QFileInfoList files = dir.entryInfoList(filters, QDir::Files, QDir::Name);
-        
-        QDateTime playlistTime = playlistInfo.lastModified();
-        
-        for (const QFileInfo &fileInfo : files) {
-            if (fileInfo.lastModified() > playlistTime) {
-                return true; // Media file is newer than playlist
-            }
-        }
-        
-        // Check if number of media files matches playlist items
-        QString json = readFile(filePath);
-        QJsonParseError error;
-        QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
-        
-        if (error.error == QJsonParseError::NoError && doc.isObject()) {
-            QJsonObject playlist = doc.object();
-            QJsonArray items = playlist["items"].toArray();
-            
-            if (items.size() != files.size()) {
-                return true; // Number of files changed
-            }
-        }
-        
-        return false;
+    QString filePath = dataDir + "/playlist.json";
+    QFileInfo playlistInfo(filePath);
+    
+    if (!playlistInfo.exists()) {
+        return true;
     }
+    
+    // Check if any media files are newer than the playlist
+    QDir dir(mediaDir);
+    QStringList filters = {"*.jpg", "*.jpeg", "*.png", "*.gif", "*.webp", "*.mp4", "*.avi", "*.mov", "*.webm"};
+    QFileInfoList files = dir.entryInfoList(filters, QDir::Files, QDir::Name);
+    
+    QDateTime playlistTime = playlistInfo.lastModified();
+    
+    for (const QFileInfo &fileInfo : files) {
+        if (fileInfo.lastModified() > playlistTime) {
+            return true; // Media file is newer than playlist
+        }
+    }
+    
+    // Check if number of media files matches playlist items (ignoring virtual screen items)
+    QString json = readFile(filePath);
+    QJsonParseError error;
+    QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
+    
+    if (error.error == QJsonParseError::NoError && doc.isObject()) {
+        QJsonObject playlist = doc.object();
+        QJsonArray items = playlist["items"].toArray();
+        
+        int physicalItems = 0;
+        for (const QJsonValue &val : items) {
+            if (val.toObject()["type"].toString() != "screen") {
+                physicalItems++;
+            }
+        }
+        
+        if (physicalItems != files.size()) {
+            return true; // Number of physical files changed
+        }
+    }
+    
+    return false;
+}
 
 void HttpServer::toggleAutoRegenerate(QTcpSocket *socket) {
-        QString filePath = dataDir + "/playlist.json";
+    QString filePath = dataDir + "/playlist.json";
+    QString json = readFile(filePath);
+    
+    if (json.isEmpty()) {
+        log(WARN, "Playlist file not found for auto-regenerate toggle");
+        sendResponse(socket, "404 Not Found", "text/plain", "Playlist not found");
+        return;
+    }
+    
+    QJsonParseError error;
+    QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
+    
+    if (error.error != QJsonParseError::NoError || !doc.isObject()) {
+        log(ERROR, QString("Invalid playlist JSON for auto-regenerate toggle: %1").arg(error.errorString()));
+        sendResponse(socket, "400 Bad Request", "text/plain", "Invalid playlist JSON");
+        return;
+    }
+    
+    QJsonObject playlist = doc.object();
+    bool currentValue = playlist.value("auto_regenerate").toBool(true);
+    bool newValue = !currentValue;
+    
+    playlist["auto_regenerate"] = newValue;
+    
+    QJsonDocument updatedDoc(playlist);
+    writeFile(filePath, updatedDoc.toJson(QJsonDocument::Indented));
+    
+    QString message = QString("{\"status\":\"success\",\"auto_regenerate\":%1,\"message\":\"Auto-regenerate %2\"}")
+                     .arg(newValue ? "true" : "false")
+                     .arg(newValue ? "enabled" : "disabled");
+    
+    sendResponse(socket, "200 OK", "application/json", message);
+    
+    log(INFO, QString("Auto-regenerate %1").arg(newValue ? "enabled" : "disabled"));
+}
+
+void HttpServer::toggleScreenMirroring(QTcpSocket *socket) {
+    QString flagPath = dataDir + "/enable_screen_mirroring";
+    bool currentlyEnabled = QFile::exists(flagPath);
+    bool newState = !currentlyEnabled;
+    
+    if (newState) {
+        // Create the flag file to enable screen mirroring
+        QFile flagFile(flagPath);
+        if (flagFile.open(QIODevice::WriteOnly)) {
+            flagFile.write("1");
+            flagFile.close();
+            log(INFO, "Screen mirroring enabled");
+        } else {
+            log(ERROR, "Failed to create screen mirroring flag file");
+            sendResponse(socket, "500 Internal Server Error", "text/plain", "Failed to enable screen mirroring");
+            return;
+        }
+    } else {
+        // Remove the flag file to disable screen mirroring
+        if (QFile::remove(flagPath)) {
+            log(INFO, "Screen mirroring disabled");
+        } else {
+            log(ERROR, "Failed to remove screen mirroring flag file");
+            sendResponse(socket, "500 Internal Server Error", "text/plain", "Failed to disable screen mirroring");
+            return;
+        }
+    }
+    
+    // Regenerate playlist to include/exclude screen mirroring
+    generatePlaylist();
+    
+    QString message = QString("{\"status\":\"success\",\"screen_mirroring\":%1,\"message\":\"Screen mirroring %2\"}")
+                     .arg(newState ? "true" : "false")
+                     .arg(newState ? "enabled" : "disabled");
+    
+    sendResponse(socket, "200 OK", "application/json", message);
+}
+
+QString HttpServer::checkForActiveSpecialEvent() {
+    // Scan for special playlists in data directory
+    QDir dir(dataDir);
+    QStringList filters;
+    filters << "*_playlist.json";
+    QFileInfoList files = dir.entryInfoList(filters, QDir::Files);
+    
+    QDateTime currentDateTime = QDateTime::currentDateTime();
+    QDate currentDate = currentDateTime.date();
+    
+    for (const QFileInfo &fileInfo : files) {
+        QString filePath = fileInfo.absoluteFilePath();
         QString json = readFile(filePath);
         
         if (json.isEmpty()) {
-            log(WARN, "Playlist file not found for auto-regenerate toggle");
-            sendResponse(socket, "404 Not Found", "text/plain", "Playlist not found");
-            return;
+            continue;
         }
         
         QJsonParseError error;
         QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
         
         if (error.error != QJsonParseError::NoError || !doc.isObject()) {
-            log(ERROR, QString("Invalid playlist JSON for auto-regenerate toggle: %1").arg(error.errorString()));
-            sendResponse(socket, "400 Bad Request", "text/plain", "Invalid playlist JSON");
-            return;
+            continue;
         }
         
-        QJsonObject playlist = doc.object();
-        bool currentValue = playlist.value("auto_regenerate").toBool(true);
-        bool newValue = !currentValue;
+        QJsonObject obj = doc.object();
         
-        playlist["auto_regenerate"] = newValue;
-        
-        QJsonDocument updatedDoc(playlist);
-        writeFile(filePath, updatedDoc.toJson(QJsonDocument::Indented));
-        
-        QString message = QString("{\"status\":\"success\",\"auto_regenerate\":%1,\"message\":\"Auto-regenerate %2\"}")
-                         .arg(newValue ? "true" : "false")
-                         .arg(newValue ? "enabled" : "disabled");
-        
-        sendResponse(socket, "200 OK", "application/json", message);
-        
-        log(INFO, QString("Auto-regenerate %1").arg(newValue ? "enabled" : "disabled"));
-    }
-
-void HttpServer::toggleScreenMirroring(QTcpSocket *socket) {
-        QString flagPath = dataDir + "/enable_screen_mirroring";
-        bool currentlyEnabled = QFile::exists(flagPath);
-        bool newState = !currentlyEnabled;
-        
-        if (newState) {
-            // Create the flag file to enable screen mirroring
-            QFile flagFile(flagPath);
-            if (flagFile.open(QIODevice::WriteOnly)) {
-                flagFile.write("1");
-                flagFile.close();
-                log(INFO, "Screen mirroring enabled");
-            } else {
-                log(ERROR, "Failed to create screen mirroring flag file");
-                sendResponse(socket, "500 Internal Server Error", "text/plain", "Failed to enable screen mirroring");
-                return;
-            }
-        } else {
-            // Remove the flag file to disable screen mirroring
-            if (QFile::remove(flagPath)) {
-                log(INFO, "Screen mirroring disabled");
-            } else {
-                log(WARN, "Failed to remove screen mirroring flag file");
-            }
+        // Only process if marked as special
+        if (!obj["special"].toBool()) {
+            continue;
         }
         
-        // Regenerate playlist to include/exclude screen mirroring
-        generatePlaylist();
+        // Parse date (YYYY-MM-DD format)
+        QString dateStr = obj["date"].toString();
+        QDate eventDate = QDate::fromString(dateStr, "yyyy-MM-dd");
         
-        QString message = QString("{\"status\":\"success\",\"screen_mirroring\":%1,\"message\":\"Screen mirroring %2\"}")
-                         .arg(newState ? "true" : "false")
-                         .arg(newState ? "enabled" : "disabled");
-        
-        sendResponse(socket, "200 OK", "application/json", message);
-    }
-
-QString HttpServer::checkForActiveSpecialEvent() {
-        // Scan for special playlists in data directory
-        QDir dir(dataDir);
-        QStringList filters;
-        filters << "*_playlist.json";
-        QFileInfoList files = dir.entryInfoList(filters, QDir::Files);
-        
-        QDateTime currentDateTime = QDateTime::currentDateTime();
-        QDate currentDate = currentDateTime.date();
-        QTime currentTime = currentDateTime.time();
-        
-        for (const QFileInfo &fileInfo : files) {
-            QString filePath = fileInfo.absoluteFilePath();
-            QString json = readFile(filePath);
-            
-            if (json.isEmpty()) {
-                continue;
-            }
-            
-            QJsonParseError error;
-            QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
-            
-            if (error.error != QJsonParseError::NoError || !doc.isObject()) {
-                continue;
-            }
-            
-            QJsonObject obj = doc.object();
-            
-            // Only process if marked as special
-            if (!obj["special"].toBool()) {
-                continue;
-            }
-            
-            // Parse date (YYYY-MM-DD format)
-            QString dateStr = obj["date"].toString();
-            QDate eventDate = QDate::fromString(dateStr, "yyyy-MM-dd");
-            
-            if (!eventDate.isValid() || eventDate != currentDate) {
-                continue; // Not today
-            }
-            
-            // Parse trigger time from first item with custom_time
-            QJsonArray items = obj["items"].toArray();
-            QTime triggerTime;
-            int totalDuration = 0;
-            
-            for (const QJsonValue &itemValue : items) {
-                QJsonObject itemObj = itemValue.toObject();
-                QString customTime = itemObj["custom_time"].toString();
-                if (!customTime.isEmpty() && customTime != "NA" && !triggerTime.isValid()) {
-                    triggerTime = QTime::fromString(customTime, "HH:mm");
-                }
-                totalDuration += itemObj["duration"].toInt();
-            }
-            
-            if (!triggerTime.isValid()) {
-                continue; // No valid trigger time
-            }
-            
-            // Check if current time is within event window
-            QDateTime eventStart = QDateTime(currentDate, triggerTime);
-            QDateTime eventEnd = eventStart.addMSecs(totalDuration);
-            
-            if (currentDateTime >= eventStart && currentDateTime < eventEnd) {
-                // This event is active!
-                QString title = obj["title"].toString();
-                log(INFO, QString("Active special event found: %1 (%2 to %3)")
-                    .arg(title)
-                    .arg(eventStart.toString("HH:mm"))
-                    .arg(eventEnd.toString("HH:mm")));
-                return json;
-            }
+        if (!eventDate.isValid() || eventDate != currentDate) {
+            continue; // Not today
         }
         
-        return QString(); // No active special event
+        // Parse trigger time from first item with custom_time
+        QJsonArray items = obj["items"].toArray();
+        QTime triggerTime;
+        int totalDuration = 0;
+        
+        for (const QJsonValue &itemValue : items) {
+            QJsonObject itemObj = itemValue.toObject();
+            QString customTime = itemObj["custom_time"].toString();
+            if (!customTime.isEmpty() && customTime != "NA" && !triggerTime.isValid()) {
+                triggerTime = QTime::fromString(customTime, "HH:mm");
+            }
+            int dur = itemObj["duration"].toInt();
+            // Videos have duration -1; use a reasonable estimate (e.g. 180s) rather than subtracting -1ms
+            totalDuration += (dur > 0) ? dur : 180000;
+        }
+        
+        if (!triggerTime.isValid()) {
+            continue; // No valid trigger time
+        }
+        
+        // Check if current time is within event window
+        QDateTime eventStart = QDateTime(currentDate, triggerTime);
+        QDateTime eventEnd = eventStart.addMSecs(totalDuration);
+        
+        if (currentDateTime >= eventStart && currentDateTime < eventEnd) {
+            // This event is active!
+            QString title = obj["title"].toString();
+            log(INFO, QString("Active special event found: %1 (%2 to %3)")
+                .arg(title)
+                .arg(eventStart.toString("HH:mm"))
+                .arg(eventEnd.toString("HH:mm")));
+            return json;
+        }
     }
+    
+    return QString(); // No active special event
+}
 
 void HttpServer::handleCheckSpecialEvent(QTcpSocket *socket) {
         QString specialPlaylist = checkForActiveSpecialEvent();

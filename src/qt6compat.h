@@ -63,22 +63,35 @@ inline QNetworkRequest createNetworkRequest(const QString &url) {
     return createNetworkRequest(QUrl(url));
 }
 
-// String-based URL creation
-inline QUrl createUrl(const QString &urlString) {
-    return QUrl(urlString);
-}
-
 // File path handling for cross-platform compatibility
 #include <QString>
 #include <QDir>
+#include <QFile>
+#include <QCoreApplication>
 
 inline QString convertMediaPath(const QString &serverPath) {
     QString path = serverPath;
+    if (path.startsWith("file://")) {
+        path = path.mid(7);
+    }
     if (path.startsWith("/media/")) {
         // Convert server path to local relative path
         path = path.mid(7); // Remove "/media/" prefix
     }
+    if (QFile::exists(path)) return QDir::toNativeSeparators(path);
+    if (QFile::exists("data/media/" + path)) return QDir::toNativeSeparators("data/media/" + path);
+    if (QFile::exists("media/" + path)) return QDir::toNativeSeparators("media/" + path);
+    QString appData = QCoreApplication::applicationDirPath() + "/../data/media/" + path;
+    if (QFile::exists(appData)) return QDir::toNativeSeparators(appData);
     return QDir::toNativeSeparators(path);
+}
+
+// String-based URL creation
+inline QUrl createUrl(const QString &urlString) {
+    if (urlString.startsWith("http://") || urlString.startsWith("https://") || urlString.startsWith("file://")) {
+        return QUrl(urlString);
+    }
+    return QUrl::fromLocalFile(convertMediaPath(urlString));
 }
 
 // Debug output compatibility

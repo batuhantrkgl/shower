@@ -121,8 +121,10 @@ void ActivityOverlay::updateCurrentActivity(const QString &activityName)
         adjustSize();
         updateGeometry();
 
-        // Always show the overlay with activity information
-        show();
+        // Show the overlay if not explicitly hidden
+        if (!isHidden()) {
+            show();
+        }
     }
 }
 

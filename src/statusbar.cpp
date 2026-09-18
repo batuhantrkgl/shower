@@ -246,7 +246,7 @@ void StatusBar::updateCacheDisplay()
         
         m_cacheLabel->setText(QString("Cache: %1%").arg(hitRate, 0, 'f', 0));
         m_cacheLabel->setStyleSheet(QString("color: %1;").arg(color));
-        m_cacheLabel->setToolTip(QString("Cache: %1 hits, %2 misses\nSize: %3 / %4 items")
+        m_cacheLabel->setToolTip(QString("Cache: %1 hits, %2 misses\nSize: %3 MB (%4 items)")
             .arg(m_cacheStats.hits)
             .arg(m_cacheStats.misses)
             .arg(m_cacheStats.totalSize / (1024 * 1024))

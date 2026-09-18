@@ -16,6 +16,7 @@
 #include <QStandardPaths>
 #include <QDir>
 #include <QFile>
+#include <QSaveFile>
 
 NetworkClient::NetworkClient(QObject *parent)
     : QObject(parent)
@@ -216,7 +217,7 @@ void NetworkClient::onMediaReplyFinished()
                 emit connectionStatusChanged(false);
                 // Start reconnection attempts
                 if (!m_reconnectTimer->isActive()) {
-                    m_reconnectTimer->start();
+                    m_reconnectTimer->start(m_currentBackoffMs);
                 }
             }
         }
@@ -230,7 +231,7 @@ void NetworkClient::onMediaReplyFinished()
             emit connectionStatusChanged(false);
             // Start reconnection attempts
             if (!m_reconnectTimer->isActive()) {
-                m_reconnectTimer->start();
+                m_reconnectTimer->start(m_currentBackoffMs);
             }
         }
     }
@@ -350,7 +351,11 @@ void NetworkClient::parsePlaylistJson(const QJsonObject &json)
         if (!item.type.isEmpty() && !item.url.isEmpty()) {
             // Convert relative URL to absolute
             if (item.url.startsWith("/")) {
-                item.url = m_serverUrl + item.url;
+                QString baseUrl = m_serverUrl;
+                if (baseUrl.endsWith('/')) {
+                    baseUrl.chop(1);
+                }
+                item.url = baseUrl + item.url;
             }
             playlist.items.append(item);
         }
@@ -552,6 +557,10 @@ bool NetworkClient::tryServerUrl(const QString &url)
     timeout.start();
     loop.exec();
     
+    if (!reply->isFinished()) {
+        reply->abort();
+    }
+    
     bool found = false;
     if (reply->error() == QNetworkReply::NoError) {
         QByteArray data = reply->readAll();
@@ -607,7 +616,7 @@ void NetworkClient::onPingReplyFinished()
             emit connectionStatusChanged(false);
             // Start reconnection attempts
             if (!m_reconnectTimer->isActive()) {
-                m_reconnectTimer->start();
+                m_reconnectTimer->start(m_currentBackoffMs);
             }
         }
     }
@@ -700,13 +709,16 @@ void NetworkClient::ensureCacheDir()
 void NetworkClient::saveCachedSchedule(const QJsonObject &json)
 {
     QString schedulePath = m_cacheDir + "/schedule_cache.json";
-    QFile file(schedulePath);
+    QSaveFile file(schedulePath);
     
     if (file.open(QIODevice::WriteOnly)) {
         QJsonDocument doc(json);
         file.write(doc.toJson());
-        file.close();
-        LOG_DEBUG_CAT("Saved schedule to persistent cache", "Network");
+        if (file.commit()) {
+            LOG_DEBUG_CAT("Saved schedule to persistent cache", "Network");
+        } else {
+            LOG_ERROR_CAT("Failed to commit schedule cache save file", "Network");
+        }
     } else {
         LOG_ERROR_CAT(QString("Failed to save schedule cache: %1").arg(file.errorString()), "Network");
     }
@@ -715,13 +727,16 @@ void NetworkClient::saveCachedSchedule(const QJsonObject &json)
 void NetworkClient::saveCachedPlaylist(const QJsonObject &json)
 {
     QString playlistPath = m_cacheDir + "/playlist_cache.json";
-    QFile file(playlistPath);
+    QSaveFile file(playlistPath);
     
     if (file.open(QIODevice::WriteOnly)) {
         QJsonDocument doc(json);
         file.write(doc.toJson());
-        file.close();
-        LOG_DEBUG_CAT("Saved playlist to persistent cache", "Network");
+        if (file.commit()) {
+            LOG_DEBUG_CAT("Saved playlist to persistent cache", "Network");
+        } else {
+            LOG_ERROR_CAT("Failed to commit playlist cache save file", "Network");
+        }
     } else {
         LOG_ERROR_CAT(QString("Failed to save playlist cache: %1").arg(file.errorString()), "Network");
     }
@@ -871,7 +886,7 @@ void NetworkClient::onTimeReplyFinished()
 void NetworkClient::syncTimeFromInternet()
 {
     // Use worldtimeapi.org as a reliable free time source
-    QNetworkRequest request(QUrl("http://worldtimeapi.org/api/timezone/Europe/Istanbul"));
+    QNetworkRequest request(QUrl("https://worldtimeapi.org/api/timezone/Europe/Istanbul"));
     request.setRawHeader("User-Agent", "VideoTimeline Client");
     
     qint64 requestTime = QDateTime::currentMSecsSinceEpoch();
@@ -942,9 +957,10 @@ void NetworkClient::syncTimeFromInternet()
 
 QDateTime NetworkClient::getCurrentDateTime() const
 {
-    // If test date/time is set, use it for simulation
+    // If test date/time is set, use it for simulation, advancing by elapsed time
     if (m_useTestDateTime && m_testDateTime.isValid()) {
-        return m_testDateTime;
+        qint64 elapsedMs = m_testTimeSetAt.isValid() ? m_testTimeSetAt.msecsTo(QDateTime::currentDateTime()) : 0;
+        return m_testDateTime.addMSecs(elapsedMs);
     }
     
     if (m_timeSynced) {
@@ -961,6 +977,7 @@ QDateTime NetworkClient::getCurrentDateTime() const
 void NetworkClient::setTestDateTime(const QDateTime &testDateTime)
 {
     m_testDateTime = testDateTime;
+    m_testTimeSetAt = QDateTime::currentDateTime();
     m_useTestDateTime = testDateTime.isValid();
     if (m_useTestDateTime) {
         LOG_INFO_CAT(QString("Test date/time set: %1")

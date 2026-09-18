@@ -83,6 +83,9 @@ private:
     QTimer *m_imageTimer;
     QTimer *m_screenTimer;
     QTimer *m_clockTimer; // checks scheduled custom_time items
+    QNetworkAccessManager *m_imageNetworkManager; // reused network manager for images
+    int m_lastTriggeredMinuteKey = -1;
+    int m_lastTriggeredIndex = -1;
     QPixmap m_currentImage; // Store original image for rescaling
     
     bool m_isPlaying;

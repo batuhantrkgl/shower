@@ -79,7 +79,7 @@ private:
     qint64 calculateCurrentSize() const;
     
     QHash<QString, CacheEntry> m_cache; // URL hash -> CacheEntry
-    QMutex m_mutex; // Thread safety
+    mutable QMutex m_mutex; // Thread safety
     QString m_cacheDir;
     qint64 m_maxSize; // Maximum cache size in bytes (default 4GB)
     CacheStats m_stats;

@@ -261,6 +261,9 @@ void TimelineWidget::onScheduleReceived(const QTime &schoolStart, const QTime &s
     m_schoolStart = schoolStart;
     m_schoolEnd = schoolEnd;
     m_schedule = schedule;
+    std::sort(m_schedule.begin(), m_schedule.end(), [](const ScheduleBlock &a, const ScheduleBlock &b) {
+        return a.startTime < b.startTime;
+    });
     m_scheduleLoaded = true;
     updateDisplay();
 }
@@ -299,7 +302,10 @@ void TimelineWidget::generateSchoolSchedule()
 void TimelineWidget::onNetworkError(const QString &error)
 {
     qDebug() << "Network error:" << error;
-    m_currentActivityLabel->setText("Connection error");
-    m_currentActivityIcon->setStyleSheet("color: #F44336;"); // Red for error
-    emit currentActivityChanged("Connection error");
+    // Only display connection error if no schedule has been loaded yet
+    if (!m_scheduleLoaded) {
+        m_currentActivityLabel->setText("Connection error");
+        m_currentActivityIcon->setStyleSheet("color: #F44336;"); // Red for error
+        emit currentActivityChanged("Connection error");
+    }
 }

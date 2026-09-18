@@ -31,12 +31,17 @@ namespace TTY {
 }
 // --- End of Color Edit ---
 
+#include <QMutex>
+
 // Global flag for quiet hardware acceleration
 static bool g_quietHwAccel = false;
 
 // Custom message handler to filter hardware acceleration warnings
 void customMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
+    static QMutex s_handlerMutex;
+    QMutexLocker locker(&s_handlerMutex);
+
     // Filter out repetitive hardware acceleration fallback messages
     if (g_quietHwAccel) {
         if (msg.contains("Hardware is lacking required capabilities") ||
@@ -225,7 +230,14 @@ int main(int argc, char *argv[])
     }
 
     QString networkRange = parser.value(networkOption);
+    if (networkRange.isEmpty() && qEnvironmentVariableIsSet("VIDEOTIMELINE_SERVER_HOST")) {
+        networkRange = qEnvironmentVariable("VIDEOTIMELINE_SERVER_HOST");
+        if (qEnvironmentVariableIsSet("VIDEOTIMELINE_SERVER_PORT")) {
+            networkRange += ":" + qEnvironmentVariable("VIDEOTIMELINE_SERVER_PORT");
+        }
+    }
     qreal forcedDpi = parser.value(dpiOption).toDouble();
+    if (forcedDpi <= 0.0) forcedDpi = 0.0;
     QString testTimeStr = parser.value(testTimeOption);
     
     // Parse special event options (note: --date and --time are also used for test date/time simulation)
@@ -234,7 +246,7 @@ int main(int argc, char *argv[])
     QString specialEventImage = parser.value(specialEventImageOption);
     QString specialEventTitle = parser.value(specialEventTitleOption);
     int specialEventDuration = parser.value(specialEventDurationOption).toInt();
-    if (specialEventDuration == 0) specialEventDuration = 180; // Default 3 minutes
+    if (specialEventDuration <= 0) specialEventDuration = 180; // Default 3 minutes
     
     LOG_INFO(QString("Starting VideoTimeline v%1 (Build: %2)").arg(appVersion).arg(appBuildId));
     

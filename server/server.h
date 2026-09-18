@@ -61,6 +61,8 @@ private:
     quint16 port;
     QString dataDir;
     QString mediaDir;
+    QString cachedHostname;
+    QHash<QTcpSocket*, QByteArray> clientBuffers;
 };
 
 #endif // HTTPSERVER_H
