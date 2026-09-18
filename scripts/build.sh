@@ -35,6 +35,87 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Function to detect package manager and install dependencies
+install_dependencies() {
+    print_info "Detecting Linux distribution and installing dependencies..."
+
+    local sudo_cmd=""
+    if [ "$(id -u)" -ne 0 ]; then
+        if command -v sudo >/dev/null 2>&1; then
+            sudo_cmd="sudo"
+        else
+            print_error "Root privileges or sudo required to install dependencies."
+            exit 1
+        fi
+    fi
+
+    local distro_id="unknown"
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        distro_id="${ID:-unknown}"
+    fi
+
+    if command -v apt-get >/dev/null 2>&1; then
+        print_info "Detected Debian/Ubuntu/Raspbian-based system ($distro_id)"
+        $sudo_cmd apt-get update
+        $sudo_cmd apt-get install -y \
+            build-essential \
+            cmake \
+            pkg-config \
+            qt6-base-dev \
+            qt6-multimedia-dev \
+            libqt6widgets6 \
+            libqt6network6 \
+            libqt6multimedia6 \
+            libqt6multimediawidgets6
+    elif command -v dnf >/dev/null 2>&1; then
+        print_info "Detected Fedora/RHEL/CentOS-based system ($distro_id)"
+        $sudo_cmd dnf install -y \
+            gcc-c++ \
+            make \
+            cmake \
+            pkgconf-pkg-config \
+            qt6-qtbase-devel \
+            qt6-qtmultimedia-devel
+    elif command -v pacman >/dev/null 2>&1; then
+        print_info "Detected Arch Linux-based system ($distro_id)"
+        $sudo_cmd pacman -Sy --noconfirm --needed \
+            base-devel \
+            cmake \
+            pkgconf \
+            qt6-base \
+            qt6-multimedia
+    elif command -v zypper >/dev/null 2>&1; then
+        print_info "Detected openSUSE/SUSE-based system ($distro_id)"
+        $sudo_cmd zypper --non-interactive install -y \
+            gcc-c++ \
+            cmake \
+            pkg-config \
+            qt6-base-devel \
+            qt6-multimedia-devel
+    elif command -v apk >/dev/null 2>&1; then
+        print_info "Detected Alpine Linux ($distro_id)"
+        $sudo_cmd apk add --no-cache \
+            build-base \
+            cmake \
+            pkgconf \
+            qt6-qtbase-dev \
+            qt6-qtmultimedia-dev
+    elif command -v xbps-install >/dev/null 2>&1; then
+        print_info "Detected Void Linux ($distro_id)"
+        $sudo_cmd xbps-install -Sy \
+            base-devel \
+            cmake \
+            pkg-config \
+            qt6-base-devel \
+            qt6-multimedia-devel
+    else
+        print_error "Unsupported package manager. Please manually install CMake, a C++ compiler, and Qt6 development libraries (Core, Widgets, Network, Multimedia)."
+        exit 1
+    fi
+    print_success "Dependencies installed successfully!"
+}
+
 # Function to check Qt installation
 check_qt() {
     print_info "Checking Qt installation..."
@@ -42,24 +123,32 @@ check_qt() {
     if command -v cmake >/dev/null 2>&1; then
         print_info "CMake found: $(cmake --version | head -n1)"
     else
-        print_error "CMake not found. Please install CMake."
+        print_error "CMake not found. Please install CMake or run: $0 --deps"
         exit 1
     fi
 
     # Try to find Qt6
-    if pkg-config --exists "Qt6Core Qt6Widgets Qt6Network Qt6Multimedia"; then
+    if pkg-config --exists "Qt6Core Qt6Widgets Qt6Network Qt6Multimedia" 2>/dev/null; then
         print_info "Qt6 found via pkg-config"
         return 0
     elif command -v qmake6 >/dev/null 2>&1; then
         QT_VERSION=$(qmake6 -query QT_VERSION 2>/dev/null || echo "unknown")
         print_info "Qt6 found via qmake6 (version: $QT_VERSION)"
         return 0
+    elif cmake --find-package -DNAME=Qt6 -DCOMPONENTS="Core;Widgets;Network;Multimedia" -DMODE=EXIST >/dev/null 2>&1; then
+        print_info "Qt6 found via CMake package detection"
+        return 0
     else
         print_error "Qt6 development libraries not found."
-        print_error "Please install Qt6 development packages:"
-        print_error "  - Ubuntu/Debian: sudo apt install qt6-base-dev qt6-multimedia-dev cmake"
-        print_error "  - Fedora: sudo dnf install qt6-qtbase-devel qt6-qtmultimedia-devel cmake"
-        print_error "  - Arch: sudo pacman -S qt6-base qt6-multimedia cmake"
+        print_error "You can automatically install dependencies across any Linux distribution by running:"
+        print_error "  $0 --deps"
+        print_error ""
+        print_error "Or manually install Qt6 development packages:"
+        print_error "  - Debian/Ubuntu/Raspbian: sudo apt install qt6-base-dev qt6-multimedia-dev cmake build-essential"
+        print_error "  - Fedora/RHEL/CentOS:     sudo dnf install qt6-qtbase-devel qt6-qtmultimedia-devel gcc-c++ cmake"
+        print_error "  - Arch Linux / Manjaro:   sudo pacman -S qt6-base qt6-multimedia cmake base-devel"
+        print_error "  - openSUSE:               sudo zypper in qt6-base-devel qt6-multimedia-devel gcc-c++ cmake"
+        print_error "  - Alpine Linux:           sudo apk add qt6-qtbase-dev qt6-qtmultimedia-dev build-base cmake"
         exit 1
     fi
 }
@@ -127,15 +216,17 @@ show_usage() {
     echo "Usage: $0 [OPTION]"
     echo ""
     echo "Options:"
-    echo "  build, -b     Build the project (default)"
-    echo "  clean, -c     Clean build artifacts"
-    echo "  check         Check build environment"
-    echo "  help, -h      Show this help message"
+    echo "  build, -b          Build the project (default)"
+    echo "  deps, -d, --deps   Install build dependencies for your Linux distribution"
+    echo "  clean, -c          Clean build artifacts"
+    echo "  check              Check build environment"
+    echo "  help, -h           Show this help message"
     echo ""
     echo "Examples:"
-    echo "  $0                # Build project"
-    echo "  $0 clean          # Clean build artifacts"
-    echo "  $0 check          # Check build environment"
+    echo "  $0                 # Build project"
+    echo "  $0 --deps          # Install build dependencies"
+    echo "  $0 clean           # Clean build artifacts"
+    echo "  $0 check           # Check build environment"
 }
 
 # Function to check build environment
@@ -195,6 +286,9 @@ case "${1:-build}" in
     "build"|"-b"|"")
         check_qt
         build_project
+        ;;
+    "deps"|"-d"|"--deps")
+        install_dependencies
         ;;
     "clean"|"-c")
         clean_build

@@ -24,11 +24,10 @@ shower/
 │   ├── VideoTimeline.pro  # Qt project file
 │   ├── icons/             # UI icons
 │   └── media/             # Default media files
-├── build/                 # Build scripts for client
-│   ├── CMakeLists.txt     # CMake configuration
-│   ├── Makefile          # Makefile
-│   ├── build.sh          # Build script
-│   └── install_rpi.sh    # Raspberry Pi installation
+├── scripts/               # Build and deployment scripts
+│   ├── build.sh          # Unified build script (--deps for auto packages)
+│   ├── install_linux.sh  # Universal Linux kiosk/systemd installer (all distros)
+│   └── install_rpi.sh    # Compatibility wrapper for Raspberry Pi
 ├── server/                # C++ HTTP server
 │   ├── server.cpp        # Single-file HTTP server
 │   ├── Makefile          # Server build config
@@ -42,23 +41,45 @@ shower/
 
 ## 🚀 Quick Start
 
-> **⚡ [QUICKSTART.md](QUICKSTART.md) - Get running in 5 minutes**  
-> **📘 [SETUP.md](SETUP.md) - Detailed installation for all platforms**
-
 ### Installing Dependencies
 
-**Ubuntu/Debian:**
+**Automatic (Any Linux Distribution):**
 ```bash
-sudo apt install qt6-base-dev qt6-multimedia-dev qt6-network-dev build-essential
+./scripts/build.sh --deps
+```
+
+**Ubuntu / Debian / Raspberry Pi OS:**
+```bash
+sudo apt install qt6-base-dev qt6-multimedia-dev build-essential cmake
+```
+
+**Fedora / RHEL / CentOS / Rocky:**
+```bash
+sudo dnf install qt6-qtbase-devel qt6-qtmultimedia-devel gcc-c++ cmake
+```
+
+**Arch Linux / Manjaro:**
+```bash
+sudo pacman -S qt6-base qt6-multimedia base-devel cmake
+```
+
+**openSUSE / SLES:**
+```bash
+sudo zypper install qt6-base-devel qt6-multimedia-devel gcc-c++ cmake
+```
+
+**Alpine Linux:**
+```bash
+apk add build-base cmake qt6-qtbase-dev qt6-qtmultimedia-dev
 ```
 
 **macOS:**
 ```bash
-brew install qt6
+brew install qt6 cmake
 ```
 
 **Windows:**
-Download Qt6 from https://www.qt.io/download-open-source
+Download Qt6 from https://www.qt.io/download-open-source or install via MSYS2: `pacman -S mingw-w64-ucrt-x86_64-qt6-base mingw-w64-ucrt-x86_64-qt6-multimedia`
 
 ### Building and Running
 

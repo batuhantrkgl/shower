@@ -58,7 +58,7 @@ show_usage() {
     echo ""
     echo "Examples:"
     echo "  $0                          # Run app connecting to default server"
-    echo "  $0 -s myserver -p 8080     # Connect to specific server"
+    echo "  $0 -s myserver -p 3232     # Connect to specific server"
     echo "  $0 --auto-server           # Start server if needed"
     echo "  $0 --auto --test-time 14:30  # Auto-start with test time"
     echo "  $0 -a --auto --dpi 192     # Auto server + auto play + custom DPI"
