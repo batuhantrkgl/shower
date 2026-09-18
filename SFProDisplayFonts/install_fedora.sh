@@ -1,11 +1,7 @@
 #!/bin/bash
-# SF Pro Display Font Installation Script for Fedora/Linux
-
-set -e
-
-echo "SF Pro Display Font Installation for Fedora"
-echo "==========================================="
-
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-echo "Note: install_fedora.sh is now powered by the universal install_fonts.sh script."
-exec "$SCRIPT_DIR/install_fonts.sh" "$@"
+# Backward-compatible wrapper for Fedora/Linux font installation
+[ -d "/usr/bin" ] && [[ ":$PATH:" != *":/usr/bin:"* ]] && export PATH="/usr/bin:$PATH"
+SCRIPT_DIR="${BASH_SOURCE[0]%/*}"
+[ "$SCRIPT_DIR" = "${BASH_SOURCE[0]}" ] && SCRIPT_DIR="."
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." 2>/dev/null && pwd)"
+exec "$REPO_ROOT/videotimeline.sh" fonts "$@"

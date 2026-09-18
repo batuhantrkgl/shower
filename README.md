@@ -24,20 +24,54 @@ shower/
 │   ├── VideoTimeline.pro  # Qt project file
 │   ├── icons/             # UI icons
 │   └── media/             # Default media files
-├── scripts/               # Build and deployment scripts
-│   ├── build.sh          # Unified build script (--deps for auto packages)
-│   ├── install_linux.sh  # Universal Linux kiosk/systemd installer (all distros)
-│   └── install_rpi.sh    # Compatibility wrapper for Raspberry Pi
+├── videotimeline.sh       # Unified Master Script (run, build, server, install, fonts, media)
+├── shower.sh              # Alias for videotimeline.sh
+├── run.sh                 # Client runner wrapper -> videotimeline.sh run
+├── run_hwaccel.sh         # GPU hardware acceleration runner wrapper
+├── scripts/               # Scripts (all delegate to videotimeline.sh)
+│   ├── build.sh          # Build wrapper
+│   ├── install_linux.sh  # Universal Linux kiosk/systemd installer wrapper
+│   └── install_rpi.sh    # Raspberry Pi wrapper
 ├── server/                # C++ HTTP server
 │   ├── server.cpp        # Single-file HTTP server
-│   ├── Makefile          # Server build config
-│   ├── CMakeLists.txt    # Server CMake config
+│   ├── run.sh            # Server runner wrapper
 │   ├── media/            # Media files folder
 │   └── data/             # JSON data (playlists, schedules)
-├── out/                   # Build output (generated)
-├── videotimeline.service  # Systemd service file
+├── data/                  # Schedules, playlists, and media
 └── README.md              # This file
 ```
+
+## 🌟 Unified Master Script (`videotimeline.sh` / `shower.sh`)
+
+All project scripts have been consolidated into **one master script**:
+
+```bash
+# 1. Run Client:
+./videotimeline.sh run --auto                 # Auto-discover server & start playback
+./videotimeline.sh run --hwaccel --nvidia     # Run with NVIDIA GPU acceleration
+
+# 2. Manage Server:
+./videotimeline.sh server                     # Run server in foreground
+./videotimeline.sh server --detach            # Run server in background
+./videotimeline.sh server --status            # Check server health
+./videotimeline.sh server --kill              # Stop running servers
+
+# 3. Build:
+./videotimeline.sh build                      # Build client and server
+./videotimeline.sh build --deps               # Auto-install build dependencies (all distros)
+./videotimeline.sh build clean                # Clean build artifacts
+
+# 4. Universal Linux Installation (all distros):
+sudo ./videotimeline.sh install               # Full kiosk setup, systemd, autologin, fonts
+
+# 5. Fonts:
+./videotimeline.sh fonts                      # Install SF Pro Display fonts
+
+# 6. Media Utilities:
+./videotimeline.sh media reencode data/media/special  # Convert AV1/VP9 videos to H.264
+```
+
+*(Note: Traditional scripts like `run.sh`, `scripts/build.sh`, `scripts/install_linux.sh`, and `server/run.sh` remain fully operational as transparent wrappers.)*
 
 ## 🚀 Quick Start
 
@@ -45,7 +79,7 @@ shower/
 
 **Automatic (Any Linux Distribution):**
 ```bash
-./scripts/build.sh --deps
+./videotimeline.sh build --deps
 ```
 
 **Ubuntu / Debian / Raspberry Pi OS:**
