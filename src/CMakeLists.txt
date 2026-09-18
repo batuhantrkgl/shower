@@ -61,3 +61,10 @@ target_compile_definitions(VideoTimeline PRIVATE
     APP_RELEASE_DATE="${BUILD_DATE}"
     APP_BUILD_ID="${BUILD_ID}"
 )
+
+# Install target
+install(TARGETS VideoTimeline
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+)

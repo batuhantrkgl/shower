@@ -24,6 +24,7 @@ public slots:
     void setCodecInfo(const QString &codec, bool hwDecode);
     void setCacheStats(const CacheStats &stats);
     void setOfflineMode(bool offline);
+    void setTimeOffset(qint64 offsetMs);
 
 signals:
     void toggleDiagnostics();
@@ -59,6 +60,7 @@ private:
     bool m_hwDecode;
     CacheStats m_cacheStats;
     bool m_offlineMode;
+    qint64 m_timeOffsetMs;
     QTimer *m_timeTimer;
     QMenu *m_contextMenu;
 };

@@ -11,6 +11,7 @@
 #include <QCryptographicHash>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QSet>
 
 struct CacheEntry {
     QString url;           // Original URL
@@ -84,6 +85,7 @@ private:
     qint64 m_maxSize; // Maximum cache size in bytes (default 4GB)
     CacheStats m_stats;
     QNetworkAccessManager *m_networkManager;
+    QSet<QString> m_activePrefetches;
 };
 
 #endif // MEDIACACHE_H

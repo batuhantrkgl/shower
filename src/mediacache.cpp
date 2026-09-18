@@ -38,8 +38,8 @@ void MediaCache::setMaxSize(qint64 sizeInBytes)
     m_maxSize = sizeInBytes;
     m_stats.maxSize = sizeInBytes;
     
-    // Evict items if we're now over the limit
-    if (calculateCurrentSize() > m_maxSize) {
+    // Evict items until we're within the limit
+    while (calculateCurrentSize() > m_maxSize && !m_cache.isEmpty()) {
         evictLRU();
     }
 }
@@ -158,7 +158,17 @@ void MediaCache::prefetchUrl(const QString &url)
         return;
     }
     
+    {
+        QMutexLocker locker(&m_mutex);
+        if (m_activePrefetches.contains(url)) {
+            qDebug() << "Cache: Already prefetching" << url;
+            return;
+        }
+        m_activePrefetches.insert(url);
+    }
+    
     QNetworkRequest request{QUrl(url)};
+    request.setTransferTimeout(30000); // 30 second timeout
     request.setRawHeader("User-Agent", "VideoTimeline Client Cache");
     
     QNetworkReply *reply = m_networkManager->get(request);
@@ -183,12 +193,20 @@ void MediaCache::clear()
 {
     QMutexLocker locker(&m_mutex);
     
-    // Delete all cached files
+    // Delete all cached files from index
     for (const CacheEntry &entry : m_cache) {
         QFile::remove(entry.localPath);
     }
     
+    // Also remove any remaining or orphaned files in cache directory
+    QDir dir(m_cacheDir);
+    QFileInfoList files = dir.entryInfoList(QDir::Files | QDir::NoDotAndDotDot);
+    for (const QFileInfo &fi : files) {
+        QFile::remove(fi.absoluteFilePath());
+    }
+    
     m_cache.clear();
+    m_activePrefetches.clear();
     
     // Update stats
     m_stats.totalSize = 0;
@@ -199,7 +217,7 @@ void MediaCache::clear()
     saveCacheIndex();
     emit cacheUpdated();
     
-    qDebug() << "Cache: Cleared all entries";
+    qDebug() << "Cache: Cleared all entries and files";
 }
 
 void MediaCache::evictLRU()
@@ -261,6 +279,11 @@ void MediaCache::onPrefetchFinished()
         qWarning() << "Cache: Prefetch failed for" << url << ":" << reply->errorString();
     }
     
+    {
+        QMutexLocker locker(&m_mutex);
+        m_activePrefetches.remove(url);
+    }
+    
     emit prefetchComplete(url, success);
     reply->deleteLater();
 }
@@ -316,6 +339,21 @@ void MediaCache::loadCacheIndex()
         if (QFile::exists(entry.localPath)) {
             QString key = generateCacheKey(entry.url);
             m_cache[key] = entry;
+        }
+    }
+    
+    // Purge orphaned files from cache directory that are not tracked in m_cache
+    QDir cacheDir(m_cacheDir);
+    QFileInfoList diskFiles = cacheDir.entryInfoList(QDir::Files | QDir::NoDotAndDotDot);
+    QSet<QString> validFilenames;
+    validFilenames.insert("index.json");
+    for (const CacheEntry &entry : m_cache) {
+        validFilenames.insert(QFileInfo(entry.localPath).fileName());
+    }
+    for (const QFileInfo &fi : diskFiles) {
+        if (!validFilenames.contains(fi.fileName())) {
+            QFile::remove(fi.absoluteFilePath());
+            qDebug() << "Cache: Removed orphaned file:" << fi.fileName();
         }
     }
     

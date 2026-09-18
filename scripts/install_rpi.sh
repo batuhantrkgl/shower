@@ -40,11 +40,13 @@ apt-get install -y \
     gstreamer1.0-libav \
     gstreamer1.0-alsa \
     gstreamer1.0-gl \
-    gstreamer1.0-omx \
     libgstreamer1.0-0 \
     libgstreamer-plugins-base1.0-0 \
     ffmpeg \
     libavcodec-extra
+
+# Try optional OMX plugin if available (legacy Raspberry Pi OS)
+apt-get install -y gstreamer1.0-omx 2>/dev/null || true
 
 # Create application directory
 APP_DIR="$USER_HOME/VideoTimeline"
@@ -52,13 +54,17 @@ echo "Creating application directory: $APP_DIR"
 mkdir -p "$APP_DIR"
 mkdir -p "$APP_DIR/data/media"
 
-# Copy application files from build directory
+# Copy application files from build directory (checking build/bin or build)
 if [ -f "build/bin/VideoTimeline" ]; then
     echo "Copying VideoTimeline executable..."
     cp build/bin/VideoTimeline "$APP_DIR/"
     chmod +x "$APP_DIR/VideoTimeline"
+elif [ -f "build/VideoTimeline" ]; then
+    echo "Copying VideoTimeline executable..."
+    cp build/VideoTimeline "$APP_DIR/"
+    chmod +x "$APP_DIR/VideoTimeline"
 else
-    echo "Error: VideoTimeline executable not found in build/bin/"
+    echo "Error: VideoTimeline executable not found in build/bin/ or build/"
     echo "Please run ./scripts/build.sh first"
     exit 1
 fi
@@ -68,8 +74,16 @@ if [ -f "build/bin/server" ]; then
     echo "Copying server executable..."
     cp build/bin/server "$APP_DIR/"
     chmod +x "$APP_DIR/server"
+elif [ -f "build/server/server" ]; then
+    echo "Copying server executable..."
+    cp build/server/server "$APP_DIR/"
+    chmod +x "$APP_DIR/server"
+elif [ -f "server/build/server" ]; then
+    echo "Copying server executable..."
+    cp server/build/server "$APP_DIR/"
+    chmod +x "$APP_DIR/server"
 else
-    echo "Error: server executable not found in build/bin/"
+    echo "Error: server executable not found in build/bin/, build/server/, or server/build/"
     echo "Please run ./scripts/build.sh first"
     exit 1
 fi
@@ -154,7 +168,7 @@ echo "  sudo systemctl status videotimeline-server"
 echo ""
 echo "The server will automatically start on boot."
 echo ""
-echo "Server will be available at: http://$(hostname -I | awk '{print $1}'):8080"
+echo "Server will be available at: http://$(hostname -I | awk '{print $1}'):3232"
 echo ""
 echo "Reboot the system to start everything automatically:"
 echo "  sudo reboot"

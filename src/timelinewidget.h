@@ -20,6 +20,8 @@ public slots:
     void onScheduleReceived(const QTime &schoolStart, const QTime &schoolEnd, const QList<ScheduleBlock> &schedule);
     void onNetworkError(const QString &error);
 
+    QString getCurrentActivityName() const { return getCurrentActivityName(m_currentTime); }
+
 signals:
     void currentActivityChanged(const QString &activityName);
 
@@ -27,7 +29,7 @@ private:
     void setupUI();
     void updateDisplay();
     void updateActivityIndicators();
-    QString getCurrentActivityName(const QTime &currentTime);
+    QString getCurrentActivityName(const QTime &currentTime) const;
     QString getNextActivityName(const QTime &currentTime);
     QTime getNextActivityStartTime(const QTime &currentTime);
     QString formatTimeRemaining(const QTime &currentTime, const QTime &endTime);

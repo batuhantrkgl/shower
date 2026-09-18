@@ -29,6 +29,7 @@ public:
     void play();
     void stop();
     void next();
+    void setVolume(float volume);
     void rescaleCurrentImage();
     
     // Transition settings
@@ -40,6 +41,8 @@ public:
     bool isHardwareDecodeEnabled() const { return m_hwDecodeEnabled; }
     QString getCurrentResolution() const { return m_currentResolution; }
     qreal getCurrentFps() const { return m_currentFps; }
+    QString getCurrentSource() const;
+    QMediaPlayer::MediaStatus getMediaStatus() const;
 
 signals:
     void mediaChanged(const MediaItem &item);

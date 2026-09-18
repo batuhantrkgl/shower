@@ -47,6 +47,8 @@ public:
     
     void setVisible(bool visible) override;
     void updateInfo(const DiagnosticsInfo &info);
+    const DiagnosticsInfo& getInfo() const { return m_info; }
+    bool isOverlayActive() const { return isVisible(); }
     
     // Update individual fields
     void setServerInfo(const QString &url, const QString &hostname, int pingMs, bool connected);
@@ -57,6 +59,8 @@ public:
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;
+    void showEvent(QShowEvent *event) override;
+    void hideEvent(QHideEvent *event) override;
 
 private:
     void setupUI();

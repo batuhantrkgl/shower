@@ -142,6 +142,7 @@ void HttpServer::handleRequest(QTcpSocket *socket) {
         log(WARN, QString("Invalid request from %1 - malformed request line").arg(socket->peerAddress().toString()));
         sendResponse(socket, "400 Bad Request", "text/plain", "Bad Request");
         buffer.clear();
+        socket->disconnectFromHost();
         return;
     }
     
@@ -254,6 +255,16 @@ void HttpServer::handleHeadRequest(QTcpSocket *socket, const QString &path) {
             return;
         }
         
+        sendHeadResponse(socket, "200 OK", "application/json", json.size());
+    } else if (path == "/api/time") {
+        QDateTime now = QDateTime::currentDateTime();
+        QJsonObject timeObj;
+        timeObj["timestamp"] = now.toMSecsSinceEpoch();
+        timeObj["datetime"] = now.toString(Qt::ISODate);
+        timeObj["timezone"] = now.timeZone().displayName(QTimeZone::GenericTime, QTimeZone::DefaultName);
+        timeObj["server_hostname"] = cachedHostname;
+        QJsonDocument doc(timeObj);
+        QByteArray json = doc.toJson(QJsonDocument::Compact);
         sendHeadResponse(socket, "200 OK", "application/json", json.size());
     } else if (path.startsWith("/media/")) {
         QString fileName = path.mid(7);
@@ -417,9 +428,13 @@ void HttpServer::handlePostSchedule(QTcpSocket *socket, const QByteArray &body) 
     
     if (error.error == QJsonParseError::NoError && doc.isObject()) {
         QString filePath = dataDir + "/schedule.json";
-        writeFile(filePath, body);
-        log(INFO, "Schedule updated successfully");
-        sendResponse(socket, "200 OK", "application/json", "{\"status\":\"success\"}");
+        if (writeFile(filePath, body)) {
+            log(INFO, "Schedule updated successfully");
+            sendResponse(socket, "200 OK", "application/json", "{\"status\":\"success\"}");
+        } else {
+            log(ERROR, "Failed to write schedule to disk");
+            sendResponse(socket, "500 Internal Server Error", "application/json", "{\"status\":\"error\",\"message\":\"Failed to write schedule to disk\"}");
+        }
     } else {
         log(ERROR, QString("Invalid JSON in schedule update: %1").arg(error.errorString()));
         sendResponse(socket, "400 Bad Request", "text/plain", "Invalid JSON");
@@ -439,12 +454,15 @@ void HttpServer::handlePostPlaylist(QTcpSocket *socket, const QByteArray &body) 
         
         QJsonDocument updatedDoc(playlist);
         QString filePath = dataDir + "/playlist.json";
-        writeFile(filePath, updatedDoc.toJson(QJsonDocument::Indented));
-        
-        bool autoRegenerate = playlist["auto_regenerate"].toBool();
-        QString message = QString("{\"status\":\"success\",\"auto_regenerate\":%1}").arg(autoRegenerate ? "true" : "false");
-        log(INFO, QString("Playlist updated successfully (auto_regenerate: %1)").arg(autoRegenerate ? "true" : "false"));
-        sendResponse(socket, "200 OK", "application/json", message);
+        if (writeFile(filePath, updatedDoc.toJson(QJsonDocument::Indented))) {
+            bool autoRegenerate = playlist["auto_regenerate"].toBool();
+            QString message = QString("{\"status\":\"success\",\"auto_regenerate\":%1}").arg(autoRegenerate ? "true" : "false");
+            log(INFO, QString("Playlist updated successfully (auto_regenerate: %1)").arg(autoRegenerate ? "true" : "false"));
+            sendResponse(socket, "200 OK", "application/json", message);
+        } else {
+            log(ERROR, "Failed to write playlist to disk");
+            sendResponse(socket, "500 Internal Server Error", "application/json", "{\"status\":\"error\",\"message\":\"Failed to write playlist to disk\"}");
+        }
     } else {
         log(ERROR, QString("Invalid JSON in playlist update: %1").arg(error.errorString()));
         sendResponse(socket, "400 Bad Request", "text/plain", "Invalid JSON");
@@ -509,17 +527,20 @@ QString HttpServer::readFile(const QString &filePath) {
     }
 }
 
-void HttpServer::writeFile(const QString &filePath, const QByteArray &data) {
+bool HttpServer::writeFile(const QString &filePath, const QByteArray &data) {
     QSaveFile file(filePath);
     if (file.open(QIODevice::WriteOnly)) {
         file.write(data);
         if (file.commit()) {
             log(DEBUG, QString("Atomically wrote %1 bytes to file: %2").arg(data.size()).arg(filePath));
+            return true;
         } else {
             log(ERROR, QString("Failed to commit atomic save file: %1").arg(filePath));
+            return false;
         }
     } else {
         log(ERROR, QString("Failed to open save file: %1").arg(filePath));
+        return false;
     }
 }
 

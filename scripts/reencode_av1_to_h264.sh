@@ -111,9 +111,15 @@ if [ "$USE_HWACCEL" = true ]; then
     ENCODER="h264_nvenc"
     ENCODER_OPTS="-preset $PRESET -cq $CRF"
 else
-    print_info "Software encoding: libopenh264"
-    ENCODER="libopenh264"
-    ENCODER_OPTS="-b:v 2M"  # libopenh264 doesn't support CRF, use bitrate
+    if ffmpeg -encoders 2>/dev/null | grep -q "libx264"; then
+        print_info "Software encoding: libx264"
+        ENCODER="libx264"
+        ENCODER_OPTS="-crf $CRF -preset $PRESET"
+    else
+        print_info "Software encoding: libopenh264"
+        ENCODER="libopenh264"
+        ENCODER_OPTS="-b:v 2M"
+    fi
 fi
 
 # Check for ffmpeg
@@ -133,6 +139,7 @@ while IFS= read -r -d $'\0' input_file; do
     ((file_count++)) || true
     
     filename=$(basename "$input_file")
+    target_file="${input_file%.*}.mp4"
     temp_file="${input_file}.h264_temp.mp4"
     
     print_info "Converting: $filename"
@@ -156,7 +163,7 @@ while IFS= read -r -d $'\0' input_file; do
     if ffmpeg -y -hide_banner -loglevel error -stats \
         -i "$input_file" \
         -c:v $ENCODER $ENCODER_OPTS \
-        -c:a copy \
+        -c:a aac -b:a 192k \
         -movflags +faststart \
         "$temp_file"; then
         
@@ -166,14 +173,17 @@ while IFS= read -r -d $'\0' input_file; do
         
         # Backup original if requested
         if [ "$CREATE_BACKUP" = true ]; then
-            mv "$input_file" "${input_file}.bak"
+            cp "$input_file" "${input_file}.bak"
             print_info "  Backed up: ${filename}.bak"
         fi
         
-        # Replace original with converted file
-        mv "$temp_file" "$input_file"
+        # If replacing with new extension (.webm -> .mp4), remove old file if different
+        if [ "$input_file" != "$target_file" ]; then
+            rm -f "$input_file"
+        fi
+        mv "$temp_file" "$target_file"
         
-        print_success "  Converted: $filename ($input_size → $output_size)"
+        print_success "  Converted: $filename -> $(basename "$target_file") ($input_size → $output_size)"
         ((converted_count++)) || true
     else
         print_error "  Failed to convert: $filename"

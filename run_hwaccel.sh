@@ -2,6 +2,9 @@
 # VideoTimeline with Hardware Acceleration
 # For dual-GPU laptop: NVIDIA GTX 1650 Ti + AMD Renoir
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
 echo "=== VideoTimeline Hardware Acceleration Setup ==="
 
 # First, install required packages if not present
@@ -11,14 +14,27 @@ if ! command -v vainfo &> /dev/null; then
     echo ""
 fi
 
+# Detect flags from any argument position
+USE_NVIDIA=false
+USE_AMD=false
+DEBUG_MODE=false
+
+for arg in "$@"; do
+    case "$arg" in
+        --nvidia) USE_NVIDIA=true ;;
+        --amd) USE_AMD=true ;;
+        --debug) DEBUG_MODE=true ;;
+    esac
+done
+
 # Detect which GPU to use
-if [ "$1" == "--nvidia" ]; then
+if [ "$USE_NVIDIA" = true ]; then
     echo "[INFO] Using NVIDIA GTX 1650 Ti"
     export __NV_PRIME_RENDER_OFFLOAD=1
     export __GLX_VENDOR_LIBRARY_NAME=nvidia
     export VDPAU_DRIVER=nvidia
     export QT_MEDIA_BACKEND=ffmpeg
-elif [ "$1" == "--amd" ]; then
+elif [ "$USE_AMD" = true ]; then
     echo "[INFO] Using AMD Renoir (Integrated)"
     export DRI_PRIME=1
     export LIBVA_DRIVER_NAME=radeonsi
@@ -32,7 +48,7 @@ else
 fi
 
 # Enable Qt multimedia debugging (optional)
-if [ "$2" == "--debug" ]; then
+if [ "$DEBUG_MODE" = true ]; then
     export QT_LOGGING_RULES="qt.multimedia*=true"
     echo "[DEBUG] Qt multimedia logging enabled"
 fi

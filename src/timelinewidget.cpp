@@ -203,7 +203,7 @@ void TimelineWidget::updateActivityIndicators()
     }
 }
 
-QString TimelineWidget::getCurrentActivityName(const QTime &currentTime)
+QString TimelineWidget::getCurrentActivityName(const QTime &currentTime) const
 {
     if (currentTime < m_schoolStart || currentTime > m_schoolEnd) {
         return "Off hours";

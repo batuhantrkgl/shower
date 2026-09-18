@@ -210,6 +210,9 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal for
     // Connect time synchronization signals
     connect(m_networkClient, &NetworkClient::serverTimeReceived,
             this, [this](const QDateTime &serverTime, qint64 offsetMs) {
+                if (m_statusBar) {
+                    m_statusBar->setTimeOffset(offsetMs);
+                }
                 LOG_INFO_CAT(QString("Time synchronized: %1 (offset: %2ms)")
                     .arg(serverTime.toString("yyyy-MM-dd HH:mm:ss"))
                     .arg(offsetMs), "Main");
@@ -237,10 +240,9 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal for
     connect(m_updateTimer, &QTimer::timeout, this, &MainWindow::updateUIState);
     m_updateTimer->start(1000);
     
-    // Setup diagnostics update timer
+    // Setup diagnostics update timer (starts only when overlay is visible)
     m_diagnosticsTimer = new QTimer(this);
     connect(m_diagnosticsTimer, &QTimer::timeout, this, &MainWindow::updateDiagnostics);
-    m_diagnosticsTimer->start(1000); // Update diagnostics every second
 
     // Start network polling
     m_networkClient->startPeriodicFetch();
@@ -342,9 +344,12 @@ void MainWindow::positionActivityOverlay()
     }
 
     // Overlay is now a top-level window, so we need global screen coordinates
-    QPoint videoGlobalPos = m_videoWidget->mapToGlobal(QPoint(0, 0));
     QSize videoSize = m_videoWidget->size();
+    if (videoSize.width() <= 0 || videoSize.height() <= 0) {
+        return;
+    }
     
+    QPoint videoGlobalPos = m_videoWidget->mapToGlobal(QPoint(0, 0));
     int overlayWidth = m_activityOverlay->width();
     int overlayHeight = m_activityOverlay->height();
     
@@ -369,8 +374,7 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
 {
     // Keep overlay on top whenever centralWidget's children are reordered
     if (event->type() == QEvent::ChildPolished || 
-        event->type() == QEvent::ChildAdded ||
-        event->type() == QEvent::Paint) {
+        event->type() == QEvent::ChildAdded) {
         if (m_activityOverlay && m_activityOverlay->isVisible()) {
             m_activityOverlay->raise();
         }
@@ -407,9 +411,13 @@ void MainWindow::onMediaChanged(const MediaItem &item)
 void MainWindow::toggleDiagnostics()
 {
     if (m_diagnosticsOverlay) {
-        m_diagnosticsOverlay->setVisible(!m_diagnosticsOverlay->isVisible());
-        if (m_diagnosticsOverlay->isVisible()) {
+        bool makeVisible = !m_diagnosticsOverlay->isVisible();
+        m_diagnosticsOverlay->setVisible(makeVisible);
+        if (makeVisible) {
+            m_diagnosticsTimer->start(1000);
             updateDiagnostics(); // Immediate update when shown
+        } else {
+            m_diagnosticsTimer->stop();
         }
     }
 }
@@ -421,21 +429,32 @@ void MainWindow::updateDiagnostics()
     }
     
     // Update diagnostics with current info
-    m_diagnosticsOverlay->setServerInfo(
-        m_networkClient->getServerUrl(),
-        m_networkClient->getHostname(),
-        m_networkClient->getLastPing(),
-        m_networkClient->isConnected()
-    );
+    if (m_networkClient) {
+        m_diagnosticsOverlay->setServerInfo(
+            m_networkClient->getServerUrl(),
+            m_networkClient->getHostname(),
+            m_networkClient->getLastPing(),
+            m_networkClient->isConnected()
+        );
+    }
     
     // Update cache stats
     if (m_mediaCache) {
         m_diagnosticsOverlay->setCacheStats(m_mediaCache->getStats());
     }
     
-    // Update media info from video widget
-    // Note: VideoWidget would need to expose these methods
-    // For now, we'll leave them as defaults in diagnostics
+    // Update media info from video widget and media player
+    if (m_videoWidget && m_videoWidget->getMediaPlayer()) {
+        MediaPlayer *player = m_videoWidget->getMediaPlayer();
+        m_diagnosticsOverlay->setCurrentSource(player->getCurrentSource());
+        m_diagnosticsOverlay->setMediaStatus(player->getMediaStatus());
+        m_diagnosticsOverlay->setMediaInfo(
+            player->getCurrentCodec(),
+            player->isHardwareDecodeEnabled(),
+            player->getCurrentResolution(),
+            player->getCurrentFps()
+        );
+    }
 }
 
 void MainWindow::onLogLevelChanged(const QString &level)
@@ -484,6 +503,11 @@ void MainWindow::onSpecialEventEnded()
     }
     // Restore UI immediately
     onPlaylistFinished();
+    
+    // Restore activity overlay to current schedule activity
+    if (m_timelineWidget && m_activityOverlay) {
+        m_activityOverlay->updateCurrentActivity(m_timelineWidget->getCurrentActivityName());
+    }
 }
 
 void MainWindow::onPlaylistReceived(const MediaPlaylist &playlist)

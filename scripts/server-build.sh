@@ -1,6 +1,8 @@
 #!/bin/bash
-
 # VideoTimeline Server Build Script
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
 
 echo "Building VideoTimeline Server..."
 
@@ -26,11 +28,11 @@ cd server/build
 echo "Configuring with CMake..."
 cmake .. -DCMAKE_BUILD_TYPE=Release
 
-# Build
+# Build using cmake build tool abstraction
 echo "Compiling..."
-make -j$(nproc 2>/dev/null || echo 4)
+cmake --build . -j$(nproc 2>/dev/null || echo 4)
 
-cd ../..
+cd "$REPO_ROOT"
 
 if [ -f "server/build/server" ] || [ -f "server/build/server.exe" ]; then
     echo "✓ Build successful!"

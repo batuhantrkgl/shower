@@ -16,15 +16,12 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 include_directories(src)
 include_directories(data)
 
+# Set RPATH for relocatable installs
+set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+
 # Build main application
 add_subdirectory(src)
 
 # Build server
 add_subdirectory(server)
-
-# Install target
-install(TARGETS VideoTimeline server
-    RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-)

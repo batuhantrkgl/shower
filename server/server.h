@@ -45,7 +45,7 @@ private:
     void sendResponse(QTcpSocket *socket, const QString &status, const QString &contentType, const QString &body);
     void sendResponse(QTcpSocket *socket, const QString &status, const QString &contentType, const char *body);
     QString readFile(const QString &filePath);
-    void writeFile(const QString &filePath, const QByteArray &data);
+    bool writeFile(const QString &filePath, const QByteArray &data);
     QString getContentType(const QString &fileName);
     QString getDefaultSchedule();
     void ensureDefaultSchedule();

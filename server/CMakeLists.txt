@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.16)
 
 project(server)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # Find Qt6
 find_package(Qt6 REQUIRED COMPONENTS Core Network)
 
@@ -31,4 +34,11 @@ set_target_properties(server PROPERTIES
 target_compile_definitions(server PRIVATE
     DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../data"
     MEDIA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../data/media"
+)
+
+# Install target
+install(TARGETS server
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
 )

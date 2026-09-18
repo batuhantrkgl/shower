@@ -14,9 +14,8 @@ DiagnosticsOverlay::DiagnosticsOverlay(QWidget *parent)
     // Auto-hide initially
     hide();
     
-    // Update display every second
+    // Update display every second when visible
     connect(m_updateTimer, &QTimer::timeout, this, &DiagnosticsOverlay::updateDisplay);
-    m_updateTimer->start(1000);
 }
 
 DiagnosticsOverlay::~DiagnosticsOverlay()
@@ -40,14 +39,21 @@ void DiagnosticsOverlay::setupUI()
         "}"
     ).arg(MD3Colors::DarkTheme::onSurface().name()));
     
+    qreal scale = 1.0;
+    QScreen *screen = QApplication::primaryScreen();
+    if (screen) {
+        scale = qMax(1.0, screen->logicalDotsPerInch() / 96.0);
+    }
+
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(10);
-    mainLayout->setContentsMargins(20, 20, 20, 20);
+    mainLayout->setSpacing(static_cast<int>(10 * scale));
+    mainLayout->setContentsMargins(static_cast<int>(20 * scale), static_cast<int>(20 * scale),
+                                   static_cast<int>(20 * scale), static_cast<int>(20 * scale));
     
     // Title
     m_titleLabel = new QLabel("📊 Diagnostics (Press F12 to close)");
     QFont titleFont;
-    titleFont.setPointSize(16);
+    titleFont.setPointSize(static_cast<int>(16 * scale));
     titleFont.setBold(true);
     m_titleLabel->setFont(titleFont);
     m_titleLabel->setStyleSheet("color: #4CAF50;");
@@ -55,13 +61,13 @@ void DiagnosticsOverlay::setupUI()
     
     // Grid layout for info
     QGridLayout *gridLayout = new QGridLayout();
-    gridLayout->setSpacing(8);
+    gridLayout->setSpacing(static_cast<int>(8 * scale));
     int row = 0;
     
     // --- Network Section ---
     QLabel *networkHeader = new QLabel("🌐 Network");
     QFont headerFont;
-    headerFont.setPointSize(12);
+    headerFont.setPointSize(static_cast<int>(12 * scale));
     headerFont.setBold(true);
     networkHeader->setFont(headerFont);
     networkHeader->setStyleSheet("color: #2196F3;");
@@ -156,9 +162,11 @@ void DiagnosticsOverlay::setupUI()
     mainLayout->addLayout(gridLayout);
     mainLayout->addStretch();
     
-    // Set reasonable size
-    setMinimumSize(500, 600);
-    resize(550, 700);
+    // Set reasonable size scaled by DPI
+    int minW = static_cast<int>(500 * scale);
+    int minH = static_cast<int>(600 * scale);
+    setMinimumSize(minW, minH);
+    resize(static_cast<int>(550 * scale), static_cast<int>(700 * scale));
 }
 
 void DiagnosticsOverlay::setVisible(bool visible)
@@ -166,19 +174,45 @@ void DiagnosticsOverlay::setVisible(bool visible)
     QWidget::setVisible(visible);
     
     if (visible) {
-        // Center on screen
-        QScreen *screen = QApplication::primaryScreen();
-        if (screen) {
-            QRect screenGeometry = screen->geometry();
-            int x = (screenGeometry.width() - width()) / 2;
-            int y = (screenGeometry.height() - height()) / 2;
-            move(x, y);
+        if (!m_updateTimer->isActive()) {
+            m_updateTimer->start(1000);
+        }
+        // Center on parent if available and valid, otherwise primary screen
+        if (parentWidget() && parentWidget()->width() > 0 && parentWidget()->height() > 0) {
+            int x = parentWidget()->x() + (parentWidget()->width() - width()) / 2;
+            int y = parentWidget()->y() + (parentWidget()->height() - height()) / 2;
+            move(qMax(0, x), qMax(0, y));
+        } else {
+            QScreen *screen = QApplication::primaryScreen();
+            if (screen) {
+                QRect screenGeometry = screen->geometry();
+                int x = (screenGeometry.width() - width()) / 2;
+                int y = (screenGeometry.height() - height()) / 2;
+                move(qMax(0, x), qMax(0, y));
+            }
         }
         
         raise();
         activateWindow();
         updateDisplay();
+    } else {
+        m_updateTimer->stop();
     }
+}
+
+void DiagnosticsOverlay::showEvent(QShowEvent *event)
+{
+    QWidget::showEvent(event);
+    if (!m_updateTimer->isActive()) {
+        m_updateTimer->start(1000);
+    }
+    updateDisplay();
+}
+
+void DiagnosticsOverlay::hideEvent(QHideEvent *event)
+{
+    QWidget::hideEvent(event);
+    m_updateTimer->stop();
 }
 
 void DiagnosticsOverlay::updateInfo(const DiagnosticsInfo &info)

@@ -19,6 +19,7 @@ StatusBar::StatusBar(QWidget *parent)
     , m_hostname(QString())
     , m_hwDecode(false)
     , m_offlineMode(false)
+    , m_timeOffsetMs(0)
     , m_timeTimer(new QTimer(this))
     , m_contextMenu(new QMenu(this))
 {
@@ -137,6 +138,12 @@ void StatusBar::setupUI()
     connect(debugAction, &QAction::triggered, this, [this]() { emit logLevelChangeRequested("debug"); });
 }
 
+void StatusBar::setTimeOffset(qint64 offsetMs)
+{
+    m_timeOffsetMs = offsetMs;
+    updateTime();
+}
+
 void StatusBar::setConnectionStatus(bool connected, const QString &serverUrl, const QString &hostname)
 {
     m_connected = connected;
@@ -144,17 +151,22 @@ void StatusBar::setConnectionStatus(bool connected, const QString &serverUrl, co
     m_hostname = hostname;
     updateConnectionIcon();
 
+    QString tooltip = connected
+        ? QString("Connected: %1%2").arg(serverUrl).arg(hostname.isEmpty() ? "" : QString(" (%1)").arg(hostname))
+        : "Disconnected from server";
+    m_connectionIcon->setToolTip(tooltip);
+    m_connectionText->setToolTip(tooltip);
+
     if (connected) {
-        m_connectionText->setText("Connected");
+        if (m_connectionText->text() != "Connected") m_connectionText->setText("Connected");
         if (!hostname.isEmpty()) {
-            m_serverLabel->setText(hostname);
+            if (m_serverLabel->text() != hostname) m_serverLabel->setText(hostname);
         } else if (!serverUrl.isEmpty()) {
-            // Fallback to server URL if hostname not available
-            m_serverLabel->setText(serverUrl);
+            if (m_serverLabel->text() != serverUrl) m_serverLabel->setText(serverUrl);
         }
     } else {
-        m_connectionText->setText("Disconnected");
-        m_serverLabel->setText("No server");
+        if (m_connectionText->text() != "Disconnected") m_connectionText->setText("Disconnected");
+        if (m_serverLabel->text() != "No server") m_serverLabel->setText("No server");
         m_pingMs = -1;
         updatePingDisplay();
     }
@@ -168,7 +180,12 @@ void StatusBar::setPing(int pingMs)
 
 void StatusBar::updateTime()
 {
-    m_timeLabel->setText(QDateTime::currentDateTime().toString("HH:mm:ss"));
+    qint64 nowMs = QDateTime::currentMSecsSinceEpoch() + m_timeOffsetMs;
+    QDateTime dt = QDateTime::fromMSecsSinceEpoch(nowMs);
+    QString newText = dt.toString("HH:mm:ss");
+    if (m_timeLabel->text() != newText) {
+        m_timeLabel->setText(newText);
+    }
 }
 
 void StatusBar::updateConnectionIcon()
@@ -191,11 +208,18 @@ void StatusBar::updatePingDisplay()
         } else {
             color = "#F44336"; // Red for high ping
         }
-        m_pingLabel->setText(QString("Ping: %1ms").arg(m_pingMs));
+        QString pingText = QString("Ping: %1ms").arg(m_pingMs);
+        if (m_pingLabel->text() != pingText) {
+            m_pingLabel->setText(pingText);
+        }
         m_pingLabel->setStyleSheet(QString("color: %1;").arg(color));
+        m_pingLabel->setToolTip(QString("Latency: %1 ms").arg(m_pingMs));
     } else {
-        m_pingLabel->setText("Ping: --");
+        if (m_pingLabel->text() != "Ping: --") {
+            m_pingLabel->setText("Ping: --");
+        }
         m_pingLabel->setStyleSheet("color: #666666;");
+        m_pingLabel->setToolTip("Ping: disconnected");
     }
 }
 

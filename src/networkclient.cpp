@@ -55,6 +55,15 @@ NetworkClient::NetworkClient(QObject *parent)
     m_timeSyncTimer->setInterval(10 * 60 * 1000); // 10 minutes
     connect(m_timeSyncTimer, &QTimer::timeout, this, &NetworkClient::fetchServerTime);
     
+    // Connect SSL errors to log details
+    connect(m_networkManager, &QNetworkAccessManager::sslErrors, this, [](QNetworkReply *reply, const QList<QSslError> &errors) {
+        QStringList errorStrings;
+        for (const QSslError &err : errors) {
+            errorStrings.append(err.errorString());
+        }
+        LOG_WARNING_CAT(QString("SSL errors for %1: %2").arg(reply->url().toString()).arg(errorStrings.join("; ")), "Network");
+    });
+    
     LOG_INFO_CAT("NetworkClient initialized", "Network");
 }
 
@@ -516,6 +525,15 @@ QString NetworkClient::getLocalNetworkPrefix()
             !interface.flags().testFlag(QNetworkInterface::IsRunning)) {
             continue;
         }
+
+        // Filter out virtual, container, and tunnel interfaces
+        QString ifName = interface.name().toLower();
+        if (ifName.startsWith("docker") || ifName.startsWith("veth") ||
+            ifName.startsWith("virbr") || ifName.startsWith("vmnet") ||
+            ifName.startsWith("vboxnet") || ifName.startsWith("br-") ||
+            ifName.startsWith("tun") || ifName.startsWith("tap")) {
+            continue;
+        }
         
         // Check all addresses on this interface
         for (const QNetworkAddressEntry &entry : interface.addressEntries()) {
@@ -585,6 +603,7 @@ void NetworkClient::measurePing()
     if (!m_connected) return;
     
     QNetworkRequest request(QUrl(m_serverUrl + "/api/schedule"));
+    request.setTransferTimeout(3000);
     request.setRawHeader("User-Agent", "VideoTimeline Client");
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     
@@ -604,10 +623,10 @@ void NetworkClient::onPingReplyFinished()
     
     qint64 startTime = reply->property("ping_start").toLongLong();
     qint64 endTime = QDateTime::currentMSecsSinceEpoch();
-    qint64 pingTime = endTime - startTime;
+    qint64 pingTime = qMax(0LL, endTime - startTime);
     
     if (reply->error() == QNetworkReply::NoError) {
-        m_lastPingMs = static_cast<int>(pingTime);
+        m_lastPingMs = static_cast<int>(qBound(0LL, pingTime, 99999LL));
         emit pingUpdated(m_lastPingMs);
     } else {
         // Connection lost
@@ -639,8 +658,9 @@ void NetworkClient::attemptReconnection()
         .arg(m_serverUrl)
         .arg(m_currentBackoffMs), "Network");
     
-    // Try to fetch schedule to test connection
+    // Try to fetch schedule to test connection with 5s timeout
     QNetworkRequest request(QUrl(m_serverUrl + "/api/schedule"));
+    request.setTransferTimeout(5000);
     request.setRawHeader("User-Agent", "VideoTimeline Client");
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     
@@ -803,6 +823,7 @@ void NetworkClient::fetchServerTime()
     }
     
     QNetworkRequest request(QUrl(m_serverUrl + "/api/time"));
+    request.setTransferTimeout(5000);
     request.setRawHeader("User-Agent", "VideoTimeline Client");
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     
@@ -887,6 +908,7 @@ void NetworkClient::syncTimeFromInternet()
 {
     // Use worldtimeapi.org as a reliable free time source
     QNetworkRequest request(QUrl("https://worldtimeapi.org/api/timezone/Europe/Istanbul"));
+    request.setTransferTimeout(5000);
     request.setRawHeader("User-Agent", "VideoTimeline Client");
     
     qint64 requestTime = QDateTime::currentMSecsSinceEpoch();

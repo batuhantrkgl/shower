@@ -69,9 +69,13 @@ MediaPlayer::MediaPlayer(QVideoWidget *videoOutput, QLabel *imageLabel, QStacked
     connect(m_player, MEDIAPLAYER_ERROR_SIGNAL,
             this, [this](QMediaPlayer::Error error, const QString &errorString){
                 HANDLE_MEDIA_ERROR(error, errorString);
-                LOG_ERROR_CAT(QString("Media error: %1").arg(errorString), "MediaPlayer");
-                // Move to next item on error
-                next();
+                LOG_ERROR_CAT(QString("Media playback error [code %1]: %2").arg(static_cast<int>(error)).arg(errorString), "MediaPlayer");
+                // Move to next item on error to prevent freezing
+                QTimer::singleShot(200, this, [this]() {
+                    if (m_isPlaying) {
+                        next();
+                    }
+                });
             });
     
     // Initialize image timer
@@ -230,13 +234,40 @@ void MediaPlayer::next()
     }
 }
 
+void MediaPlayer::setVolume(float volume)
+{
+    float clamped = qBound(0.0f, volume, 1.0f);
+#ifdef QT6_OR_LATER
+    if (m_player && m_player->audioOutput()) {
+        m_player->audioOutput()->setVolume(clamped);
+    }
+#else
+    if (m_player) {
+        m_player->setVolume(static_cast<int>(clamped * 100));
+    }
+#endif
+}
+
+QString MediaPlayer::getCurrentSource() const
+{
+    if (m_playlist.currentIndex >= 0 && m_playlist.currentIndex < m_playlist.items.size()) {
+        return m_playlist.items[m_playlist.currentIndex].url;
+    }
+    return QString();
+}
+
+QMediaPlayer::MediaStatus MediaPlayer::getMediaStatus() const
+{
+    return m_player ? m_player->mediaStatus() : QMediaPlayer::NoMedia;
+}
+
 void MediaPlayer::playCurrentItem()
 {
     if (!m_playlist.hasItems()) {
         qDebug() << "Cannot play current item: playlist is empty";
         return;
     }
-    
+
     MediaItem currentItem = m_playlist.getCurrentItem();
     LOG_INFO_CAT(QString("Playing: %1 %2").arg(currentItem.type).arg(currentItem.url), "MediaPlayer");
     
@@ -253,20 +284,11 @@ void MediaPlayer::playCurrentItem()
             }
         }
         
-        // Properly reset the media player to avoid "partial file" errors on replay
+        // Reset player state smoothly without dropping pipeline
         m_player->stop();
-        
-        // Clear the current source completely before setting a new one
-        #ifdef QT6_OR_LATER
-            m_player->setSource(QUrl());  // Clear source in Qt6
-        #else
-            m_player->setMedia(QMediaContent());  // Clear media in Qt5
-        #endif
-        
-        // Reset position
         m_player->setPosition(0);
         
-        // Now set the new source
+        // Set the new source directly
         SET_MEDIA_SOURCE(m_player, createUrl(mediaUrl));
         
         // Set mute state
@@ -280,12 +302,9 @@ void MediaPlayer::playCurrentItem()
         // Otherwise show immediately
         if (m_isFading && m_transitionsEnabled) {
             m_waitingForVideoToLoad = true;
-            // Widget will be shown when media status becomes LoadedMedia
         } else {
             showVideo();
         }
-        
-        // Note: detectMediaProperties() is called when media status changes to LoadedMedia
         
     } else if (currentItem.type == "image") {
         showImage();
@@ -303,17 +322,23 @@ void MediaPlayer::playCurrentItem()
 
 void MediaPlayer::showVideo()
 {
-    m_layout->setCurrentIndex(VIDEO_WIDGET_INDEX);
+    if (m_layout && m_layout->currentIndex() != VIDEO_WIDGET_INDEX) {
+        m_layout->setCurrentIndex(VIDEO_WIDGET_INDEX);
+    }
 }
 
 void MediaPlayer::showImage()
 {
-    m_layout->setCurrentIndex(IMAGE_WIDGET_INDEX);
+    if (m_layout && m_layout->currentIndex() != IMAGE_WIDGET_INDEX) {
+        m_layout->setCurrentIndex(IMAGE_WIDGET_INDEX);
+    }
 }
 
 void MediaPlayer::showScreen()
 {
-    m_layout->setCurrentIndex(SCREEN_INDEX);
+    if (m_layout && m_layout->currentIndex() != SCREEN_INDEX) {
+        m_layout->setCurrentIndex(SCREEN_INDEX);
+    }
 }
 
 void MediaPlayer::loadImage(const QString &url)
@@ -833,10 +858,20 @@ void MediaPlayer::detectMediaProperties()
         m_hwDecodeEnabled = true;
         m_currentCodec = QString("H.264 (VDPAU-%1)").arg(vdpauDriver);
     }
-    // Otherwise assume software decode
+    // Otherwise assume software decode unless V4L2/DRM nodes indicate hardware decoder
     else if (mediaBackend == "ffmpeg" || mediaBackend == "gstreamer") {
         m_currentCodec = QString("H.264 (%1-sw)").arg(mediaBackend);
         m_hwDecodeEnabled = false;
+    }
+    
+    // Check for Raspberry Pi / embedded Linux V4L2 or DRI acceleration nodes
+    if (!m_hwDecodeEnabled) {
+        if (QFile::exists("/dev/video10") || QFile::exists("/dev/dri/renderD128")) {
+            m_hwDecodeEnabled = true;
+            if (m_currentCodec == "unknown" || m_currentCodec.contains("-sw")) {
+                m_currentCodec = "H.264 (HW-V4L2/DRM)";
+            }
+        }
     }
     
     LOG_DEBUG_CAT(QString("Media properties - Codec: %1, HW: %2, Resolution: %3, FPS: %4")

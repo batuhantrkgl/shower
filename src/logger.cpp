@@ -157,6 +157,8 @@ void Logger::log(LogLevel level, const QString &message, const QString &category
         case LogLevel::Debug:
             qDebug().noquote() << formattedMessage;
             break;
+    }
+    
     // Write to file if enabled
     if (m_fileLoggingEnabled) {
         writeToFile(formattedMessage);

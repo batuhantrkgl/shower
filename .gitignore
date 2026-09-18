@@ -117,9 +117,10 @@ server/logs/
 server/*.log
 server/tmp/
 
+# Server build directory
+server/build/
+
 # Backup files
-# Backup files
-*.save
 *.save
 .VSCodeCounter
 
