@@ -20,7 +20,7 @@
     // Qt6 requires explicit QAudioOutput setup
     #define SETUP_AUDIO_OUTPUT(player) \
         do { \
-            QAudioOutput *audioOutput = new QAudioOutput(player->parent()); \
+            QAudioOutput *audioOutput = new QAudioOutput(player); \
             player->setAudioOutput(audioOutput); \
         } while(0)
     

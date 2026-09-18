@@ -58,8 +58,35 @@ void customMessageHandler(QtMsgType type, const QMessageLogContext &context, con
     fprintf(stderr, "%s\n", msg.toLocal8Bit().constData());
 }
 
+#ifndef _WIN32
+#include <signal.h>
+#include <execinfo.h>
+#include <unistd.h>
+#include <cstring>
+
+static void crashSignalHandler(int sig)
+{
+    void *callstack[64];
+    int frames = backtrace(callstack, 64);
+    fprintf(stderr, "\n=======================================================\n");
+    fprintf(stderr, "[FATAL CRASH] VideoTimeline crashed with signal %d (%s)!\n", sig, strsignal(sig));
+    fprintf(stderr, "Stack backtrace (%d frames):\n", frames);
+    backtrace_symbols_fd(callstack, frames, STDERR_FILENO);
+    fprintf(stderr, "=======================================================\n\n");
+    _exit(128 + sig);
+}
+#endif
+
 int main(int argc, char *argv[])
 {
+#ifndef _WIN32
+    signal(SIGSEGV, crashSignalHandler);
+    signal(SIGABRT, crashSignalHandler);
+    signal(SIGILL, crashSignalHandler);
+    signal(SIGFPE, crashSignalHandler);
+    signal(SIGBUS, crashSignalHandler);
+#endif
+
     QApplication a(argc, argv);
 
     // Set application properties

@@ -13,6 +13,7 @@
 #include <QWidget>
 #include <QApplication>
 #include <QScreen>
+#include <QWindow>
 #include <QResizeEvent>
 #include <QEvent>
 #include <QKeyEvent>
@@ -167,9 +168,6 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal for
     // Create diagnostics overlay
     m_diagnosticsOverlay = new DiagnosticsOverlay(this);
     
-    m_activityOverlay->raise();
-    m_activityOverlay->show();
-    
     LOG_INFO_CAT("UI components initialized", "Main");
 
     // Add widgets to layout (activity overlay and diagnostics overlay not in layout - they're floating)
@@ -252,10 +250,6 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal for
     QScreen *primaryScreen = QApplication::primaryScreen();
     if (primaryScreen) {
         setGeometry(primaryScreen->geometry());
-        showFullScreen();
-        
-        // Position the activity overlay over the video widget
-        QTimer::singleShot(100, this, &MainWindow::positionActivityOverlay);
     }
     
     LOG_INFO_CAT("MainWindow initialization complete", "Main");
@@ -263,6 +257,19 @@ MainWindow::MainWindow(bool autoDiscover, const QString &networkRange, qreal for
 
 MainWindow::~MainWindow()
 {
+}
+
+void MainWindow::showEvent(QShowEvent *event)
+{
+    QMainWindow::showEvent(event);
+    // Position and show overlay after window is exposed
+    QTimer::singleShot(100, this, [this]() {
+        if (m_activityOverlay) {
+            positionActivityOverlay();
+            m_activityOverlay->raise();
+            m_activityOverlay->show();
+        }
+    });
 }
 
 void MainWindow::onScheduleReceived(const QTime &schoolStart, const QTime &schoolEnd, const QList<ScheduleBlock> &schedule)
@@ -322,9 +329,14 @@ qreal MainWindow::getDpiForScreen(QWidget *widget)
     // Otherwise get actual screen DPI
     QScreen *screen = nullptr;
     if (widget) {
-        screen = widget->screen();
-    } else {
-        // Fallback to primary screen
+        if (widget->window() && widget->window()->windowHandle()) {
+            screen = widget->window()->windowHandle()->screen();
+        }
+        if (!screen) {
+            screen = widget->screen();
+        }
+    }
+    if (!screen) {
         screen = QApplication::primaryScreen();
     }
     

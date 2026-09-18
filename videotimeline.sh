@@ -659,6 +659,8 @@ Runner & Hardware Acceleration Options:
   -p, --port PORT      Server port (default: $DEFAULT_SERVER_PORT)
   -a, --auto-server    Start server automatically if not running
   -b, --build          Force rebuild client & server before running
+  --software, --safe-gpu  Force software rendering (safe for old Pentium / Intel GMA)
+  --no-hwaccel         Disable hardware accelerated decoding
   --hwaccel            Enable GPU hardware acceleration
   --nvidia             Force NVIDIA GPU (Prime offload + VDPAU + ffmpeg backend)
   --amd                Force AMD GPU (radeonsi + ffmpeg backend)
@@ -700,6 +702,7 @@ cmd_run() {
     local use_amd=false
     local use_gstreamer=false
     local debug_media=false
+    local use_software=false
     local app_args=()
 
     while [[ $# -gt 0 ]]; do
@@ -739,6 +742,14 @@ cmd_run() {
                 use_hwaccel=true
                 shift
                 ;;
+            --software|--safe-gpu)
+                use_software=true
+                shift
+                ;;
+            --no-hwaccel)
+                app_args+=("--no-hwaccel")
+                shift
+                ;;
             --debug-media)
                 debug_media=true
                 shift
@@ -753,6 +764,17 @@ cmd_run() {
                 ;;
         esac
     done
+
+    # Force software rendering if requested
+    if [ "$use_software" = true ]; then
+        print_info "Enabling software rendering mode (safe for legacy Intel/Pentium GPUs)..."
+        export LIBGL_ALWAYS_SOFTWARE=1
+        export QT_QUICK_BACKEND=software
+        export QT_XCB_GL_INTEGRATION=none
+        export MESA_LOADER_DRIVER_OVERRIDE=swrast
+        export FFMPEG_HWACCEL=none
+        app_args+=("--no-hwaccel")
+    fi
 
     # Force rebuild if requested
     if [ "$force_build" = true ]; then
