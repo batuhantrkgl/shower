@@ -3,11 +3,10 @@
 
 #include <QObject>
 #include <QString>
-#include <QFile>
-#include <QTextStream>
 #include <QMutex>
-#include <QDateTime>
-#include <QDebug>
+
+class QFile;
+class QTextStream;
 
 enum class LogLevel {
     Error,

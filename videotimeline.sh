@@ -116,6 +116,8 @@ Usage: $PROG build [OPTIONS]
 
 Options:
   all, -b, ""         Build both client and server (default)
+  -j, --jobs <N>      Number of parallel compilation jobs (auto-tuned by RAM)
+  --low-mem, --safe   Low-memory / low-CPU safe mode (single-threaded -j1, -O2)
   --server-only       Build only the HTTP server
   --client-only       Build only the client application
   --deps, -d          Install build dependencies for your Linux distribution
@@ -124,10 +126,12 @@ Options:
   -h, --help          Show this build help
 
 Examples:
-  $PROG build            # Build everything
-  $PROG build --deps     # Install Qt6 and compiler dependencies
-  $PROG build clean      # Remove build directories
-  $PROG build check      # Inspect tools and libraries
+  $PROG build                 # Build everything (auto-tuned for system RAM)
+  $PROG build -j 1            # Safe single-threaded build for low-RAM machines
+  $PROG build --low-mem       # Low-memory safe build (ideal for old Pentiums/RPi)
+  $PROG build --deps          # Install Qt6 and compiler dependencies
+  $PROG build clean           # Remove build directories
+  $PROG build check           # Inspect tools and libraries
 EOF
 }
 
@@ -257,16 +261,49 @@ check_build_environment() {
 }
 
 build_all() {
+    local jobs="$1"
+    local low_mem_mode="${2:-false}"
+
     check_qt
     print_info "Building VideoTimeline project..."
+
+    # Auto-detect available RAM
+    local total_mem_kb=0
+    if [ -f /proc/meminfo ]; then
+        total_mem_kb=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}' || echo 0)
+    fi
+
+    local cmake_extra_flags=()
+
+    if [ "$low_mem_mode" = true ] || [ "$total_mem_kb" -gt 0 -a "$total_mem_kb" -lt 3500000 ]; then
+        print_warning "Low system memory detected (<3.5GB). Using single-threaded safe build (-j1) with -O2."
+        [ -z "$jobs" ] && jobs=1
+        cmake_extra_flags+=("-DCMAKE_BUILD_TYPE=Release" "-DCMAKE_CXX_FLAGS_RELEASE=-O2")
+    else
+        if [ -z "$jobs" ]; then
+            jobs=$(nproc 2>/dev/null || echo 2)
+            if [ "$total_mem_kb" -gt 0 -a "$total_mem_kb" -lt 6500000 ] && [ "$jobs" -gt 2 ]; then
+                print_info "System memory is between 3.5GB and 6.5GB. Limiting parallel jobs to -j2."
+                jobs=2
+            fi
+        fi
+        cmake_extra_flags+=("-DCMAKE_BUILD_TYPE=Release" "-DCMAKE_CXX_FLAGS_RELEASE=-O2")
+    fi
+
+    # Check for experimental GCC 16+
+    local gcc_ver=$(g++ -dumpversion 2>/dev/null | cut -d. -f1 || echo 0)
+    if [ "$gcc_ver" -ge 16 ]; then
+        print_warning "Experimental GCC $gcc_ver detected. Enforcing -O2 and safe compiler flags to avoid GCC 16 ICE."
+        cmake_extra_flags+=("-DCMAKE_CXX_FLAGS=-O2")
+    fi
+
     mkdir -p "$CMAKE_BUILD_DIR"
     cd "$CMAKE_BUILD_DIR"
 
     print_info "Configuring project with CMake..."
-    cmake "$REPO_ROOT" -DCMAKE_BUILD_TYPE=Release
+    cmake "$REPO_ROOT" "${cmake_extra_flags[@]}"
 
-    print_info "Compiling project..."
-    local jobs=$(nproc 2>/dev/null || echo 4)
+    print_info "Compiling project with -j$jobs..."
     cmake --build . --config Release -j"$jobs"
 
     cd "$REPO_ROOT"
@@ -314,17 +351,31 @@ build_all() {
 }
 
 build_server_only() {
+    local jobs="$1"
+    local low_mem_mode="${2:-false}"
+
     print_info "Building VideoTimeline Server only..."
     if ! command -v cmake >/dev/null 2>&1; then
         print_error "CMake not found. Please install CMake."
         exit 1
     fi
 
+    local total_mem_kb=0
+    if [ -f /proc/meminfo ]; then
+        total_mem_kb=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}' || echo 0)
+    fi
+
+    if [ "$low_mem_mode" = true ] || [ "$total_mem_kb" -gt 0 -a "$total_mem_kb" -lt 3500000 ]; then
+        [ -z "$jobs" ] && jobs=1
+    else
+        [ -z "$jobs" ] && jobs=$(nproc 2>/dev/null || echo 2)
+    fi
+
     mkdir -p "$REPO_ROOT/server/build"
     cd "$REPO_ROOT/server/build"
 
     cmake .. -DCMAKE_BUILD_TYPE=Release
-    cmake --build . -j$(nproc 2>/dev/null || echo 4)
+    cmake --build . -j"$jobs"
 
     cd "$REPO_ROOT"
     mkdir -p "$BUILD_DIR/server"
@@ -341,34 +392,61 @@ build_server_only() {
 }
 
 cmd_build() {
-    case "${1:-all}" in
-        "all"|"-b"|"")
-            build_all
-            ;;
-        "--server-only"|"server")
-            build_server_only
-            ;;
-        "--client-only"|"client")
-            build_all
-            ;;
-        "--deps"|"-d"|"deps")
-            install_build_dependencies
-            ;;
-        "clean"|"-c")
-            clean_build
-            ;;
-        "check")
-            check_build_environment
-            ;;
-        "help"|"-h"|"--help")
-            show_build_usage
-            ;;
-        *)
-            print_error "Unknown build option: $1"
-            show_build_usage
-            exit 1
-            ;;
-    esac
+    local jobs=""
+    local low_mem=false
+    local target="all"
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -j|--jobs)
+                jobs="$2"
+                shift 2
+                ;;
+            --low-mem|--safe)
+                low_mem=true
+                shift
+                ;;
+            --server-only|server)
+                target="server"
+                shift
+                ;;
+            --client-only|client)
+                target="client"
+                shift
+                ;;
+            --deps|-d|deps)
+                install_build_dependencies
+                return 0
+                ;;
+            clean|-c)
+                clean_build
+                return 0
+                ;;
+            check)
+                check_build_environment
+                return 0
+                ;;
+            help|-h|--help)
+                show_build_usage
+                return 0
+                ;;
+            all|-b)
+                target="all"
+                shift
+                ;;
+            *)
+                print_error "Unknown build option: $1"
+                show_build_usage
+                exit 1
+                ;;
+        esac
+    done
+
+    if [ "$target" = "server" ]; then
+        build_server_only "$jobs" "$low_mem"
+    else
+        build_all "$jobs" "$low_mem"
+    fi
 }
 
 # ==============================================================================

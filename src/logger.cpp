@@ -1,4 +1,8 @@
 #include "logger.h"
+#include <QFile>
+#include <QTextStream>
+#include <QDateTime>
+#include <QDebug>
 #include <QStandardPaths>
 #include <QDir>
 #include <QFileInfo>
